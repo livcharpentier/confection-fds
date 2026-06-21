@@ -1191,89 +1191,118 @@ function removePrev(i) {
 
 // ═══════════════════════ APERCU ═══════════════════════
 function renderApercu() {
-  const f = activeFDS(); const el = document.getElementById('apercu-content'); if (!el || !f) return;
-  const i = f.infos || {}; const film = activeFilm();
-  const eq = f.equipe || {};
-  const LOGO = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 80" width="150"><line x1="0" y1="8" x2="300" y2="8" stroke="black" stroke-width="1.5"/><text x="150" y="58" font-family="Georgia,serif" font-size="48" font-weight="bold" text-anchor="middle" fill="black">AXEL FILMS</text><line x1="0" y1="72" x2="300" y2="72" stroke="black" stroke-width="1.5"/></svg>';
+  var f = activeFDS(); var el = document.getElementById('apercu-content'); if (!el || !f) return;
+  var i = f.infos || {}; var film = activeFilm();
+  var eq = f.equipe || {};
 
-  function lignesEq(dept) {
-    return (eq[dept]||[]).slice(0,4).map(m =>
-      '<tr><td style="padding:1px 4px;font-size:9px;color:#444">' + m.poste + '</td><td style="padding:1px 4px;font-size:9px;font-weight:600">' + m.nom + '</td></tr>'
-    ).join('');
+  function tr(poste, nom) {
+    return '<tr><td style="padding:1px 6px;font-size:9.5px;color:#8B6914;width:180px">' + poste + '</td><td style="padding:1px 6px;font-size:9.5px">' + nom + '</td></tr>';
+  }
+  function trBold(poste, nom) {
+    return '<tr><td style="padding:1px 6px;font-size:9.5px;color:#8B6914;width:180px">' + poste + '</td><td style="padding:1px 6px;font-size:9.5px;font-weight:600">' + nom + '</td></tr>';
+  }
+  function membresEq(dept) {
+    return (eq[dept]||[]).map(function(m){ return tr(m.poste, m.nom); }).join('');
   }
 
-  let h = '<div style="font-family:Arial,sans-serif;font-size:10px;line-height:1.4">';
+  var h = '<div style="font-family:Arial,sans-serif;font-size:10px;line-height:1.5;max-width:760px;margin:0 auto;background:#fff;padding:10px">';
 
-  // ENTETE
-  h += '<table style="width:100%;border-collapse:collapse;margin-bottom:4px"><tr>';
-  h += '<td style="width:160px;vertical-align:top">' + LOGO + '</td>';
-  h += '<td style="vertical-align:top;padding:0 8px"><table style="width:100%;border-collapse:collapse">';
-  h += lignesEq('realisateur') + lignesEq('production') + lignesEq('mise_en_scene') + lignesEq('regie');
-  h += '<tr><td colspan="2" style="padding:2px 4px;font-size:9px;font-style:italic"><u>Délégués de plateau :</u> Emilie JUSTIN – Christophe BOISSY</td></tr>';
-  h += '</table></td>';
-  h += '<td style="width:190px;vertical-align:top">';
-  h += '<div style="border:1px solid #ccc;padding:6px;text-align:center;margin-bottom:4px">';
-  h += '<div style="font-size:14px;font-weight:700">Horaires : ' + fmtTime(i.debut) + ' – ' + fmtTime(i.fin) + '</div>';
-  h += '<div style="font-size:18px;font-weight:900;margin:3px 0">PAT : ' + fmtTime(i.pat) + '</div>';
-  h += '<div style="font-size:10px;margin-top:4px">Repas à partir de : ' + fmtTime(i.repas) + '</div>';
+  // LOGO + TITRE FILM
+  h += '<div style="margin-bottom:8px">';
+  h += '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 280 65" width="140" style="display:block;margin-bottom:6px">';
+  h += '<line x1="0" y1="6" x2="280" y2="6" stroke="black" stroke-width="1.5"/>';
+  h += '<text x="4" y="50" font-family="Georgia,serif" font-size="46" font-weight="bold" fill="black">AXEL FILMS</text>';
+  h += '<line x1="0" y1="62" x2="280" y2="62" stroke="black" stroke-width="1.5"/>';
+  h += '</svg>';
+  h += '<div style="text-align:center;font-size:16px;font-weight:700;font-style:italic;margin:6px 0 2px">';
+  h += '&laquo;&nbsp;' + (film ? film.nom.toUpperCase() : 'TITRE DU FILM') + '&nbsp;&raquo;</div>';
+  h += '<div style="text-align:center;font-size:11px;margin-bottom:6px">Un film r\u00e9alis\u00e9 par <b>' + (film ? film.real || '' : '') + '</b></div>';
   h += '</div>';
-  h += '<div style="font-size:8.5px;border:1px solid #ccc;padding:4px">';
-  h += 'Météo : ' + (i.meteo||'—') + '<br>';
-  h += 'Crépuscule matin : ' + (fmtTime(i.crep_m)||'—') + '<br>';
-  h += 'Crépuscule soir : ' + (fmtTime(i.crep_s)||'—') + '<br>';
-  h += 'Lever : ' + (fmtTime(i.lever)||'—') + ' / Coucher : ' + (fmtTime(i.coucher)||'—');
-  h += '</div></td></tr></table>';
+
+  // TABLEAU PRINCIPAL : equipe | horaires/meteo
+  h += '<table style="width:100%;border-collapse:collapse;border:1px solid #999;margin-bottom:6px"><tr>';
+
+  // Colonne equipe
+  h += '<td style="vertical-align:top;border-right:1px solid #999;padding:0">';
+  h += '<table style="width:100%;border-collapse:collapse">';
+  h += membresEq('realisateur');
+  h += '<tr><td colspan="2" style="padding:3px 0"></td></tr>';
+  h += membresEq('production');
+  h += '<tr><td colspan="2" style="padding:3px 0"></td></tr>';
+  h += membresEq('mise_en_scene');
+  h += '<tr><td colspan="2" style="padding:3px 0"></td></tr>';
+  h += membresEq('regie');
+  h += '<tr><td colspan="2" style="padding:2px 6px;font-size:9px;font-style:italic"><u>D\u00e9l\u00e9gu\u00e9s de plateau :</u> Emilie JUSTIN \u2013 Christophe BOISSY</td></tr>';
+  h += '</table></td>';
+
+  // Colonne horaires + meteo
+  h += '<td style="vertical-align:top;width:240px;padding:0">';
+  h += '<div style="padding:10px;text-align:center;border-bottom:1px solid #999">';
+  h += '<div style="font-size:18px;font-weight:600">Horaires\u00a0: ' + fmtTime(i.debut) + '\u00a0\u2013\u00a0' + fmtTime(i.fin) + '</div>';
+  h += '<div style="font-size:24px;font-weight:800;margin:4px 0">PAT\u00a0: ' + fmtTime(i.pat) + '</div>';
+  h += '</div>';
+  h += '<div style="padding:8px;text-align:left;border-bottom:1px solid #999;font-size:11px;font-weight:600">Repas \u00e0 partir de\u00a0: ' + fmtTime(i.repas) + '</div>';
+  h += '<div style="padding:6px;font-size:8.5px;display:grid;grid-template-columns:1fr 1fr;gap:2px">';
+  h += '<div>M\u00e9t\u00e9o\u00a0: ' + (i.meteo||'\u2014') + '</div>';
+  h += '<div>Temp\u00e9rature\u00a0: ' + (i.meteo||'\u2014') + '</div>';
+  h += '<div>Cr\u00e9puscule matin\u00a0: ' + (fmtTime(i.crep_m)||'\u2014') + '</div>';
+  h += '<div>Lever\u00a0: ' + (fmtTime(i.lever)||'\u2014') + '</div>';
+  h += '<div>Cr\u00e9puscule soir\u00a0: ' + (fmtTime(i.crep_s)||'\u2014') + '</div>';
+  h += '<div>Coucher\u00a0: ' + (fmtTime(i.coucher)||'\u2014') + '</div>';
+  h += '</div></td>';
+  h += '</tr></table>';
 
   // TITRE JOURNEE
-  h += '<div style="background:#222;color:#fff;display:flex;justify-content:space-between;align-items:center;padding:6px 10px;margin-bottom:6px">';
-  h += '<span style="font-size:13px;font-weight:800;letter-spacing:1px">FEUILLE DE SERVICE DU ' + (i.date||'').toUpperCase() + '</span>';
-  h += '<span style="font-size:20px;font-weight:900">' + (i.journee||'') + '</span></div>';
+  h += '<div style="background:#d0d0d0;display:flex;justify-content:space-between;align-items:center;padding:7px 14px;margin-bottom:6px;border:1px solid #999">';
+  h += '<span style="font-size:15px;font-weight:800;letter-spacing:0.5px">FEUILLE DE SERVICE DU ' + (i.date||'').toUpperCase() + '</span>';
+  h += '<span style="font-size:18px;font-weight:900;border-left:2px solid #999;padding-left:14px">' + (i.journee||'') + '</span>';
+  h += '</div>';
 
   // NOTE EQUIPE
   if (i.note) {
     h += '<div style="border:1px solid #ccc;padding:8px;margin-bottom:6px;text-align:center">';
-    h += '<u><b>Note à l\'\u00e9quipe</b></u><br>';
+    h += '<u><b>Note \u00e0 l\u2019\u00e9quipe</b></u><br>';
     h += '<span style="color:#cc0000;font-style:italic;font-size:9px">' + i.note.replace(/\n/g,'<br>') + '</span></div>';
   }
 
   // ECOPROD
   h += '<div style="border:1px solid #ccc;padding:6px;text-align:center;font-size:9px;margin-bottom:6px">';
-  h += '<b>🌿 ECOPROD 🌿</b><br>Chaque geste compte !<br>N\'h\u00e9sitez pas à ramener votre gourde ou votre ecocup<br>Restons responsable !</div>';
+  h += '<b>ECOPROD</b><br>Chaque geste compte !<br>N\u2019h\u00e9sitez pas \u00e0 ramener votre gourde ou votre ecocup<br>Restons responsable !</div>';
 
   // PREVENTION HARCELEMENT
   h += '<div style="border:2px solid #d4a000;background:#fff8e1;padding:8px;font-size:8.5px;margin-bottom:8px;text-align:center">';
-  h += '<div style="font-weight:700;text-decoration:underline;font-size:10px;margin-bottom:3px">PRÉVENTION HARCÈLEMENT</div>';
-  h += 'Toute personne s\'estimant victime de harcèlement peut s\'adresser aux référents de notre film<br>';
-  h += '<b>Louise Jacquet – Nina Allimann</b><br>';
-  h += '(cf. convocation pour les numéros de téléphone) et/ou envoyer un mail à l\'adresse <b>axelfilmsproduction@gmail.com</b><br>';
-  h += 'Au médecin du travail – Centre Thalie Santé : (+33)1 49 27 60 00 / Au CCHSCT : (+33)1 53 89 01 30 /<br>';
-  h += 'Au N° vert AP-HP St Antoine : +33 800 00 46 41 / Au N° d\'urgence du Ministère de la Justice : +33 884 284 63</div>';
+  h += '<div style="font-weight:700;text-decoration:underline;font-size:10px;margin-bottom:3px">PR\u00c9VENTION HARC\u00c8LEMENT</div>';
+  h += 'Toute personne s\u2019estimant victime de harc\u00e8lement peut s\u2019adresser aux r\u00e9f\u00e9rents de notre film<br>';
+  h += '<b>Louise Jacquet \u2013 Nina Allimann</b><br>';
+  h += '(cf. convocation pour les num\u00e9ros de t\u00e9l\u00e9phone) et/ou envoyer un mail \u00e0 l\u2019adresse <b>axelfilmsproduction@gmail.com</b><br>';
+  h += 'Au m\u00e9decin du travail \u2013 Centre Thalie Sant\u00e9 : (+33)1 49 27 60 00 / Au CCHSCT : (+33)1 53 89 01 30 /<br>';
+  h += 'Au N\u00b0 vert AP-HP St Antoine : +33 800 00 46 41 / Au N\u00b0 d\u2019urgence du Minist\u00e8re de la Justice : +33 884 284 63</div>';
 
   // LIEUX
   if (f.lieux && f.lieux.length) {
-    h += '<table style="width:100%;border-collapse:collapse;border:1px solid #ccc;margin-bottom:6px">';
+    h += '<table style="width:100%;border-collapse:collapse;border:1px solid #999;margin-bottom:6px">';
     f.lieux.forEach(function(l) {
-      if (l.valeur) h += '<tr><td style="border:1px solid #ccc;padding:3px 8px;font-size:9px;font-weight:700;text-align:right;width:220px">' + l.label.toUpperCase() + ' :</td><td style="border:1px solid #ccc;padding:3px 8px;font-size:9px">' + l.valeur + '</td></tr>';
+      if (l.valeur) h += '<tr><td style="border:1px solid #999;padding:3px 10px;font-size:9.5px;font-weight:700;text-align:right;width:220px;white-space:nowrap">' + l.label.toUpperCase() + ' :</td><td style="border:1px solid #999;padding:3px 10px;font-size:9.5px">' + l.valeur + '</td></tr>';
     });
     h += '</table>';
   }
 
   // SEQUENCES
   if (f.sequences && f.sequences.length) {
-    h += '<table style="width:100%;border-collapse:collapse;border:1px solid #ccc;margin-bottom:6px">';
-    h += '<tr style="background:#eee"><th style="padding:3px;font-size:9px;border:1px solid #ccc">SEQ</th><th style="padding:3px;font-size:9px;border:1px solid #ccc">EFFET</th><th style="padding:3px;font-size:9px;border:1px solid #ccc">DÉCOR</th><th style="padding:3px;font-size:9px;border:1px solid #ccc">RÉSUMÉ</th><th style="padding:3px;font-size:9px;border:1px solid #ccc">RÔLES</th><th style="padding:3px;font-size:9px;border:1px solid #ccc">MIN</th></tr>';
+    h += '<table style="width:100%;border-collapse:collapse;border:1px solid #999;margin-bottom:6px">';
+    h += '<tr style="background:#eee"><th style="padding:3px 6px;font-size:9px;border:1px solid #999;text-align:left">SEQ</th><th style="padding:3px 6px;font-size:9px;border:1px solid #999;text-align:left">EFFET</th><th style="padding:3px 6px;font-size:9px;border:1px solid #999;text-align:left">D\u00c9COR</th><th style="padding:3px 6px;font-size:9px;border:1px solid #999;text-align:left">R\u00c9SUM\u00c9</th><th style="padding:3px 6px;font-size:9px;border:1px solid #999;text-align:left">R\u00d4LES</th><th style="padding:3px 6px;font-size:9px;border:1px solid #999;text-align:left">MIN</th></tr>';
     f.sequences.forEach(function(s) {
-      h += '<tr><td style="padding:2px 4px;font-size:9px;border:1px solid #ccc;font-weight:700">' + s.num + '</td><td style="padding:2px 4px;font-size:9px;border:1px solid #ccc">' + (s.effet||'') + '</td><td style="padding:2px 4px;font-size:9px;border:1px solid #ccc">' + (s.decor||'') + '</td><td style="padding:2px 4px;font-size:9px;border:1px solid #ccc">' + (s.resume||'') + '</td><td style="padding:2px 4px;font-size:9px;border:1px solid #ccc">' + (s.roles||'') + '</td><td style="padding:2px 4px;font-size:9px;border:1px solid #ccc">' + (s.duree||'') + '</td></tr>';
+      h += '<tr><td style="padding:2px 6px;font-size:9.5px;border:1px solid #999;font-weight:700">' + (s.num||'') + '</td><td style="padding:2px 6px;font-size:9.5px;border:1px solid #999">' + (s.effet||'') + '</td><td style="padding:2px 6px;font-size:9.5px;border:1px solid #999">' + (s.decor||'') + '</td><td style="padding:2px 6px;font-size:9.5px;border:1px solid #999">' + (s.resume||'') + '</td><td style="padding:2px 6px;font-size:9.5px;border:1px solid #999">' + (s.roles||'') + '</td><td style="padding:2px 6px;font-size:9.5px;border:1px solid #999">' + (s.duree||'') + '</td></tr>';
     });
     h += '</table>';
   }
 
   // COMEDIENS
   if (f.comediens && f.comediens.length) {
-    h += '<table style="width:100%;border-collapse:collapse;border:1px solid #ccc;margin-bottom:6px">';
-    h += '<tr style="background:#eee"><th style="padding:3px;font-size:9px;border:1px solid #ccc">N°</th><th style="padding:3px;font-size:9px;border:1px solid #ccc">RÔLE</th><th style="padding:3px;font-size:9px;border:1px solid #ccc">COMÉDIEN</th><th style="padding:3px;font-size:9px;border:1px solid #ccc">SÉQUENCES</th><th style="padding:3px;font-size:9px;border:1px solid #ccc">HMC</th><th style="padding:3px;font-size:9px;border:1px solid #ccc">Loges</th><th style="padding:3px;font-size:9px;border:1px solid #ccc">PAT</th></tr>';
+    h += '<table style="width:100%;border-collapse:collapse;border:1px solid #999;margin-bottom:6px">';
+    h += '<tr style="background:#eee"><th style="padding:3px 6px;font-size:9px;border:1px solid #999">N\u00b0</th><th style="padding:3px 6px;font-size:9px;border:1px solid #999">R\u00d4LES</th><th style="padding:3px 6px;font-size:9px;border:1px solid #999">COM\u00c9DIENS</th><th style="padding:3px 6px;font-size:9px;border:1px solid #999">S\u00c9QUENCES</th><th style="padding:3px 6px;font-size:9px;border:1px solid #999">HMC</th><th style="padding:3px 6px;font-size:9px;border:1px solid #999">D\u00e9part Loges</th><th style="padding:3px 6px;font-size:9px;border:1px solid #999">PAT</th></tr>';
     f.comediens.forEach(function(c) {
-      h += '<tr><td style="padding:2px 4px;font-size:9px;border:1px solid #ccc">' + (c.num||'') + '</td><td style="padding:2px 4px;font-size:9px;border:1px solid #ccc;font-weight:700">' + (c.role||'') + '</td><td style="padding:2px 4px;font-size:9px;border:1px solid #ccc">' + (c.nom||'') + '</td><td style="padding:2px 4px;font-size:9px;border:1px solid #ccc">' + (c.seqs||'') + '</td><td style="padding:2px 4px;font-size:9px;border:1px solid #ccc">' + fmtTime(c.hmc) + '</td><td style="padding:2px 4px;font-size:9px;border:1px solid #ccc">' + fmtTime(c.loges) + '</td><td style="padding:2px 4px;font-size:9px;border:1px solid #ccc;font-weight:700">' + fmtTime(c.pat) + '</td></tr>';
+      h += '<tr><td style="padding:2px 6px;font-size:9.5px;border:1px solid #999">' + (c.num||'') + '</td><td style="padding:2px 6px;font-size:9.5px;border:1px solid #999;font-weight:700">' + (c.role||'') + '</td><td style="padding:2px 6px;font-size:9.5px;border:1px solid #999">' + (c.nom||'') + '</td><td style="padding:2px 6px;font-size:9.5px;border:1px solid #999">' + (c.seqs||'') + '</td><td style="padding:2px 6px;font-size:9.5px;border:1px solid #999">' + fmtTime(c.hmc) + '</td><td style="padding:2px 6px;font-size:9.5px;border:1px solid #999">' + fmtTime(c.loges) + '</td><td style="padding:2px 6px;font-size:9.5px;border:1px solid #999;font-weight:700">' + fmtTime(c.pat) + '</td></tr>';
     });
     h += '</table>';
   }
@@ -1282,19 +1311,19 @@ function renderApercu() {
   Object.keys(DEPT_LABELS).forEach(function(d) {
     var note = f.deptNotes && f.deptNotes[d];
     if (note && note.trim()) {
-      h += '<div style="margin-bottom:5px"><div style="font-weight:800;font-size:10px;text-decoration:underline;margin-bottom:2px">' + DEPT_LABELS[d].toUpperCase() + '</div>';
-      h += '<div style="font-size:9px;white-space:pre-wrap">' + note + '</div></div>';
+      h += '<div style="margin-bottom:6px"><div style="font-weight:800;font-size:10px;text-decoration:underline;margin-bottom:2px">' + DEPT_LABELS[d].toUpperCase() + '</div>';
+      h += '<div style="font-size:9.5px;white-space:pre-wrap">' + note + '</div></div>';
     }
   });
 
   // TRANSPORTS
   if (f.transports && f.transports.length) {
-    h += '<div style="font-weight:800;font-size:10px;text-decoration:underline;margin:6px 0 3px">TRANSPORTS COMÉDIENS – ' + (i.date||'').toUpperCase() + '</div>';
-    h += '<table style="width:100%;border-collapse:collapse;border:1px solid #ccc;margin-bottom:6px">';
-    h += '<tr style="background:#eee"><th style="padding:3px;font-size:9px;border:1px solid #ccc">NOMS</th><th style="padding:3px;font-size:9px;border:1px solid #ccc">CHAUFFEUR</th><th style="padding:3px;font-size:9px;border:1px solid #ccc">PICK-UP</th><th style="padding:3px;font-size:9px;border:1px solid #ccc">LIEUX</th><th style="padding:3px;font-size:9px;border:1px solid #ccc">PAT</th></tr>';
+    h += '<div style="font-weight:800;font-size:10px;text-decoration:underline;margin:6px 0 3px">TRANSPORTS COM\u00c9DIENS \u2013 ' + (i.date||'').toUpperCase() + '</div>';
+    h += '<table style="width:100%;border-collapse:collapse;border:1px solid #999;margin-bottom:6px">';
+    h += '<tr style="background:#eee"><th style="padding:3px 6px;font-size:9px;border:1px solid #999">NOMS</th><th style="padding:3px 6px;font-size:9px;border:1px solid #999">CHAUFFEUR</th><th style="padding:3px 6px;font-size:9px;border:1px solid #999">PICK-UP</th><th style="padding:3px 6px;font-size:9px;border:1px solid #999">LIEUX</th><th style="padding:3px 6px;font-size:9px;border:1px solid #999">PAT</th></tr>';
     f.transports.forEach(function(t) {
       var pickup = t.pat ? calcPickup(t.pat, estimerTrajet(t.depart, t.arrivee)) : 'Sur tel';
-      h += '<tr><td style="padding:2px 4px;font-size:9px;border:1px solid #ccc;font-weight:700">' + t.comedien + '</td><td style="padding:2px 4px;font-size:9px;border:1px solid #ccc">' + t.chauffeur + '</td><td style="padding:2px 4px;font-size:9px;border:1px solid #ccc;font-weight:700">' + pickup + '</td><td style="padding:2px 4px;font-size:9px;border:1px solid #ccc">' + t.depart + '</td><td style="padding:2px 4px;font-size:9px;border:1px solid #ccc">' + fmtTime(t.pat) + '</td></tr>';
+      h += '<tr><td style="padding:2px 6px;font-size:9.5px;border:1px solid #999;font-weight:700">' + t.comedien + '</td><td style="padding:2px 6px;font-size:9.5px;border:1px solid #999">' + t.chauffeur + '</td><td style="padding:2px 6px;font-size:9.5px;border:1px solid #999;font-weight:700">' + pickup + '</td><td style="padding:2px 6px;font-size:9.5px;border:1px solid #999">' + t.depart + '</td><td style="padding:2px 6px;font-size:9.5px;border:1px solid #999">' + fmtTime(t.pat) + '</td></tr>';
     });
     h += '</table>';
   }
@@ -1302,11 +1331,11 @@ function renderApercu() {
   // PREVISIONS
   if (f.previsions && f.previsions.length) {
     f.previsions.forEach(function(p) {
-      h += '<div style="border:1px solid #ccc;padding:6px;margin-bottom:6px;font-size:9px">';
-      h += '<div style="font-weight:800;font-size:10px">PRÉVISIONS DU ' + (p.journee||'').toUpperCase() + ' &nbsp; HORAIRES : ' + (p.horaires||'') + '</div>';
-      if (p.decors) h += '<div><b>DÉCORS / LIEU :</b> ' + p.decors + '</div>';
-      if (p.seqs)   h += '<div><b>SÉQUENCES :</b> ' + p.seqs + '</div>';
-      if (p.roles)  h += '<div><b>RÔLES / COMÉDIENS :</b> ' + p.roles + '</div>';
+      h += '<div style="border:1px solid #999;padding:6px;margin-bottom:6px;font-size:9.5px">';
+      h += '<div style="font-weight:800;font-size:10px">PR\u00c9VISIONS DU ' + (p.journee||'').toUpperCase() + ' \u2013 HORAIRES\u00a0: ' + (p.horaires||'') + '</div>';
+      if (p.decors) h += '<div><b>D\u00c9CORS / LIEU\u00a0:</b> ' + p.decors + '</div>';
+      if (p.seqs)   h += '<div><b>S\u00c9QUENCES\u00a0:</b> ' + p.seqs + '</div>';
+      if (p.roles)  h += '<div><b>R\u00d4LES / COM\u00c9DIENS\u00a0:</b> ' + p.roles + '</div>';
       if (p.notes)  h += '<div style="color:#555;margin-top:3px">' + p.notes + '</div>';
       h += '</div>';
     });
@@ -1315,7 +1344,6 @@ function renderApercu() {
   h += '</div>';
   el.innerHTML = h;
 }
-
 function envoyerProd() {
   const f = activeFDS(); const film = activeFilm(); if (!f) return;
   const i = f.infos || {};
