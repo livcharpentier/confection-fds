@@ -378,11 +378,22 @@ textarea.form-input{resize:vertical;min-height:72px;}
 
       <!-- TRANSPORTS -->
       <div class="spanel" id="sp-transports">
+        <div class="card" style="margin-bottom:10px">
+          <div class="card-title">
+            Adresse d'arrivée (décor du jour)
+          </div>
+          <div style="display:flex;gap:8px;align-items:center">
+            <input class="form-input" id="tr-decor-arrivee" placeholder="Ex: D965, 89130 Mézilles" style="flex:1" oninput="refreshTransportCalc()"/>
+            <button class="btn btn-sm btn-primary" onclick="preRemplirTransports()">⟳ Pré-remplir</button>
+          </div>
+          <div style="font-size:11px;color:var(--text-muted);margin-top:4px">Rempli automatiquement depuis le premier lieu de la journée</div>
+        </div>
+
         <div class="card">
           <div class="card-title">Transports comédiens
-            <button class="btn btn-sm btn-primary" onclick="openModal('modal-transport')">+ Ajouter</button>
+            <button class="btn btn-sm btn-secondary" onclick="openModal('modal-transport')">+ Manuel</button>
           </div>
-          <div id="transport-list"><div class="empty">Aucun transport</div></div>
+          <div id="transport-list"><div class="empty">Cliquez ⟳ Pré-remplir pour charger les comédiens</div></div>
         </div>
       </div>
 
