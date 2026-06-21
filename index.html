@@ -1311,6 +1311,41 @@ function removePrev(i) {
 }
 
 // ═══════════════════════ APERCU ═══════════════════════
+
+function pencilInline(action, label) {
+  return '<button onclick="' + action + '" style="background:none;border:none;cursor:pointer;padding:1px 4px;vertical-align:middle;opacity:0.5" title="Modifier ' + label + '">' +
+    '<svg viewBox="0 0 24 24" fill="none" stroke="#333" stroke-width="2" style="width:12px;height:12px">' +
+    '<path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>' +
+    '<path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>';
+}
+
+function goToTab(tabName, fdsId) {
+  if (fdsId) activeFdsId = fdsId;
+  // Aller sur la page edit
+  showPage('edit');
+  // Activer le bon onglet
+  var tabs = document.querySelectorAll('.stab');
+  var panels = document.querySelectorAll('.spanel');
+  var names = ['infos','sequences','comediens','figuration','dept','equipe','transports','previsions','apercu'];
+  tabs.forEach(function(t){ t.classList.remove('active'); });
+  panels.forEach(function(p){ p.classList.remove('active'); });
+  var idx = names.indexOf(tabName);
+  if (idx >= 0 && tabs[idx]) {
+    tabs[idx].classList.add('active');
+    var panel = document.getElementById('sp-' + tabName);
+    if (panel) panel.classList.add('active');
+  }
+  // Appeler le bon render
+  if (tabName === 'comediens') renderComediensList();
+  if (tabName === 'figuration') renderFigurationTab();
+  if (tabName === 'dept') { currentDept = 'decoration'; renderDeptPills(); loadDeptNote(); }
+  if (tabName === 'equipe') { renderEquipePills(); renderEquipeList(); }
+  if (tabName === 'transports') renderTransportList();
+  if (tabName === 'previsions') renderPrevList();
+  if (tabName === 'sequences') renderSeqList();
+  if (tabName === 'infos') loadInfosForm();
+}
+
 function renderApercu() {
   var f = activeFDS(); var el = document.getElementById('apercu-content'); if (!el || !f) return;
   var i = f.infos || {}; var film = activeFilm();
@@ -1378,12 +1413,13 @@ function renderApercu() {
   h += '<div style="background:#ccc;display:flex;justify-content:space-between;align-items:center;padding:6px 12px;margin-bottom:6px;border:1px solid #999">';
   h += '<span style="flex:1;text-align:center;font-size:14px;font-weight:800">FEUILLE DE SERVICE DU ' + (i.date||'').toUpperCase() + '</span>';
   h += '<span style="font-size:17px;font-weight:900;border-left:2px solid #999;padding-left:12px;flex-shrink:0">' + (i.journee||'') + '</span>';
+  h += pencilInline("goToTab(\'infos\')", "les infos");
   h += '</div>';
 
   // NOTE EQUIPE
   if (i.note) {
     h += '<div style="border:1px solid #ccc;padding:8px;margin-bottom:5px;text-align:center">';
-    h += '<u><b>Note \u00e0 l\u2019\u00e9quipe</b></u><br>';
+    h += '<u><b>Note \u00e0 l\u2019\u00e9quipe</b></u>' + pencilInline("goToTab(\'infos\')","la note") + '<br>';
     h += '<span style="color:#cc0000;font-style:italic;font-size:9px">' + i.note.replace(/\n/g,'<br>') + '</span></div>';
   }
 
@@ -1415,6 +1451,7 @@ function renderApercu() {
   // SEQUENCES
   if (f.sequences && f.sequences.length) {
     h += '<table style="width:100%;border-collapse:collapse;margin-bottom:8px">';
+    h += '<caption style="caption-side:top;text-align:left;font-size:9px;font-weight:700;padding:3px 0">S\u00c9QUENCES ' + pencilInline("goToTab(\'sequences\')","les s\u00e9quences") + '</caption>';
     h += '<tr>'+th('SEQ','45px')+th('EFFET','45px')+th('D\u00c9COR')+th('R\u00c9SUM\u00c9')+th('R\u00d4LES','55px')+th('CONT.','75px')+th('MIN','48px')+'</tr>';
     f.sequences.forEach(function(s) {
       h += '<tr>'+td(s.num,'',true,true)+td(s.effet,'',false,true)+td(s.decor,'',true,true)+
@@ -1435,11 +1472,14 @@ function renderApercu() {
 
   if (roles.length) {
     h += '<table style="width:100%;border-collapse:collapse;margin-bottom:3px">';
+    h += '<caption style="caption-side:top;text-align:left;font-size:9px;font-weight:700;padding:3px 0">COM\u00c9DIENS ' + pencilInline("goToTab(\'comediens\')","les com\u00e9diens") + '</caption>';
     h += '<tr>'+th('N\u00b0','35px')+th('R\u00d4LES ('+roles.length+')')+th('COM\u00c9DIENS')+
          th('S\u00c9QUENCES')+th('HMC','60px')+th('D\u00e9part Loges','70px')+th('PAT','55px')+'</tr>';
     roles.forEach(function(c) {
+      var cidx = (f.comediens||[]).indexOf(c);
       h += '<tr>'+td(c.num,'',false,true)+td(c.role,'',true,false)+td(c.nom,'',false,false)+
-           td(c.seqs,'',false,true)+td(fmtTime(c.hmc),'',false,true)+td(fmtTime(c.loges),'',false,true)+td(fmtTime(c.pat),'',true,true)+'</tr>';
+           td(c.seqs,'',false,true)+td(fmtTime(c.hmc),'',false,true)+td(fmtTime(c.loges),'',false,true)+td(fmtTime(c.pat),'',true,true)+
+           '<td style="padding:2px;border:1px solid #999;text-align:center">' + pencilInline('openEditComedien('+cidx+')',c.role) + '</td>'+'</tr>';
     });
     h += '</table>';
   }
@@ -1481,7 +1521,7 @@ function renderApercu() {
   DEPT_ORDER.forEach(function(d) {
     var note = (f.deptNotes && f.deptNotes[d]) || '';
     h += '<table style="width:100%;border-collapse:collapse;margin-bottom:2px">';
-    h += '<tr><td colspan="2" style="background:#e8e8e8;padding:2px 6px;font-size:9px;font-weight:700;font-style:italic;border:1px solid #999">' + DEPT_LABELS[d].toUpperCase() + '</td></tr>';
+    h += '<tr><td colspan="2" style="background:#e8e8e8;padding:2px 6px;font-size:9px;font-weight:700;font-style:italic;border:1px solid #999">' + DEPT_LABELS[d].toUpperCase() + pencilInline("(function(){currentDept='"+d+"';goToTab(\'dept\');})()",DEPT_LABELS[d]) + '</td></tr>';
     h += '<tr><td style="padding:3px 6px;font-size:9px;border:1px solid #999;white-space:pre-wrap;min-height:16px">'+(note||'&nbsp;')+'</td></tr>';
     h += '</table>';
   });
@@ -1491,6 +1531,7 @@ function renderApercu() {
 
   var transJour = (f.transports||[]).filter(function(t){ return !t.type || t.type==='' || t.type==='jour'; });
   h += '<table style="width:100%;border-collapse:collapse;margin-bottom:6px">';
+  h += '<caption style="caption-side:top;text-align:left;font-size:9px;font-weight:700;padding:3px 0">TRANSPORTS ' + pencilInline("goToTab(\'transports\')","les transports") + '</caption>';
   h += secHead('TRANSPORTS COM\u00c9DIENS \u2013 ' + (i.date||'').toUpperCase(), 6);
   h += '<tr>'+th('NOMS')+th('CHAUFFEUR')+th('PICK-UP','65px')+th('LIEUX')+th('SUR PLACE','65px')+th('PAT','55px')+'</tr>';
   if (transJour.length) {
@@ -1647,12 +1688,13 @@ function renderApercu() {
   h += '<div style="background:#ccc;display:flex;justify-content:space-between;align-items:center;padding:6px 12px;margin-bottom:6px;border:1px solid #999">';
   h += '<span style="flex:1;text-align:center;font-size:14px;font-weight:800">FEUILLE DE SERVICE DU ' + (i.date||'').toUpperCase() + '</span>';
   h += '<span style="font-size:17px;font-weight:900;border-left:2px solid #999;padding-left:12px;flex-shrink:0">' + (i.journee||'') + '</span>';
+  h += pencilInline("goToTab(\'infos\')", "les infos");
   h += '</div>';
 
   // NOTE EQUIPE
   if (i.note) {
     h += '<div style="border:1px solid #ccc;padding:8px;margin-bottom:5px;text-align:center">';
-    h += '<u><b>Note \u00e0 l\u2019\u00e9quipe</b></u><br>';
+    h += '<u><b>Note \u00e0 l\u2019\u00e9quipe</b></u>' + pencilInline("goToTab(\'infos\')","la note") + '<br>';
     h += '<span style="color:#cc0000;font-style:italic;font-size:9px">' + i.note.replace(/\n/g,'<br>') + '</span></div>';
   }
 
@@ -1684,6 +1726,7 @@ function renderApercu() {
   // SEQUENCES
   if (f.sequences && f.sequences.length) {
     h += '<table style="width:100%;border-collapse:collapse;margin-bottom:8px">';
+    h += '<caption style="caption-side:top;text-align:left;font-size:9px;font-weight:700;padding:3px 0">S\u00c9QUENCES ' + pencilInline("goToTab(\'sequences\')","les s\u00e9quences") + '</caption>';
     h += '<tr>'+th('SEQ','45px')+th('EFFET','45px')+th('D\u00c9COR')+th('R\u00c9SUM\u00c9')+th('R\u00d4LES','55px')+th('CONT.','75px')+th('MIN','48px')+'</tr>';
     f.sequences.forEach(function(s) {
       h += '<tr>'+td(s.num,'',true,true)+td(s.effet,'',false,true)+td(s.decor,'',true,true)+
@@ -1704,11 +1747,14 @@ function renderApercu() {
 
   if (roles.length) {
     h += '<table style="width:100%;border-collapse:collapse;margin-bottom:3px">';
+    h += '<caption style="caption-side:top;text-align:left;font-size:9px;font-weight:700;padding:3px 0">COM\u00c9DIENS ' + pencilInline("goToTab(\'comediens\')","les com\u00e9diens") + '</caption>';
     h += '<tr>'+th('N\u00b0','35px')+th('R\u00d4LES ('+roles.length+')')+th('COM\u00c9DIENS')+
          th('S\u00c9QUENCES')+th('HMC','60px')+th('D\u00e9part Loges','70px')+th('PAT','55px')+'</tr>';
     roles.forEach(function(c) {
+      var cidx = (f.comediens||[]).indexOf(c);
       h += '<tr>'+td(c.num,'',false,true)+td(c.role,'',true,false)+td(c.nom,'',false,false)+
-           td(c.seqs,'',false,true)+td(fmtTime(c.hmc),'',false,true)+td(fmtTime(c.loges),'',false,true)+td(fmtTime(c.pat),'',true,true)+'</tr>';
+           td(c.seqs,'',false,true)+td(fmtTime(c.hmc),'',false,true)+td(fmtTime(c.loges),'',false,true)+td(fmtTime(c.pat),'',true,true)+
+           '<td style="padding:2px;border:1px solid #999;text-align:center">' + pencilInline('openEditComedien('+cidx+')',c.role) + '</td>'+'</tr>';
     });
     h += '</table>';
   }
@@ -1750,7 +1796,7 @@ function renderApercu() {
   DEPT_ORDER.forEach(function(d) {
     var note = (f.deptNotes && f.deptNotes[d]) || '';
     h += '<table style="width:100%;border-collapse:collapse;margin-bottom:2px">';
-    h += '<tr><td colspan="2" style="background:#e8e8e8;padding:2px 6px;font-size:9px;font-weight:700;font-style:italic;border:1px solid #999">' + DEPT_LABELS[d].toUpperCase() + '</td></tr>';
+    h += '<tr><td colspan="2" style="background:#e8e8e8;padding:2px 6px;font-size:9px;font-weight:700;font-style:italic;border:1px solid #999">' + DEPT_LABELS[d].toUpperCase() + pencilInline("(function(){currentDept='"+d+"';goToTab(\'dept\');})()",DEPT_LABELS[d]) + '</td></tr>';
     h += '<tr><td style="padding:3px 6px;font-size:9px;border:1px solid #999;white-space:pre-wrap;min-height:16px">'+(note||'&nbsp;')+'</td></tr>';
     h += '</table>';
   });
@@ -1760,6 +1806,7 @@ function renderApercu() {
 
   var transJour = (f.transports||[]).filter(function(t){ return !t.type || t.type==='' || t.type==='jour'; });
   h += '<table style="width:100%;border-collapse:collapse;margin-bottom:6px">';
+  h += '<caption style="caption-side:top;text-align:left;font-size:9px;font-weight:700;padding:3px 0">TRANSPORTS ' + pencilInline("goToTab(\'transports\')","les transports") + '</caption>';
   h += secHead('TRANSPORTS COM\u00c9DIENS \u2013 ' + (i.date||'').toUpperCase(), 6);
   h += '<tr>'+th('NOMS')+th('CHAUFFEUR')+th('PICK-UP','65px')+th('LIEUX')+th('SUR PLACE','65px')+th('PAT','55px')+'</tr>';
   if (transJour.length) {
