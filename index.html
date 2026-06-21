@@ -2601,8 +2601,12 @@ function renderApercuNav() {
   var cont = document.getElementById('apercu-nav-content');
   if (!sel || !cont) return;
 
+  // Auto-sélectionner le premier film si aucun actif
+  if (!activeFilmId && state.films && state.films.length) {
+    activeFilmId = state.films[0].id;
+  }
   if (!activeFilmId) {
-    sel.innerHTML = '<div style="padding:12px;font-size:13px;color:var(--text-muted);text-align:center">Sélectionnez un film</div>';
+    sel.innerHTML = '<div style="padding:12px;font-size:13px;color:var(--text-muted);text-align:center">Créez un film dans l’onglet Films</div>';
     cont.innerHTML = ''; return;
   }
 
@@ -3274,11 +3278,22 @@ function exportBilanCSV() {
 }
 
 function renderResumeConvoc() {
+  // Auto-sélectionner film + journée si nécessaire
+  if (!activeFilmId && state.films && state.films.length) activeFilmId = state.films[0].id;
+  if (!activeFdsId) {
+    var fdsList = (state.fds||[]).filter(function(f){ return f.filmId===activeFilmId; });
+    if (fdsList.length) activeFdsId = fdsList[0].id;
+    else if (typeof PDT_DATA !== 'undefined' && PDT_DATA.length) {
+      ouvrirOuCreerFDSSilent(PDT_DATA[0].jdt);
+      var fdsList2 = (state.fds||[]).filter(function(f){ return f.filmId===activeFilmId; });
+      if (fdsList2.length) activeFdsId = fdsList2[0].id;
+    }
+  }
   var titleEl = document.getElementById('resume-convoc-title');
   var subEl = document.getElementById('resume-convoc-sub');
   var f = activeFDS(); var film = activeFilm();
-  if (titleEl && f) titleEl.textContent = 'Résumé convocations '+(f.infos&&f.infos.journee?f.infos.journee:'');
-  if (subEl && f) subEl.textContent = (f.infos&&f.infos.date)||'';
+  if (titleEl) titleEl.textContent = 'Résumé convocations '+(f&&f.infos&&f.infos.journee?f.infos.journee:'');
+  if (subEl) subEl.textContent = f&&f.infos ? (f.infos.date||'') : 'Sélectionnez une journée';
   renderConvocationsApercu();
 }
 
@@ -3303,7 +3318,9 @@ function switchApercuTab(tab) {
 }
 
 function renderConvocationsApercu() {
-  var el = document.getElementById('apercu-convoc-content'); if (!el) return;
+  var el = document.getElementById('apercu-convoc-content');
+  if (!el) return;
+  if (!activeFilmId && state.films && state.films.length) activeFilmId = state.films[0].id;
   var f = activeFDS(); var film = activeFilm();
   if (!f) { el.innerHTML = '<div class="empty">Sélectionnez une journée</div>'; return; }
   var i = f.infos||{};
