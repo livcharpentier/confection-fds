@@ -2789,10 +2789,12 @@ function pgSaveInfos() {
 function pgRenderLieux() {
   var f = activeFDS(); var c = document.getElementById('pg-lieux-container'); if (!f||!c) return;
   c.innerHTML = (f.lieux||[]).map(function(l,i){
-    return '<div style="display:flex;gap:6px;align-items:center;margin-bottom:7px">'+
-      '<input class="form-input pg-lieu-label" value="'+l.label+'" style="max-width:100px;font-size:11px;color:var(--text-muted)"/>'+
-      '<input class="form-input pg-lieu-val" value="'+l.valeur+'" placeholder="—" style="flex:1"/>'+
-      '<button onclick="pgRemoveLieu('+i+')" style="border:none;background:none;color:var(--text-muted);cursor:pointer;font-size:18px;padding:0 2px">×</button>'+
+    return '<div style="margin-bottom:10px">'+
+      '<div style="display:flex;align-items:center;gap:4px;margin-bottom:3px">'+
+        '<input class="form-input pg-lieu-label" value="'+l.label+'" style="flex:1;font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase"/>'+
+        '<button onclick="pgRemoveLieu('+i+')" style="border:none;background:none;color:var(--text-muted);cursor:pointer;font-size:18px;padding:0 4px;flex-shrink:0">×</button>'+
+      '</div>'+
+      '<input class="form-input pg-lieu-val" value="'+l.valeur+'" placeholder="Adresse ou description" style="width:100%"/>'+
     '</div>';
   }).join('');
 }
