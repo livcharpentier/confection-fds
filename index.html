@@ -680,6 +680,25 @@ textarea.form-input{resize:vertical;min-height:72px;}
     </div>
   </div>
 
+  <!-- PAGE BILAN -->
+  <div class="page" id="page-bilan">
+    <div class="page-header">
+      <div class="page-title">Bilan des FDS</div>
+      <div class="page-sub" id="bilan-sub">Toutes les feuilles de service</div>
+    </div>
+    <div class="scroll">
+      <div class="card" style="margin-bottom:10px">
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <select id="bilan-film-select" class="form-input" style="flex:1" onchange="renderBilan()">
+            <option value="">— Tous les films —</option>
+          </select>
+          <button class="btn btn-secondary btn-sm" onclick="exportBilanCSV()">⬇ Export CSV</button>
+        </div>
+      </div>
+      <div id="bilan-list"></div>
+    </div>
+  </div>
+
   <!-- NAV -->
   <nav class="nav" style="overflow-x:auto;scrollbar-width:none">
     <button class="nav-btn active" id="nav-films" onclick="navTo('films',this)">
@@ -717,6 +736,10 @@ textarea.form-input{resize:vertical;min-height:72px;}
     <button class="nav-btn" id="nav-apercu" onclick="navTo('apercu-nav',this)">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
       Aperçu
+    </button>
+    <button class="nav-btn" id="nav-bilan" onclick="navTo('bilan',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6" stroke-width="3"/><line x1="3" y1="12" x2="3.01" y2="12" stroke-width="3"/><line x1="3" y1="18" x2="3.01" y2="18" stroke-width="3"/></svg>
+      Bilan
     </button>
   </nav>
 
@@ -1041,6 +1064,7 @@ function showPage(name) {
   if (name === 'info') { const el = document.getElementById('info-email'); if(el && currentUser) el.textContent = currentUser.email; }
   if (name === 'transport-nav') { renderTransportNav(); }
   if (name === 'apercu-nav') { renderApercuNav(); }
+  if (name === 'bilan') { renderBilan(); }
 }
 
 function stab(name, btn) {
@@ -2934,6 +2958,101 @@ function pgSaveDeptNote() {
   var area = document.getElementById('pg-dept-note');
   if (area) f.deptNotes[pgCurrentDept] = area.value;
   pgRenderDept();
+}
+
+// ── BILAN ─────────────────────────────────────────────────────
+function renderBilan() {
+  var subEl = document.getElementById('bilan-sub');
+  var listEl = document.getElementById('bilan-list');
+  var filmSel = document.getElementById('bilan-film-select');
+  if (!listEl) return;
+
+  // Remplir le sélecteur de films
+  if (filmSel) {
+    var currentVal = filmSel.value;
+    filmSel.innerHTML = '<option value="">— Tous les films —</option>' +
+      (state.films||[]).map(function(f){
+        return '<option value="'+f.id+'"'+(f.id===currentVal?' selected':'')+'>'+f.nom+'</option>';
+      }).join('');
+    filmSel.value = currentVal || (activeFilmId||'');
+  }
+
+  var selectedFilmId = filmSel ? filmSel.value : activeFilmId;
+  if (subEl) subEl.textContent = selectedFilmId ? ((state.films||[]).find(function(f){return f.id===selectedFilmId;})||{}).nom||'' : 'Toutes les feuilles de service';
+
+  // Toutes les journées PDT
+  var allJournees = typeof PDT_DATA !== 'undefined' ? PDT_DATA : [];
+  var fdsMap = {};
+  (state.fds||[]).filter(function(f){ return !selectedFilmId || f.filmId===selectedFilmId; })
+    .forEach(function(f){ fdsMap[f.jdt] = f; });
+
+  if (!allJournees.length) { listEl.innerHTML='<div class="empty">Aucune journée disponible</div>'; return; }
+
+  // Statistiques
+  var total = allJournees.length;
+  var faites = Object.keys(fdsMap).length;
+  var completes = Object.values(fdsMap).filter(function(f){
+    var com = (f.comediens||[]).filter(function(c){return !c.type||c.type==='comedien';});
+    return com.length > 0 && com.every(function(c){return c.hmc&&c.pat;});
+  }).length;
+
+  listEl.innerHTML = '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px">' +
+    '<div style="background:var(--purple-light);border-radius:var(--radius);padding:10px;text-align:center"><div style="font-size:22px;font-weight:800;color:var(--purple)">'+total+'</div><div style="font-size:11px;color:var(--purple-dark)">Journées total</div></div>' +
+    '<div style="background:var(--amber-light);border-radius:var(--radius);padding:10px;text-align:center"><div style="font-size:22px;font-weight:800;color:var(--amber)">'+faites+'</div><div style="font-size:11px;color:var(--amber)">En cours / faites</div></div>' +
+    '<div style="background:var(--green-light);border-radius:var(--radius);padding:10px;text-align:center"><div style="font-size:22px;font-weight:800;color:var(--green)">'+completes+'</div><div style="font-size:11px;color:var(--green)">Complètes</div></div>' +
+  '</div>' +
+  allJournees.map(function(pdt) {
+    var fds = fdsMap[pdt.jdt];
+    var i = fds ? (fds.infos||{}) : {};
+    var comediens = fds ? (fds.comediens||[]).filter(function(c){return !c.type||c.type==='comedien';}) : (pdt.roles||[]);
+    var nbOk = fds ? comediens.filter(function(c){return c.hmc&&c.pat;}).length : 0;
+    var nb = comediens.length;
+    var statut = !fds ? 'vierge' : (nbOk===nb&&nb>0 ? 'complete' : 'en-cours');
+    var couleur = statut==='complete' ? 'var(--green)' : statut==='en-cours' ? 'var(--amber)' : 'var(--text-muted)';
+    var badge = statut==='complete' ? '✓ Complète' : statut==='en-cours' ? '✏ En cours' : '○ À faire';
+    var horaire = i.debut ? fmtTime(i.debut)+' – '+fmtTime(i.fin) : (pdt.debut?pdt.debut.replace(':','H')+' – '+pdt.fin.replace(':','H'):pdt.horaire_raw||'—');
+    var lieu = i.debut ? (fds.lieux&&fds.lieux[0]?fds.lieux[0].valeur:pdt.lieu) : pdt.lieu;
+
+    return '<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);cursor:pointer" onclick="ouvrirBilanFDS('+pdt.jdt+')">' +
+      '<div style="font-size:18px;font-weight:800;color:var(--purple);min-width:36px">'+pdt.journee+'</div>' +
+      '<div style="flex:1;min-width:0">' +
+        '<div style="font-size:13px;font-weight:600">'+pdt.date+'</div>' +
+        '<div style="font-size:11px;color:var(--text-muted)">'+horaire+' · '+lieu+'</div>' +
+        '<div style="font-size:11px;color:var(--text-muted)">'+nb+' comédien(s)'+( fds&&fds.deptNotes&&Object.values(fds.deptNotes).some(function(v){return v&&v.trim();})?' · Notes départements':'')+'</div>' +
+      '</div>' +
+      '<div style="text-align:right;flex-shrink:0">' +
+        '<div style="font-size:11px;font-weight:700;color:'+couleur+'">'+badge+'</div>' +
+        (fds ? '<div style="font-size:10px;color:var(--text-muted)">'+nbOk+'/'+nb+' comédiens</div>' : '') +
+      '</div>' +
+      '<div style="color:var(--text-muted);font-size:18px">›</div>' +
+    '</div>';
+  }).join('');
+}
+
+function ouvrirBilanFDS(jdtNum) {
+  // Aller sur l'aperçu de cette journée
+  navTo('apercu-nav', document.getElementById('nav-apercu'));
+  setTimeout(function(){ changerJourneeApercuJdt(jdtNum); }, 100);
+}
+
+function exportBilanCSV() {
+  var rows = [['Journée','Date','Horaires','Lieu','Comédiens','Statut']];
+  var allJournees = typeof PDT_DATA !== 'undefined' ? PDT_DATA : [];
+  var fdsMap = {};
+  (state.fds||[]).forEach(function(f){ fdsMap[f.jdt]=f; });
+  allJournees.forEach(function(pdt) {
+    var fds = fdsMap[pdt.jdt];
+    var i = fds?(fds.infos||{}):{};
+    var com = fds?(fds.comediens||[]).filter(function(c){return !c.type||c.type==='comedien';}):[];
+    var nbOk = com.filter(function(c){return c.hmc&&c.pat;}).length;
+    var statut = !fds?'À faire':(nbOk===com.length&&com.length>0?'Complète':'En cours');
+    var horaire = i.debut?fmtTime(i.debut)+' – '+fmtTime(i.fin):(pdt.horaire_raw||'—');
+    rows.push([pdt.journee, pdt.date, horaire, pdt.lieu, pdt.roles.map(function(r){return r.comedien;}).join(' / '), statut]);
+  });
+  var csv = rows.map(function(r){return r.map(function(v){var s=String(v);return '"'+s+'"';}).join(',');}).join('\n');
+  var blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a'); a.href=url; a.download='bilan-fds.csv'; a.click();
 }
 
 function envoyerProd() {
