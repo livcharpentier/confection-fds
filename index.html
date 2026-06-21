@@ -1210,6 +1210,68 @@ function fdsNouvelle() {
   save(); openFDS(fds.id);
 }
 
+function ouvrirOuCreerFDS(jdtNum) {
+  if (!activeFilmId) { toast('Sélectionnez un film'); navTo('films', document.getElementById('nav-films')); return; }
+  var fdsExist = (state.fds||[]).find(function(f){ return f.filmId === activeFilmId && f.jdt === jdtNum; });
+  if (fdsExist) { openFDS(fdsExist.id); return; }
+  // Créer depuis le PDT
+  var pdt = typeof PDT_DATA !== 'undefined' ? PDT_DATA.find(function(j){ return j.jdt === jdtNum; }) : null;
+  if (!pdt) return;
+  var lieux = [];
+  pdt.decors.forEach(function(d, i) { lieux.push({label: 'Décor ' + (i+1), valeur: d}); });
+  if (!lieux.length) lieux.push({label: 'Décor 1', valeur: pdt.lieu||''});
+  lieux.push(
+    {label:'HMC / LOGES', valeur: ''},
+    {label:'FIGURATION', valeur: ''},
+    {label:'CANTINE', valeur: ''},
+    {label:'STATIONNEMENT VÉHIC. TECHNIQUES', valeur: ''},
+    {label:'STATIONNEMENT VÉHIC. PERSONNELS', valeur: ''},
+    {label:'PRODUCTION', valeur: ''}
+  );
+  var comediens = pdt.roles.map(function(r) {
+    return {type:'comedien', num:r.num, role:r.role, nom:r.comedien,
+      seqs: pdt.sequences.join(', '), hmc:'', loges:'', pat:'', nbre:1};
+  });
+  var sequences = pdt.sequences.map(function(s) {
+    return {num:s, effet:'', decor:pdt.decors[0]||'', resume:'', roles:pdt.roles.map(function(r){return r.num;}).join(', '), duree:'', cont:''};
+  });
+  var fds = {
+    id: 'fds_' + Date.now() + '_' + jdtNum,
+    filmId: activeFilmId,
+    jdt: jdtNum,
+    infos: {journee:pdt.journee, date:pdt.date, pat:pdt.pat||'', debut:pdt.debut||'', fin:pdt.fin||'',
+      repas:'', meteo:'', lever:'', coucher:'', crep_m:'', crep_s:'', note:''},
+    lieux: lieux, sequences: sequences, comediens: comediens,
+    deptNotes: {}, equipe: JSON.parse(JSON.stringify(EQUIPE_FIXE)),
+    transports: [], previsions: []
+  };
+  if (!state.fds) state.fds = [];
+  state.fds.push(fds);
+  state.fds.sort(function(a,b){ return (a.jdt||0)-(b.jdt||0); });
+  save();
+  openFDS(fds.id);
+}
+
+function ouvrirOuCreerFDSSilent(jdtNum) {
+  if (!activeFilmId) return;
+  var pdt = typeof PDT_DATA !== 'undefined' ? PDT_DATA.find(function(j){ return j.jdt === jdtNum; }) : null;
+  if (!pdt) return;
+  var lieux = [];
+  pdt.decors.forEach(function(d, i) { lieux.push({label:'Décor '+(i+1), valeur:d}); });
+  if (!lieux.length) lieux.push({label:'Décor 1', valeur:pdt.lieu||''});
+  lieux.push({label:'HMC / LOGES',valeur:''},{label:'FIGURATION',valeur:''},{label:'CANTINE',valeur:''},
+    {label:'STATIONNEMENT VÉHIC. TECHNIQUES',valeur:''},{label:'STATIONNEMENT VÉHIC. PERSONNELS',valeur:''},{label:'PRODUCTION',valeur:''});
+  var comediens = pdt.roles.map(function(r){ return {type:'comedien',num:r.num,role:r.role,nom:r.comedien,seqs:pdt.sequences.join(', '),hmc:'',loges:'',pat:'',nbre:1}; });
+  var sequences = pdt.sequences.map(function(s){ return {num:s,effet:'',decor:pdt.decors[0]||'',resume:'',roles:pdt.roles.map(function(r){return r.num;}).join(', '),duree:'',cont:''}; });
+  var fds = {id:'fds_'+Date.now()+'_'+jdtNum,filmId:activeFilmId,jdt:jdtNum,
+    infos:{journee:pdt.journee,date:pdt.date,pat:pdt.pat||'',debut:pdt.debut||'',fin:pdt.fin||'',repas:'',meteo:'',lever:'',coucher:'',crep_m:'',crep_s:'',note:''},
+    lieux:lieux,sequences:sequences,comediens:comediens,deptNotes:{},equipe:JSON.parse(JSON.stringify(EQUIPE_FIXE)),transports:[],previsions:[]};
+  if (!state.fds) state.fds=[];
+  state.fds.push(fds);
+  state.fds.sort(function(a,b){return (a.jdt||0)-(b.jdt||0);});
+  save();
+}
+
 function openFDS(id) {
   activeFdsId = id;
   const fds = activeFDS();
