@@ -1462,6 +1462,287 @@ function renderApercu() {
   }
   h += '</table>';
 
+  // ── PAGE 4 — PRÉVISIONS ─────────────────────────────────────────
+  h += '<div style="margin-top:14px;border-top:2px solid #999;padding-top:8px"></div>';
+
+  // Prévisions manuelles saisies dans l'onglet
+  var prevManuelles = f.previsions || [];
+
+  // Prévisions auto depuis le PDT : jours suivants de la même semaine, non passés
+  var prevAuto = [];
+  if (f.jdt && typeof PDT_DATA !== 'undefined') {
+    var today = new Date();
+    today.setHours(0,0,0,0);
+
+    // Trouver la journée actuelle dans le PDT
+    var jdtActuel = PDT_DATA.find(function(j){ return j.jdt === f.jdt; });
+
+    if (jdtActuel) {
+      // Trouver le lundi et vendredi de la semaine de cette journée
+      var dateJour = new Date(jdtActuel.date.replace(/Lundi|Mardi|Mercredi|Jeudi|Vendredi|Samedi|Dimanche/,'').trim()
+        .replace(/janvier/,'January').replace(/février/,'February').replace(/mars/,'March')
+        .replace(/avril/,'April').replace(/mai/,'May').replace(/juin/,'June')
+        .replace(/juillet/,'July').replace(/août/,'August').replace(/septembre/,'September')
+        .replace(/octobre/,'October').replace(/novembre/,'November').replace(/décembre/,'December'));
+
+      // Calculer lundi et vendredi de la semaine
+      var jourSemaine = dateJour.getDay() || 7; // 1=lun, 5=ven, 7=dim
+      var lundi = new Date(dateJour); lundi.setDate(dateJour.getDate() - jourSemaine + 1);
+      var vendredi = new Date(lundi); vendredi.setDate(lundi.getDate() + 4);
+
+      // Chercher les JdT suivants dans la même semaine
+      PDT_DATA.forEach(function(j) {
+        if (j.jdt <= f.jdt) return; // ignorer le jour actuel et passés
+        // Parser la date du PDT
+        var dStr = j.date.replace(/Lundi|Mardi|Mercredi|Jeudi|Vendredi|Samedi|Dimanche/,'').trim()
+          .replace(/janvier/,'January').replace(/février/,'February').replace(/mars/,'March')
+          .replace(/avril/,'April').replace(/mai/,'May').replace(/juin/,'June')
+          .replace(/juillet/,'July').replace(/août/,'August').replace(/septembre/,'September')
+          .replace(/octobre/,'October').replace(/novembre/,'November').replace(/décembre/,'December');
+        var dj = new Date(dStr);
+        dj.setHours(0,0,0,0);
+
+        // Dans la même semaine (lundi-vendredi) ET pas encore passé
+        if (dj >= lundi && dj <= vendredi && dj > today) {
+          prevAuto.push(j);
+        }
+      });
+    }
+  }
+
+  // Afficher prévisions manuelles en priorité, puis auto si pas de manuel
+  var toutes = prevManuelles.length ? prevManuelles : prevAuto;
+
+  if (toutes.length) {
+    toutes.forEach(function(p) {
+      // Prévision manuelle
+      if (p.journee !== undefined && p.horaires !== undefined) {
+        h += '<table style="width:100%;border-collapse:collapse;margin-bottom:6px">';
+        h += '<tr><td style="background:#ddd;padding:4px 8px;font-size:9.5px;font-weight:800;border:1px solid #999">PRÉVISIONS DU ' + (p.journee||'').toUpperCase() + '</td>';
+        h += '<td style="background:#ddd;padding:4px 8px;font-size:9.5px;font-weight:800;border:1px solid #999;text-align:right;white-space:nowrap">HORAIRES : ' + (p.horaires||'') + '</td></tr>';
+        if (p.decors) h += deptRow('DÉCORS / LIEU :', p.decors);
+        if (p.seqs)   h += deptRow('SÉQUENCES / EFFETS :', p.seqs);
+        if (p.roles)  h += deptRow('RÔLES :', p.roles);
+        if (p.notes)  h += '<tr><td colspan="2" style="padding:2px 8px;font-size:8.5px;border:1px solid #999">' + p.notes + '</td></tr>';
+        h += '</table>';
+      } else {
+        // Prévision auto depuis PDT
+        var horaire = p.debut && p.fin ? p.debut.replace(':','H') + ' – ' + p.fin.replace(':','H') : '—';
+        h += '<table style="width:100%;border-collapse:collapse;margin-bottom:6px">';
+        h += '<tr><td style="background:#ddd;padding:4px 8px;font-size:9.5px;font-weight:800;border:1px solid #999">PRÉVISIONS DU ' + (p.date||'').toUpperCase() + ' – ' + p.journee + '</td>';
+        h += '<td style="background:#ddd;padding:4px 8px;font-size:9.5px;font-weight:800;border:1px solid #999;text-align:right;white-space:nowrap">HORAIRES : ' + horaire + '</td></tr>';
+        if (p.lieu) h += deptRow('DÉCORS / LIEU :', p.decors && p.decors.length ? p.decors.join('  /  ') : p.lieu);
+        if (p.sequences && p.sequences.length) h += deptRow('SÉQUENCES / EFFETS :', p.sequences.join(', '));
+        if (p.roles && p.roles.length) h += deptRow('RÔLES (' + p.roles.length + ') :', p.roles.map(function(r){ return r.num + ' – ' + r.role + ' : ' + r.comedien; }).join('  /  '));
+        h += '</table>';
+      }
+    });
+  } else {
+    h += '<div style="padding:10px;font-size:9px;color:#999;text-align:center">Aucune prévision — les jours suivants de la semaine apparaîtront automatiquement depuis le PDT</div>';
+  }
+
+  
+  h += '</div>';
+
+  // TITRE FILM
+  h += '<div style="text-align:center;font-size:16px;font-weight:700;font-style:italic;margin:8px 0 3px">';
+  h += '&laquo;&nbsp;' + (film ? film.nom.toUpperCase() : 'TITRE DU FILM') + '&nbsp;&raquo;</div>';
+  h += '<div style="text-align:center;font-size:11px;margin-bottom:8px">Un film r\u00e9alis\u00e9 par <b>' + (film ? (film.real||'') : '') + '</b></div>';
+
+  // TABLEAU EQUIPE + HORAIRES
+  h += '<table style="width:100%;border-collapse:collapse;border:1px solid #999;margin-bottom:5px;table-layout:fixed"><tr>';
+  h += '<td style="vertical-align:top;border-right:1px solid #999;padding:0;height:1px">';
+  h += '<table style="width:100%;border-collapse:collapse">';
+  h += membresEq('realisateur');
+  h += '<tr><td colspan="2" style="padding:0"></td></tr>';
+  h += membresEq('production');
+  h += '<tr><td colspan="2" style="padding:0"></td></tr>';
+  h += membresEq('mise_en_scene');
+  h += '<tr><td colspan="2" style="padding:0"></td></tr>';
+  h += membresEq('regie');
+  h += '<tr><td colspan="2" style="padding:0px 5px;font-size:7.5px;font-style:italic"><u>D\u00e9l\u00e9gu\u00e9s de plateau :</u> Emilie JUSTIN \u2013 Christophe BOISSY</td></tr>';
+  h += '</table></td>';
+  h += '<td style="vertical-align:top;width:230px;padding:0">';
+  h += '<div style="padding:5px 8px;text-align:center;border-bottom:1px solid #999">';
+  h += '<div style="font-size:17px;font-weight:600">Horaires\u00a0: ' + fmtTime(i.debut) + ' \u2013 ' + fmtTime(i.fin) + '</div>';
+  h += '<div style="font-size:22px;font-weight:900;margin:3px 0">PAT\u00a0: ' + fmtTime(i.pat) + '</div>';
+  h += '</div>';
+  h += '<div style="padding:6px 8px;border-bottom:1px solid #999;font-size:10px;font-weight:600">Repas \u00e0 partir de\u00a0: ' + fmtTime(i.repas) + '</div>';
+  h += '<div style="padding:5px 8px;font-size:8.5px;display:grid;grid-template-columns:1fr 1fr;gap:2px">';
+  h += '<div>M\u00e9t\u00e9o\u00a0: ' + (i.meteo||'\u2014') + '</div><div>Temp\u00e9rature\u00a0: ' + (i.meteo||'\u2014') + '</div>';
+  h += '<div>Cr\u00e9p. matin\u00a0: ' + (fmtTime(i.crep_m)||'\u2014') + '</div><div>Lever\u00a0: ' + (fmtTime(i.lever)||'\u2014') + '</div>';
+  h += '<div>Cr\u00e9p. soir\u00a0: ' + (fmtTime(i.crep_s)||'\u2014') + '</div><div>Coucher\u00a0: ' + (fmtTime(i.coucher)||'\u2014') + '</div>';
+  h += '</div></td></tr></table>';
+
+  // TITRE JOURNEE centré
+  h += '<div style="background:#ccc;display:flex;justify-content:space-between;align-items:center;padding:6px 12px;margin-bottom:6px;border:1px solid #999">';
+  h += '<span style="flex:1;text-align:center;font-size:14px;font-weight:800">FEUILLE DE SERVICE DU ' + (i.date||'').toUpperCase() + '</span>';
+  h += '<span style="font-size:17px;font-weight:900;border-left:2px solid #999;padding-left:12px;flex-shrink:0">' + (i.journee||'') + '</span>';
+  h += '</div>';
+
+  // NOTE EQUIPE
+  if (i.note) {
+    h += '<div style="border:1px solid #ccc;padding:8px;margin-bottom:5px;text-align:center">';
+    h += '<u><b>Note \u00e0 l\u2019\u00e9quipe</b></u><br>';
+    h += '<span style="color:#cc0000;font-style:italic;font-size:9px">' + i.note.replace(/\n/g,'<br>') + '</span></div>';
+  }
+
+  // ECOPROD
+  h += '<div style="border:1px solid #ccc;padding:5px;text-align:center;font-size:9px;margin-bottom:5px">';
+  h += '<b>ECOPROD</b><br>Chaque geste compte !<br>N\u2019h\u00e9sitez pas \u00e0 ramener votre gourde ou votre ecocup<br>Restons responsable !</div>';
+
+  // HARCELEMENT fond orange
+  h += '<div style="border:1px solid #c07000;background:#e8850a;color:#fff;padding:8px;font-size:8.5px;margin-bottom:8px;text-align:center">';
+  h += '<div style="font-weight:700;text-decoration:underline;font-size:10px;margin-bottom:3px">PR\u00c9VENTION HARC\u00c8LEMENT</div>';
+  h += 'Toute personne s\u2019estimant victime de harc\u00e8lement peut s\u2019adresser aux r\u00e9f\u00e9rents de notre film<br>';
+  h += '<b>Louise Jacquet \u2013 Nina Allimann</b><br>';
+  h += '<i>(cf. convocation pour les num\u00e9ros de t\u00e9l\u00e9phone) et/ou<br>envoyer un mail \u00e0 l\u2019adresse axelfilmsproduction@gmail.com</i><br>';
+  h += 'Au m\u00e9decin du travail \u2013 Centre Thalie Sant\u00e9 : (+33)1 49 27 60 00 / Au CCHSCT : (+33)1 53 89 01 30 /<br>';
+  h += 'Au N\u00b0 vert AP-HP St Antoine : +33 800 00 46 41 / Au N\u00b0 d\u2019urgence du Minist\u00e8re de la Justice : +33 884 284 63</div>';
+
+  // LIEUX
+  if (f.lieux && f.lieux.length) {
+    h += '<table style="width:100%;border-collapse:collapse;margin-bottom:5px">';
+    f.lieux.forEach(function(l) {
+      if (l.valeur) h += '<tr>' + td(l.label.toUpperCase()+' :','220px',true,true) + td(l.valeur,'',false,false) + '</tr>';
+    });
+    h += '</table>';
+  }
+
+  // ── PAGE 2 ───────────────────────────────────────────────────────
+  h += '<div style="margin-top:14px;border-top:2px solid #999;padding-top:8px"></div>';
+
+  // SEQUENCES
+  if (f.sequences && f.sequences.length) {
+    h += '<table style="width:100%;border-collapse:collapse;margin-bottom:8px">';
+    h += '<tr>'+th('SEQ','45px')+th('EFFET','45px')+th('D\u00c9COR')+th('R\u00c9SUM\u00c9')+th('R\u00d4LES','55px')+th('CONT.','75px')+th('MIN','48px')+'</tr>';
+    f.sequences.forEach(function(s) {
+      h += '<tr>'+td(s.num,'',true,true)+td(s.effet,'',false,true)+td(s.decor,'',true,true)+
+           '<td style="padding:2px 5px;font-size:9px;border:1px solid #999;font-style:italic;text-align:center">'+(s.resume||'&nbsp;')+'</td>'+
+           td(s.roles,'',false,true)+td(s.cont||'','',false,true)+td(s.duree,'',false,true)+'</tr>';
+    });
+    h += '<tr><td colspan="6" style="text-align:right;padding:2px 8px;font-size:9px;font-weight:700;border:1px solid #999">TOTAL</td>'+
+         td(f.total_min||'','',true,true)+'</tr>';
+    h += '</table>';
+  }
+
+  // COMEDIENS par type
+  var allCom = f.comediens || [];
+  var roles = allCom.filter(function(c){ return !c.type || c.type==='comedien'; });
+  var doublures = allCom.filter(function(c){ return c.type==='doublure'; });
+  var silhouettes = allCom.filter(function(c){ return c.type==='silhouette'; });
+  var figurants = allCom.filter(function(c){ return c.type==='figurant'; });
+
+  if (roles.length) {
+    h += '<table style="width:100%;border-collapse:collapse;margin-bottom:3px">';
+    h += '<tr>'+th('N\u00b0','35px')+th('R\u00d4LES ('+roles.length+')')+th('COM\u00c9DIENS')+
+         th('S\u00c9QUENCES')+th('HMC','60px')+th('D\u00e9part Loges','70px')+th('PAT','55px')+'</tr>';
+    roles.forEach(function(c) {
+      h += '<tr>'+td(c.num,'',false,true)+td(c.role,'',true,false)+td(c.nom,'',false,false)+
+           td(c.seqs,'',false,true)+td(fmtTime(c.hmc),'',false,true)+td(fmtTime(c.loges),'',false,true)+td(fmtTime(c.pat),'',true,true)+'</tr>';
+    });
+    h += '</table>';
+  }
+  if (doublures.length) {
+    h += '<table style="width:100%;border-collapse:collapse;margin-bottom:2px">';
+    h += '<tr>'+th('N\u00b0','35px')+th('DOUBLURES* ('+doublures.length+')')+th('NOMS')+
+         th('S\u00c9QUENCES')+th('HMC','60px')+th('MeP','60px')+th('PAT','55px')+'</tr>';
+    doublures.forEach(function(c) {
+      h += '<tr>'+td(c.num,'',false,true)+td(c.role,'',false,false)+td(c.nom,'',false,false)+
+           td(c.seqs,'',false,true)+td(fmtTime(c.hmc),'',false,true)+td(fmtTime(c.loges),'',false,true)+td(fmtTime(c.pat),'',true,true)+'</tr>';
+    });
+    h += '</table>';
+    h += '<div style="font-size:8px;font-style:italic;color:#c00;margin-bottom:4px">*Pr\u00e9paration des doublures \u00e0 la loge r\u00f4les</div>';
+  }
+  if (silhouettes.length) {
+    h += '<table style="width:100%;border-collapse:collapse;margin-bottom:2px">';
+    h += '<tr>'+th('N\u00b0','35px')+th('SILHOUETTES* ('+silhouettes.length+')')+th('NOMS')+
+         th('S\u00c9QUENCES')+th('HMC','60px')+th('PAT','55px')+'</tr>';
+    silhouettes.forEach(function(c) {
+      h += '<tr>'+td(c.num,'',false,true)+td(c.role,'',false,false)+td(c.nom,'',false,false)+
+           td(c.seqs,'',false,true)+td(fmtTime(c.hmc),'',false,true)+td(fmtTime(c.pat),'',true,true)+'</tr>';
+    });
+    h += '</table>';
+    h += '<div style="font-size:8px;font-style:italic;color:#c00;margin-bottom:4px">*Pr\u00e9paration des silhouettes \u00e0 la loge figuration</div>';
+  }
+  if (figurants.length) {
+    h += '<div style="font-size:9px;font-weight:700;margin:3px 0 2px">FIGURATION : ' + figurants.length + ' figurant(s)</div>';
+    h += '<table style="width:100%;border-collapse:collapse;margin-bottom:5px">';
+    h += '<tr>'+th('Nbre','40px')+th('FIGURATION')+th('S\u00c9QUENCES')+th('HMC','60px')+th('PAT','55px')+'</tr>';
+    figurants.forEach(function(c) {
+      h += '<tr>'+td('1','',false,true)+td(c.role+(c.nom?' ('+c.nom+')':''),'',false,false)+
+           td(c.seqs,'',false,true)+td(fmtTime(c.hmc),'',false,true)+td(fmtTime(c.pat),'',true,true)+'</tr>';
+    });
+    h += '</table>';
+  }
+
+  // DEPARTEMENTS — tous affichés même vides
+  var DEPT_ORDER = ['decoration','accessoires','armes','costumes','maquillage','coiffure','son','machinerie','cascade','vfx','vehicules','regie'];
+  DEPT_ORDER.forEach(function(d) {
+    var note = (f.deptNotes && f.deptNotes[d]) || '';
+    h += '<table style="width:100%;border-collapse:collapse;margin-bottom:2px">';
+    h += '<tr><td colspan="2" style="background:#e8e8e8;padding:2px 6px;font-size:9px;font-weight:700;font-style:italic;border:1px solid #999">' + DEPT_LABELS[d].toUpperCase() + '</td></tr>';
+    h += '<tr><td style="padding:3px 6px;font-size:9px;border:1px solid #999;white-space:pre-wrap;min-height:16px">'+(note||'&nbsp;')+'</td></tr>';
+    h += '</table>';
+  });
+
+  // ── PAGE 3 — TRANSPORTS ─────────────────────────────────────────
+  h += '<div style="margin-top:14px;border-top:2px solid #999;padding-top:8px"></div>';
+
+  var transJour = (f.transports||[]).filter(function(t){ return !t.type || t.type==='' || t.type==='jour'; });
+  h += '<table style="width:100%;border-collapse:collapse;margin-bottom:6px">';
+  h += secHead('TRANSPORTS COM\u00c9DIENS \u2013 ' + (i.date||'').toUpperCase(), 6);
+  h += '<tr>'+th('NOMS')+th('CHAUFFEUR')+th('PICK-UP','65px')+th('LIEUX')+th('SUR PLACE','65px')+th('PAT','55px')+'</tr>';
+  if (transJour.length) {
+    transJour.forEach(function(t) {
+      var pickup = t.pat ? calcPickup(t.pat, estimerTrajet(t.depart, t.arrivee)) : 'Sur tel';
+      h += '<tr>'+td(t.comedien,'',true,true)+td(t.chauffeur+(t.tel?'<br><span style="font-size:8px">'+t.tel+'</span>':''),'',false,true)+
+           td(pickup,'',true,true)+td(t.depart,'',false,true)+td(t.sur_place||'\u2014','',false,true)+td(fmtTime(t.pat)||'\u2014','',true,true)+'</tr>';
+    });
+  } else {
+    h += '<tr><td colspan="6" style="padding:8px;border:1px solid #999">&nbsp;</td></tr>';
+  }
+  h += '</table>';
+
+  var arr_veille = (f.transports||[]).filter(function(t){ return t.type==='arrivee_veille'; });
+  h += '<table style="width:100%;border-collapse:collapse;margin-bottom:6px">';
+  h += secHead('ARRIV\u00c9E(S) \u2013 VEILLE', 5);
+  h += '<tr>'+th('NOMS')+th('CHAUFFEUR')+th('PICK-UP','65px')+th('LIEUX DE PICK-UP')+th('ARRIV\u00c9E')+'</tr>';
+  if (arr_veille.length) {
+    arr_veille.forEach(function(t) {
+      h += '<tr>'+td(t.comedien,'',true,true)+td(t.chauffeur,'',false,true)+td(t.pickup||'\u2014','',false,true)+td(t.depart,'',false,true)+td(t.arrivee||'','',false,false)+'</tr>';
+    });
+  } else {
+    h += '<tr><td colspan="5" style="padding:8px;border:1px solid #999">&nbsp;</td></tr>';
+  }
+  h += '</table>';
+
+  var arr_jour = (f.transports||[]).filter(function(t){ return t.type==='arrivee_jour'; });
+  h += '<table style="width:100%;border-collapse:collapse;margin-bottom:6px">';
+  h += secHead('ARRIV\u00c9E(S) \u2013 ' + (i.date||'').toUpperCase(), 5);
+  h += '<tr>'+th('NOMS')+th('CHAUFFEUR')+th('PICK-UP','65px')+th('LIEUX DE PICK-UP')+th('ARRIV\u00c9E')+'</tr>';
+  if (arr_jour.length) {
+    arr_jour.forEach(function(t) {
+      h += '<tr>'+td(t.comedien,'',true,true)+td(t.chauffeur,'',false,true)+td(t.pickup||'\u2014','',false,true)+td(t.depart,'',false,true)+td(t.arrivee||'','',false,false)+'</tr>';
+    });
+  } else {
+    h += '<tr><td colspan="5" style="padding:8px;border:1px solid #999">&nbsp;</td></tr>';
+  }
+  h += '</table>';
+
+  var departs = (f.transports||[]).filter(function(t){ return t.type==='depart'; });
+  h += '<table style="width:100%;border-collapse:collapse;margin-bottom:6px">';
+  h += secHead('D\u00c9PART(S) \u2013 ' + (i.date||'').toUpperCase(), 5);
+  h += '<tr>'+th('NOMS')+th('CHAUFFEUR')+th('PICK-UP','65px')+th('LIEUX DE PICK-UP')+th('ARRIV\u00c9E')+'</tr>';
+  if (departs.length) {
+    departs.forEach(function(t) {
+      h += '<tr>'+td(t.comedien,'',true,true)+td(t.chauffeur||'PPM','',false,true)+td('\u2014','',false,true)+td('\u2014','',false,true)+td('\u2014','',false,true)+'</tr>';
+    });
+  } else {
+    h += '<tr><td colspan="5" style="padding:8px;border:1px solid #999">&nbsp;</td></tr>';
+  }
+  h += '</table>';
+
   // ── PAGE 4 — PREVISIONS ─────────────────────────────────────────
   if (f.previsions && f.previsions.length) {
     f.previsions.forEach(function(p) {
