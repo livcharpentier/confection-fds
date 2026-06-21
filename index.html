@@ -1465,80 +1465,70 @@ function renderApercu() {
   // ── PAGE 4 — PRÉVISIONS ─────────────────────────────────────────
   h += '<div style="margin-top:14px;border-top:2px solid #999;padding-top:8px"></div>';
 
-  // Prévisions manuelles saisies dans l'onglet
   var prevManuelles = f.previsions || [];
-
-  // Prévisions auto depuis le PDT : jours suivants de la même semaine, non passés
   var prevAuto = [];
+
   if (f.jdt && typeof PDT_DATA !== 'undefined') {
-    var today = new Date();
-    today.setHours(0,0,0,0);
-
-    // Trouver la journée actuelle dans le PDT
     var jdtActuel = PDT_DATA.find(function(j){ return j.jdt === f.jdt; });
-
     if (jdtActuel) {
-      // Trouver le lundi et vendredi de la semaine de cette journée
-      var dateJour = new Date(jdtActuel.date.replace(/Lundi|Mardi|Mercredi|Jeudi|Vendredi|Samedi|Dimanche/,'').trim()
-        .replace(/janvier/,'January').replace(/février/,'February').replace(/mars/,'March')
-        .replace(/avril/,'April').replace(/mai/,'May').replace(/juin/,'June')
-        .replace(/juillet/,'July').replace(/août/,'August').replace(/septembre/,'September')
-        .replace(/octobre/,'October').replace(/novembre/,'November').replace(/décembre/,'December'));
+      // Parser la date de la journée actuelle
+      var moisMap = {janvier:'January',février:'February',mars:'March',avril:'April',mai:'May',juin:'June',
+        juillet:'July',août:'August',septembre:'September',octobre:'October',novembre:'November',décembre:'December'};
+      function parseDate(str) {
+        var s = str.replace(/Lundi|Mardi|Mercredi|Jeudi|Vendredi|Samedi|Dimanche/,'').trim();
+        Object.keys(moisMap).forEach(function(fr){ s = s.replace(fr, moisMap[fr]); });
+        var d = new Date(s); d.setHours(0,0,0,0); return d;
+      }
 
-      // Calculer lundi et vendredi de la semaine
-      var jourSemaine = dateJour.getDay() || 7; // 1=lun, 5=ven, 7=dim
-      var lundi = new Date(dateJour); lundi.setDate(dateJour.getDate() - jourSemaine + 1);
-      var vendredi = new Date(lundi); vendredi.setDate(lundi.getDate() + 4);
+      var dateJour = parseDate(jdtActuel.date);
+      var jourSemaine = dateJour.getDay() || 7; // 1=lun...7=dim
+      var vendredi = new Date(dateJour);
+      vendredi.setDate(dateJour.getDate() + (5 - jourSemaine)); // prochain vendredi de la semaine
+      vendredi.setHours(23,59,59,0);
 
-      // Chercher les JdT suivants dans la même semaine
+      // Chercher JdT suivants jusqu'au vendredi inclus
       PDT_DATA.forEach(function(j) {
-        if (j.jdt <= f.jdt) return; // ignorer le jour actuel et passés
-        // Parser la date du PDT
-        var dStr = j.date.replace(/Lundi|Mardi|Mercredi|Jeudi|Vendredi|Samedi|Dimanche/,'').trim()
-          .replace(/janvier/,'January').replace(/février/,'February').replace(/mars/,'March')
-          .replace(/avril/,'April').replace(/mai/,'May').replace(/juin/,'June')
-          .replace(/juillet/,'July').replace(/août/,'August').replace(/septembre/,'September')
-          .replace(/octobre/,'October').replace(/novembre/,'November').replace(/décembre/,'December');
-        var dj = new Date(dStr);
-        dj.setHours(0,0,0,0);
-
-        // Dans la même semaine (lundi-vendredi) ET pas encore passé
-        if (dj >= lundi && dj <= vendredi && dj > today) {
+        if (j.jdt <= f.jdt) return;
+        var dj = parseDate(j.date);
+        if (dj <= vendredi) {
           prevAuto.push(j);
         }
       });
     }
   }
 
-  // Afficher prévisions manuelles en priorité, puis auto si pas de manuel
   var toutes = prevManuelles.length ? prevManuelles : prevAuto;
 
-  if (toutes.length) {
-    toutes.forEach(function(p) {
+  toutes.forEach(function(p) {
+    if (p.journee !== undefined && p.horaires !== undefined) {
       // Prévision manuelle
-      if (p.journee !== undefined && p.horaires !== undefined) {
-        h += '<table style="width:100%;border-collapse:collapse;margin-bottom:6px">';
-        h += '<tr><td style="background:#ddd;padding:4px 8px;font-size:9.5px;font-weight:800;border:1px solid #999">PRÉVISIONS DU ' + (p.journee||'').toUpperCase() + '</td>';
-        h += '<td style="background:#ddd;padding:4px 8px;font-size:9.5px;font-weight:800;border:1px solid #999;text-align:right;white-space:nowrap">HORAIRES : ' + (p.horaires||'') + '</td></tr>';
-        if (p.decors) h += deptRow('DÉCORS / LIEU :', p.decors);
-        if (p.seqs)   h += deptRow('SÉQUENCES / EFFETS :', p.seqs);
-        if (p.roles)  h += deptRow('RÔLES :', p.roles);
-        if (p.notes)  h += '<tr><td colspan="2" style="padding:2px 8px;font-size:8.5px;border:1px solid #999">' + p.notes + '</td></tr>';
-        h += '</table>';
-      } else {
-        // Prévision auto depuis PDT
-        var horaire = p.debut && p.fin ? p.debut.replace(':','H') + ' – ' + p.fin.replace(':','H') : '—';
-        h += '<table style="width:100%;border-collapse:collapse;margin-bottom:6px">';
-        h += '<tr><td style="background:#ddd;padding:4px 8px;font-size:9.5px;font-weight:800;border:1px solid #999">PRÉVISIONS DU ' + (p.date||'').toUpperCase() + ' – ' + p.journee + '</td>';
-        h += '<td style="background:#ddd;padding:4px 8px;font-size:9.5px;font-weight:800;border:1px solid #999;text-align:right;white-space:nowrap">HORAIRES : ' + horaire + '</td></tr>';
-        if (p.lieu) h += deptRow('DÉCORS / LIEU :', p.decors && p.decors.length ? p.decors.join('  /  ') : p.lieu);
-        if (p.sequences && p.sequences.length) h += deptRow('SÉQUENCES / EFFETS :', p.sequences.join(', '));
-        if (p.roles && p.roles.length) h += deptRow('RÔLES (' + p.roles.length + ') :', p.roles.map(function(r){ return r.num + ' – ' + r.role + ' : ' + r.comedien; }).join('  /  '));
-        h += '</table>';
+      h += '<table style="width:100%;border-collapse:collapse;margin-bottom:6px">';
+      h += '<tr><td style="background:#ddd;padding:4px 8px;font-size:9.5px;font-weight:800;border:1px solid #999">PRÉVISIONS DU ' + (p.journee||'').toUpperCase() + '</td>';
+      h += '<td style="background:#ddd;padding:4px 8px;font-size:9.5px;font-weight:800;border:1px solid #999;text-align:right;white-space:nowrap">HORAIRES : ' + (p.horaires||'') + '</td></tr>';
+      if (p.decors) h += deptRow('DÉCORS / LIEU :', p.decors);
+      if (p.seqs)   h += deptRow('SÉQUENCES / EFFETS :', p.seqs);
+      if (p.roles)  h += deptRow('RÔLES :', p.roles);
+      if (p.notes)  h += '<tr><td colspan="2" style="padding:2px 8px;font-size:8.5px;border:1px solid #999">' + p.notes + '</td></tr>';
+      h += '</table>';
+    } else {
+      // Prévision auto PDT
+      var horaire = p.debut && p.fin ? p.debut.replace(':','H') + ' – ' + p.fin.replace(':','H') : (p.horaire_raw||'—');
+      h += '<table style="width:100%;border-collapse:collapse;margin-bottom:6px">';
+      h += '<tr><td style="background:#ddd;padding:4px 8px;font-size:9.5px;font-weight:800;border:1px solid #999">PRÉVISIONS DU ' + (p.date||'').toUpperCase() + '</td>';
+      h += '<td style="background:#ddd;padding:4px 8px;font-size:9.5px;font-weight:800;border:1px solid #999;text-align:right;white-space:nowrap">HORAIRES : ' + horaire + '</td></tr>';
+      var decorsStr = (p.decors && p.decors.length) ? p.decors.join('\n') : (p.lieu||'');
+      if (decorsStr) h += deptRow('DÉCORS / LIEU :', decorsStr);
+      if (p.sequences && p.sequences.length) h += deptRow('SEQUENCES / EFFETS :', p.sequences.join(', '));
+      if (p.roles && p.roles.length) {
+        var rolesStr = p.roles.map(function(r){ return r.num+' - '+r.role+': '+r.comedien; }).join('<br>');
+        h += deptRow('ROLES ('+p.roles.length+') :', rolesStr);
       }
-    });
-  } else {
-    h += '<div style="padding:10px;font-size:9px;color:#999;text-align:center">Aucune prévision — les jours suivants de la semaine apparaîtront automatiquement depuis le PDT</div>';
+      h += '</table>';
+    }
+  });
+
+  if (!toutes.length) {
+    h += '<div style="padding:10px;font-size:9px;color:#999;text-align:center">Aucune prévision pour le reste de la semaine</div>';
   }
 
   
