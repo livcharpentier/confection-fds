@@ -292,23 +292,75 @@ textarea.form-input{resize:vertical;min-height:72px;}
 
       <!-- FIGURATION -->
       <div class="spanel" id="sp-figuration">
-        <div class="card">
-          <div class="card-title">Figuration
-            <button class="btn btn-sm btn-primary" onclick="openComModal('figurant')">+ Ajouter</button>
+        <div class="card" style="margin-bottom:10px">
+          <div class="card-title">Doublures
+            <button class="btn btn-sm btn-primary" onclick="openComModalType('doublure')">+ Ajouter</button>
           </div>
-          <div id="figuration-list"><div class="empty">Aucun figurant</div></div>
+          <div style="overflow-x:auto">
+            <table style="width:100%;border-collapse:collapse;font-size:12px" id="table-doublures">
+              <tr style="background:#f0f0f0">
+                <th style="padding:5px 6px;border:1px solid #ccc;text-align:left;min-width:50px">N°</th>
+                <th style="padding:5px 6px;border:1px solid #ccc;text-align:left">DOUBLURES</th>
+                <th style="padding:5px 6px;border:1px solid #ccc;text-align:left">NOMS</th>
+                <th style="padding:5px 6px;border:1px solid #ccc;text-align:center">SÉQUENCES</th>
+                <th style="padding:5px 6px;border:1px solid #ccc;text-align:center;min-width:55px">HMC</th>
+                <th style="padding:5px 6px;border:1px solid #ccc;text-align:center;min-width:55px">MeP</th>
+                <th style="padding:5px 6px;border:1px solid #ccc;text-align:center;min-width:55px">PAT</th>
+                <th style="padding:5px 6px;border:1px solid #ccc;width:30px"></th>
+              </tr>
+              <tbody id="tbody-doublures"></tbody>
+            </table>
+          </div>
+          <div style="font-size:9px;font-style:italic;color:#c00;margin-top:4px">*Préparation des doublures à la loge rôles</div>
+        </div>
+
+        <div class="card" style="margin-bottom:10px">
+          <div class="card-title">Silhouettes
+            <button class="btn btn-sm btn-primary" onclick="openComModalType('silhouette')">+ Ajouter</button>
+          </div>
+          <div style="overflow-x:auto">
+            <table style="width:100%;border-collapse:collapse;font-size:12px">
+              <tr style="background:#f0f0f0">
+                <th style="padding:5px 6px;border:1px solid #ccc;text-align:left;min-width:50px">N°</th>
+                <th style="padding:5px 6px;border:1px solid #ccc;text-align:left">SILHOUETTES</th>
+                <th style="padding:5px 6px;border:1px solid #ccc;text-align:left">NOMS</th>
+                <th style="padding:5px 6px;border:1px solid #ccc;text-align:center">SÉQUENCES</th>
+                <th style="padding:5px 6px;border:1px solid #ccc;text-align:center;min-width:55px">HMC</th>
+                <th style="padding:5px 6px;border:1px solid #ccc;text-align:center;min-width:55px">PAT</th>
+                <th style="padding:5px 6px;border:1px solid #ccc;width:30px"></th>
+              </tr>
+              <tbody id="tbody-silhouettes"></tbody>
+            </table>
+          </div>
+          <div style="font-size:9px;font-style:italic;color:#c00;margin-top:4px">*Préparation des silhouettes à la loge figuration</div>
+        </div>
+
+        <div class="card">
+          <div class="card-title" id="fig-count-title">Figuration : 0 figurant(s)
+            <button class="btn btn-sm btn-primary" onclick="openComModalType('figurant')">+ Ajouter</button>
+          </div>
+          <div style="overflow-x:auto">
+            <table style="width:100%;border-collapse:collapse;font-size:12px">
+              <tr style="background:#f0f0f0">
+                <th style="padding:5px 6px;border:1px solid #ccc;text-align:center;width:50px">Nbre</th>
+                <th style="padding:5px 6px;border:1px solid #ccc;text-align:left">FIGURATION</th>
+                <th style="padding:5px 6px;border:1px solid #ccc;text-align:center">SÉQUENCES</th>
+                <th style="padding:5px 6px;border:1px solid #ccc;text-align:center;min-width:55px">HMC</th>
+                <th style="padding:5px 6px;border:1px solid #ccc;text-align:center;min-width:55px">PAT</th>
+                <th style="padding:5px 6px;border:1px solid #ccc;width:30px"></th>
+              </tr>
+              <tbody id="tbody-figurants"></tbody>
+              <tr id="tr-total-fig" style="background:#e8e8e8">
+                <td style="padding:4px 6px;border:1px solid #ccc;text-align:center;font-weight:700" id="fig-total">0</td>
+                <td style="padding:4px 6px;border:1px solid #ccc;font-weight:700" colspan="5">TOTAL</td>
+              </tr>
+            </table>
+          </div>
         </div>
       </div>
 
-      <!-- SILHOUETTES -->
-      <div class="spanel" id="sp-silhouettes">
-        <div class="card">
-          <div class="card-title">Silhouettes
-            <button class="btn btn-sm btn-primary" onclick="openComModal('silhouette')">+ Ajouter</button>
-          </div>
-          <div id="silhouettes-list"><div class="empty">Aucune silhouette</div></div>
-        </div>
-      </div>
+      <!-- SILHOUETTES (gardé vide - intégré dans Figuration) -->
+      <div class="spanel" id="sp-silhouettes" style="display:none!important"></div>
 
       <!-- TRANSPORTS -->
       <div class="spanel" id="sp-transports">
@@ -424,7 +476,24 @@ textarea.form-input{resize:vertical;min-height:72px;}
     <div class="form-row"><label class="form-label">HMC</label><input class="form-input" id="co-hmc" type="time"/></div>
     <div class="form-row"><label class="form-label">Départ loges</label><input class="form-input" id="co-loges" type="time"/></div>
     <div class="form-row"><label class="form-label">PAT</label><input class="form-input" id="co-pat" type="time"/></div>
+    <div class="form-row" id="co-nbre-row"><label class="form-label">Nbre (figuration)</label><input class="form-input" id="co-nbre" type="number" min="1" value="1"/></div>
     <button class="btn btn-primary btn-block" onclick="addComedien()">Ajouter</button>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-edit-comedien">
+  <div class="modal">
+    <div class="modal-head"><h2 id="modal-edit-com-title">Modifier</h2><button class="modal-close" onclick="closeModal('modal-edit-comedien')">×</button></div>
+    <input type="hidden" id="edit-com-idx"/>
+    <div class="form-row"><label class="form-label">N° / Code</label><input class="form-input" id="edit-com-num"/></div>
+    <div class="form-row"><label class="form-label">Rôle / Description</label><input class="form-input" id="edit-com-role"/></div>
+    <div class="form-row"><label class="form-label">Nom comédien</label><input class="form-input" id="edit-com-nom"/></div>
+    <div class="form-row"><label class="form-label">Séquences</label><input class="form-input" id="edit-com-seqs"/></div>
+    <div class="form-row"><label class="form-label">HMC</label><input class="form-input" id="edit-com-hmc" type="time"/></div>
+    <div class="form-row"><label class="form-label">MeP / Loges</label><input class="form-input" id="edit-com-loges" type="time"/></div>
+    <div class="form-row"><label class="form-label">PAT</label><input class="form-input" id="edit-com-pat" type="time"/></div>
+    <div class="form-row"><label class="form-label">Nbre (figuration)</label><input class="form-input" id="edit-com-nbre" type="number" min="1" value="1"/></div>
+    <button class="btn btn-primary btn-block" onclick="saveEditComedien()">Enregistrer</button>
   </div>
 </div>
 
@@ -656,8 +725,7 @@ function stab(name, btn) {
   if (name === 'comediens')  renderComediensList();
   if (name === 'dept')       { currentDept = 'decoration'; renderDeptPills(); loadDeptNote(); }
   if (name === 'equipe')     { currentEquipeDept = 'realisateur'; renderEquipePills(); renderEquipeList(); }
-  if (name === 'figuration') renderTypeList('figurant','figuration-list');
-  if (name === 'silhouettes') renderTypeList('silhouette','silhouettes-list');
+  if (name === 'figuration') renderFigurationTab();
   if (name === 'transports') renderTransportList();
   if (name === 'previsions') renderPrevList();
   if (name === 'apercu')     renderApercu();
@@ -909,9 +977,10 @@ function addComedien() {
     seqs: document.getElementById('co-seqs').value,
     hmc: document.getElementById('co-hmc').value,
     loges: document.getElementById('co-loges').value,
-    pat: document.getElementById('co-pat').value
+    pat: document.getElementById('co-pat').value,
+    nbre: parseInt((document.getElementById('co-nbre')||{}).value)||1
   });
-  closeModal('modal-comedien'); renderComediensList(); save(); toast('Comédien ajouté');
+  closeModal('modal-comedien'); renderComediensList(); renderFigurationTab(); save(); toast('Ajouté !');
 }
 
 function removeComedien(i) {
@@ -1750,6 +1819,150 @@ function renderApercu() {
 function openComModal(type) {
   document.getElementById('co-type').value = type;
   openModal('modal-comedien');
+}
+
+function openComModalType(type) {
+  document.getElementById('co-type').value = type;
+  // Adapter le titre du modal
+  var titles = {doublure:'Ajouter une doublure', silhouette:'Ajouter une silhouette', figurant:'Ajouter un figurant'};
+  openModal('modal-comedien');
+}
+
+function renderFigurationTab() {
+  var f = activeFDS();
+  if (!f) return;
+  var all = f.comediens || [];
+  var doublures = all.filter(function(c){ return c.type==='doublure'; });
+  var silhouettes = all.filter(function(c){ return c.type==='silhouette'; });
+  var figurants = all.filter(function(c){ return c.type==='figurant'; });
+
+  function pencilBtn(idx) {
+    return '<button onclick="openEditComedien('+idx+')" style="background:none;border:none;cursor:pointer;padding:2px" title="Modifier">' +
+           '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px">' +
+           '<path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>' +
+           '<path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>' +
+           '<button onclick="removeComedienIdx('+idx+')" style="background:none;border:none;cursor:pointer;padding:2px;color:#999" title="Supprimer">' +
+           '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:13px;height:13px">' +
+           '<polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/></svg></button>';
+  }
+
+  // DOUBLURES
+  var tbD = document.getElementById('tbody-doublures');
+  if (tbD) {
+    if (!doublures.length) {
+      tbD.innerHTML = '<tr><td colspan="8" style="padding:8px;text-align:center;color:#999;font-size:12px;border:1px solid #eee">Aucune doublure — cliquez + pour ajouter</td></tr>';
+    } else {
+      tbD.innerHTML = doublures.map(function(c) {
+        var idx = all.indexOf(c);
+        return '<tr>' +
+          '<td style="padding:4px 6px;border:1px solid #ddd;font-size:11px;font-weight:600">' + (c.num||'') + '</td>' +
+          '<td style="padding:4px 6px;border:1px solid #ddd;font-size:11px">' + (c.role||'') + '</td>' +
+          '<td style="padding:4px 6px;border:1px solid #ddd;font-size:11px">' + (c.nom||'') + '</td>' +
+          '<td style="padding:4px 6px;border:1px solid #ddd;font-size:11px;text-align:center">' + (c.seqs||'') + '</td>' +
+          '<td style="padding:4px 6px;border:1px solid #ddd;font-size:11px;text-align:center">' + fmtTime(c.hmc) + '</td>' +
+          '<td style="padding:4px 6px;border:1px solid #ddd;font-size:11px;text-align:center">' + fmtTime(c.loges) + '</td>' +
+          '<td style="padding:4px 6px;border:1px solid #ddd;font-size:11px;text-align:center;font-weight:700">' + fmtTime(c.pat) + '</td>' +
+          '<td style="padding:2px;border:1px solid #ddd;text-align:center">' + pencilBtn(idx) + '</td>' +
+          '</tr>';
+      }).join('');
+    }
+  }
+
+  // SILHOUETTES
+  var tbS = document.getElementById('tbody-silhouettes');
+  if (tbS) {
+    if (!silhouettes.length) {
+      tbS.innerHTML = '<tr><td colspan="7" style="padding:8px;text-align:center;color:#999;font-size:12px;border:1px solid #eee">Aucune silhouette — cliquez + pour ajouter</td></tr>';
+    } else {
+      tbS.innerHTML = silhouettes.map(function(c) {
+        var idx = all.indexOf(c);
+        return '<tr>' +
+          '<td style="padding:4px 6px;border:1px solid #ddd;font-size:11px;font-weight:600">' + (c.num||'') + '</td>' +
+          '<td style="padding:4px 6px;border:1px solid #ddd;font-size:11px">' + (c.role||'') + '</td>' +
+          '<td style="padding:4px 6px;border:1px solid #ddd;font-size:11px">' + (c.nom||'') + '</td>' +
+          '<td style="padding:4px 6px;border:1px solid #ddd;font-size:11px;text-align:center">' + (c.seqs||'') + '</td>' +
+          '<td style="padding:4px 6px;border:1px solid #ddd;font-size:11px;text-align:center">' + fmtTime(c.hmc) + '</td>' +
+          '<td style="padding:4px 6px;border:1px solid #ddd;font-size:11px;text-align:center;font-weight:700">' + fmtTime(c.pat) + '</td>' +
+          '<td style="padding:2px;border:1px solid #ddd;text-align:center">' + pencilBtn(idx) + '</td>' +
+          '</tr>';
+      }).join('');
+    }
+  }
+
+  // FIGURANTS
+  var tbF = document.getElementById('tbody-figurants');
+  var totalEl = document.getElementById('fig-total');
+  var titleEl = document.getElementById('fig-count-title');
+  var total = figurants.reduce(function(s,c){ return s + (parseInt(c.nbre)||1); }, 0);
+  if (totalEl) totalEl.textContent = total;
+  if (titleEl) {
+    titleEl.childNodes[0].textContent = 'Figuration : ' + total + ' figurant(s) ';
+  }
+  if (tbF) {
+    if (!figurants.length) {
+      tbF.innerHTML = '<tr><td colspan="6" style="padding:8px;text-align:center;color:#999;font-size:12px;border:1px solid #eee">Aucun figurant — cliquez + pour ajouter</td></tr>';
+    } else {
+      tbF.innerHTML = figurants.map(function(c) {
+        var idx = all.indexOf(c);
+        return '<tr>' +
+          '<td style="padding:4px 6px;border:1px solid #ddd;font-size:11px;text-align:center;font-weight:700;color:var(--purple)">' + (c.nbre||1) + '</td>' +
+          '<td style="padding:4px 6px;border:1px solid #ddd;font-size:11px">' + (c.role||'') + (c.nom?' <i style="color:#999">('+c.nom+')</i>':'') + '</td>' +
+          '<td style="padding:4px 6px;border:1px solid #ddd;font-size:11px;text-align:center">' + (c.seqs||'') + '</td>' +
+          '<td style="padding:4px 6px;border:1px solid #ddd;font-size:11px;text-align:center">' + fmtTime(c.hmc) + '</td>' +
+          '<td style="padding:4px 6px;border:1px solid #ddd;font-size:11px;text-align:center;font-weight:700">' + fmtTime(c.pat) + '</td>' +
+          '<td style="padding:2px;border:1px solid #ddd;text-align:center">' + pencilBtn(idx) + '</td>' +
+          '</tr>';
+      }).join('');
+    }
+  }
+}
+
+function openEditComedien(idx) {
+  var f = activeFDS();
+  if (!f) return;
+  var c = (f.comediens||[])[idx];
+  if (!c) return;
+  document.getElementById('edit-com-idx').value = idx;
+  document.getElementById('modal-edit-com-title').textContent = 'Modifier — ' + (c.type||'comédien');
+  document.getElementById('edit-com-num').value = c.num||'';
+  document.getElementById('edit-com-role').value = c.role||'';
+  document.getElementById('edit-com-nom').value = c.nom||'';
+  document.getElementById('edit-com-seqs').value = c.seqs||'';
+  document.getElementById('edit-com-hmc').value = c.hmc||'';
+  document.getElementById('edit-com-loges').value = c.loges||'';
+  document.getElementById('edit-com-pat').value = c.pat||'';
+  document.getElementById('edit-com-nbre').value = c.nbre||1;
+  openModal('modal-edit-comedien');
+}
+
+function saveEditComedien() {
+  var f = activeFDS();
+  if (!f) return;
+  var idx = parseInt(document.getElementById('edit-com-idx').value);
+  var c = (f.comediens||[])[idx];
+  if (!c) return;
+  c.num   = document.getElementById('edit-com-num').value;
+  c.role  = document.getElementById('edit-com-role').value;
+  c.nom   = document.getElementById('edit-com-nom').value;
+  c.seqs  = document.getElementById('edit-com-seqs').value;
+  c.hmc   = document.getElementById('edit-com-hmc').value;
+  c.loges = document.getElementById('edit-com-loges').value;
+  c.pat   = document.getElementById('edit-com-pat').value;
+  c.nbre  = parseInt(document.getElementById('edit-com-nbre').value)||1;
+  closeModal('modal-edit-comedien');
+  renderFigurationTab();
+  renderComediensList();
+  save();
+  toast('Modifié ✓');
+}
+
+function removeComedienIdx(idx) {
+  var f = activeFDS();
+  if (!f) return;
+  f.comediens.splice(idx, 1);
+  renderFigurationTab();
+  renderComediensList();
+  save();
 }
 
 function renderTypeList(type, elId) {
