@@ -1007,7 +1007,7 @@ function activeFilm() { return state.films.find(f => f.id === activeFilmId) || n
 function activeFDS()  { return state.fds.find(f => f.id === activeFdsId) || null; }
 
 function save() {
-  try { localStorage.setItem('fds_local', JSON.stringify({state, activeFilmId})); } catch(e) {}
+  try { localStorage.setItem('fds_local', JSON.stringify({state, activeFilmId, activeFdsId})); } catch(e) {}
   clearTimeout(saveTimer);
   saveTimer = setTimeout(() => sbSave({state, activeFilmId}), 2000);
 }
@@ -1017,11 +1017,12 @@ async function loadData() {
   if (remote) {
     state = remote.state || state;
     activeFilmId = remote.activeFilmId || null;
+    activeFdsId = remote.activeFdsId || null;
     try { localStorage.setItem('fds_local', JSON.stringify(remote)); } catch(e) {}
   } else {
     try {
       const raw = localStorage.getItem('fds_local');
-      if (raw) { const d = JSON.parse(raw); state = d.state || state; activeFilmId = d.activeFilmId || null; }
+      if (raw) { const d = JSON.parse(raw); state = d.state || state; activeFilmId = d.activeFilmId || null; activeFdsId = d.activeFdsId || null; }
     } catch(e) {}
   }
 }
@@ -2611,6 +2612,11 @@ function renderApercuNav() {
     sel.innerHTML = '<div style="padding:12px;font-size:13px;color:var(--text-muted);text-align:center">Créez un film dans l’onglet Films</div>';
     cont.innerHTML = ''; return;
   }
+  // Auto-sélectionner la première FDS si activeFdsId pas défini
+  if (!activeFdsId) {
+    var fdsList = (state.fds||[]).filter(function(f){ return f.filmId===activeFilmId; });
+    if (fdsList.length) activeFdsId = fdsList[0].id;
+  }
 
   // Utiliser le PDT comme source de toutes les journées
   var allJournees = typeof PDT_DATA !== 'undefined' ? PDT_DATA : [];
@@ -3290,12 +3296,13 @@ function exportBilanCSV() {
 }
 
 function renderResumeConvoc() {
-  // Auto-sélectionner film + journée si nécessaire
   if (!activeFilmId && state.films && state.films.length) activeFilmId = state.films[0].id;
+  // Forcer activeFdsId sur la journée active ou la première disponible
   if (!activeFdsId) {
     var fdsList = (state.fds||[]).filter(function(f){ return f.filmId===activeFilmId; });
-    if (fdsList.length) activeFdsId = fdsList[0].id;
-    else if (typeof PDT_DATA !== 'undefined' && PDT_DATA.length) {
+    if (fdsList.length) {
+      activeFdsId = fdsList[0].id;
+    } else if (typeof PDT_DATA !== 'undefined' && PDT_DATA.length) {
       ouvrirOuCreerFDSSilent(PDT_DATA[0].jdt);
       var fdsList2 = (state.fds||[]).filter(function(f){ return f.filmId===activeFilmId; });
       if (fdsList2.length) activeFdsId = fdsList2[0].id;
