@@ -422,6 +422,28 @@ textarea.form-input{resize:vertical;min-height:72px;}
     </div>
   </div>
 
+  <!-- PAGE APERCU NAV -->
+  <div class="page" id="page-apercu-nav">
+    <div class="page-header">
+      <div class="page-title" id="apercu-nav-title">Aperçu FDS</div>
+      <div class="page-sub" id="apercu-nav-sub">Feuille de service</div>
+    </div>
+    <div class="scroll">
+      <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">
+        <button class="btn btn-primary" style="flex:1;justify-content:center" onclick="envoyerProd()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+          Envoyer à la prod
+        </button>
+        <button class="btn btn-secondary" style="flex:1;justify-content:center" onclick="window.print()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+          Imprimer
+        </button>
+      </div>
+      <div id="apercu-nav-selector" style="margin-bottom:12px"></div>
+      <div id="apercu-nav-content" style="border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;background:#fff"></div>
+    </div>
+  </div>
+
   <!-- NAV -->
   <nav class="nav">
     <button class="nav-btn active" onclick="showPage('films',this)">
@@ -429,6 +451,9 @@ textarea.form-input{resize:vertical;min-height:72px;}
     </button>
     <button class="nav-btn" onclick="showPage('fds',this)">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="2"/><path d="M7 2v20M2 7h5M2 12h5M2 17h5"/></svg>FDS
+    </button>
+    <button class="nav-btn" onclick="showPage('apercu-nav',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>Aperçu
     </button>
     <button class="nav-btn" onclick="showPage('info',this)">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16" stroke-width="3"/></svg>Info
