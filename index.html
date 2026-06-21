@@ -1032,12 +1032,7 @@ function showPage(name) {
   if (name === 'fds') renderJournees();
   if (name === 'info') { const el = document.getElementById('info-email'); if(el && currentUser) el.textContent = currentUser.email; }
   if (name === 'transport-nav') { renderTransportNav(); }
-  if (name === 'apercu-nav') {
-    renderApercuNav();
-    document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
-    var navA = document.getElementById('nav-apercu');
-    if (navA) navA.classList.add('active');
-  }
+  if (name === 'apercu-nav') { renderApercuNav(); }
 }
 
 function stab(name, btn) {
@@ -2356,36 +2351,58 @@ function renderTypeList(type, elId) {
 }
 
 function renderApercuNav() {
-  // Sélecteur de journée
   var sel = document.getElementById('apercu-nav-selector');
   var cont = document.getElementById('apercu-nav-content');
-  var titleEl = document.getElementById('apercu-nav-title');
-  var subEl = document.getElementById('apercu-nav-sub');
   if (!sel || !cont) return;
 
-  var film = activeFilm();
-  var fdsList = (state.fds||[]).filter(function(f){ return f.filmId === activeFilmId; });
-
-  if (!fdsList.length) {
-    sel.innerHTML = '<div style="padding:12px;font-size:13px;color:var(--text-muted);text-align:center">Aucune journée — importez le PDT d’abord</div>';
-    cont.innerHTML = '';
-    return;
+  if (!activeFilmId) {
+    sel.innerHTML = '<div style="padding:12px;font-size:13px;color:var(--text-muted);text-align:center">Sélectionnez un film</div>';
+    cont.innerHTML = ''; return;
   }
 
-  // Sélecteur de journée
-  var currentFdsId = activeFdsId || fdsList[0].id;
-  sel.innerHTML = '<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">' +
-    '<span style="font-size:12px;font-weight:600;color:var(--text-muted)">Journée :</span>' +
-    '<select id="apercu-nav-select" style="flex:1;padding:7px 10px;font-size:13px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--surface);color:var(--text);font-family:inherit" onchange="changerJourneeApercu(this.value)">' +
-    fdsList.map(function(f) {
-      var i = f.infos || {};
-      return '<option value="' + f.id + '"' + (f.id === currentFdsId ? ' selected' : '') + '>' +
-             (i.journee||'J?') + ' — ' + (i.date||'Date non définie') + '</option>';
+  // Utiliser le PDT comme source de toutes les journées
+  var allJournees = typeof PDT_DATA !== 'undefined' ? PDT_DATA : [];
+  var fdsMap = {};
+  (state.fds||[]).filter(function(f){ return f.filmId === activeFilmId; }).forEach(function(f){ fdsMap[f.jdt] = f; });
+
+  if (!allJournees.length) {
+    sel.innerHTML = '<div style="padding:12px;font-size:13px;color:var(--text-muted);text-align:center">Aucune journée disponible</div>';
+    cont.innerHTML = ''; return;
+  }
+
+  // Sélecteur basé sur le JdT actif
+  var currentJdt = activeFdsId ? ((state.fds||[]).find(function(f){return f.id===activeFdsId;})||{}).jdt : allJournees[0].jdt;
+  if (!currentJdt) currentJdt = allJournees[0].jdt;
+
+  sel.innerHTML = '<div style="display:flex;gap:8px;align-items:center;margin-bottom:8px">' +
+    '<span style="font-size:12px;font-weight:600;color:var(--text-muted)">Journée :</span>' +
+    '<select id="apercu-nav-select" style="flex:1;padding:7px 10px;font-size:13px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--surface);color:var(--text);font-family:inherit" onchange="changerJourneeApercuJdt(parseInt(this.value))">' +
+    allJournees.map(function(pdt) {
+      var fds = fdsMap[pdt.jdt];
+      var label = pdt.journee + ' — ' + pdt.date;
+      var sel2 = pdt.jdt === currentJdt ? ' selected' : '';
+      return '<option value="' + pdt.jdt + '"' + sel2 + '>' + label + '</option>';
     }).join('') +
     '</select></div>';
 
-  // Afficher la FDS sélectionnée
-  changerJourneeApercu(currentFdsId);
+  changerJourneeApercuJdt(currentJdt);
+}
+
+function changerJourneeApercuJdt(jdtNum) {
+  // Créer la FDS si elle n'existe pas encore
+  var fdsExist = (state.fds||[]).find(function(f){ return f.filmId===activeFilmId && f.jdt===jdtNum; });
+  if (!fdsExist) { ouvrirOuCreerFDSSilent(jdtNum); fdsExist = (state.fds||[]).find(function(f){ return f.filmId===activeFilmId && f.jdt===jdtNum; }); }
+  if (!fdsExist) return;
+  activeFdsId = fdsExist.id;
+  var i = fdsExist.infos||{};
+  var film = activeFilm();
+  var titleEl = document.getElementById('apercu-nav-title');
+  var subEl = document.getElementById('apercu-nav-sub');
+  if (titleEl) titleEl.textContent = 'Aperçu ' + (i.journee||'') + ' — ' + (i.date||'');
+  if (subEl) subEl.textContent = film ? film.nom : '';
+  // Render dans le bon conteneur
+  var navEl = document.getElementById('apercu-nav-content');
+  if (navEl) { navEl.id = 'apercu-content'; renderApercu(); navEl.id = 'apercu-nav-content'; }
 }
 
 function changerJourneeApercu(fdsId) {
