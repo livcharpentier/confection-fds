@@ -218,6 +218,8 @@ textarea.form-input{resize:vertical;min-height:72px;}
         <button class="stab" onclick="stab('comediens',this)">Comédiens</button>
         <button class="stab" onclick="stab('dept',this)">Départements</button>
         <button class="stab" onclick="stab('equipe',this)">Équipe</button>
+        <button class="stab" onclick="stab('figuration',this)">Figuration</button>
+        <button class="stab" onclick="stab('silhouettes',this)">Silhouettes</button>
         <button class="stab" onclick="stab('transports',this)">Transports</button>
         <button class="stab" onclick="stab('previsions',this)">Prévisions</button>
         <button class="stab" onclick="stab('apercu',this)">Aperçu</button>
@@ -285,6 +287,26 @@ textarea.form-input{resize:vertical;min-height:72px;}
           </div>
           <div class="pills" id="equipe-pills"></div>
           <div id="equipe-list"><div class="empty">Aucun membre</div></div>
+        </div>
+      </div>
+
+      <!-- FIGURATION -->
+      <div class="spanel" id="sp-figuration">
+        <div class="card">
+          <div class="card-title">Figuration
+            <button class="btn btn-sm btn-primary" onclick="openComModal('figurant')">+ Ajouter</button>
+          </div>
+          <div id="figuration-list"><div class="empty">Aucun figurant</div></div>
+        </div>
+      </div>
+
+      <!-- SILHOUETTES -->
+      <div class="spanel" id="sp-silhouettes">
+        <div class="card">
+          <div class="card-title">Silhouettes
+            <button class="btn btn-sm btn-primary" onclick="openComModal('silhouette')">+ Ajouter</button>
+          </div>
+          <div id="silhouettes-list"><div class="empty">Aucune silhouette</div></div>
         </div>
       </div>
 
@@ -436,7 +458,16 @@ textarea.form-input{resize:vertical;min-height:72px;}
     <div class="form-row"><label class="form-label">Chauffeur</label><input class="form-input" id="tr-chauffeur" placeholder="Delphine & Liv"/></div>
     <div class="form-row"><label class="form-label">Adresse départ</label><input class="form-input" id="tr-depart" placeholder="Hôtel Le Maxime, Auxerre"/></div>
     <div class="form-row"><label class="form-label">Adresse arrivée</label><input class="form-input" id="tr-arrivee" placeholder="D965, 89130 Mézilles"/></div>
+    <div class="form-row"><label class="form-label">Type de mouvement</label>
+    <select class="form-input" id="tr-type">
+      <option value="jour">Transport du jour</option>
+      <option value="arrivee_veille">Arrivée la veille</option>
+      <option value="arrivee_jour">Arrivée le jour même</option>
+      <option value="depart">Départ</option>
+    </select></div>
     <div class="form-row"><label class="form-label">PAT comédien</label><input class="form-input" id="tr-pat" type="time"/></div>
+    <div class="form-row"><label class="form-label">Sur place</label><input class="form-input" id="tr-sur-place" type="time"/></div>
+    <div class="form-row"><label class="form-label">Tél chauffeur</label><input class="form-input" id="tr-tel" placeholder="07 XX XX XX XX"/></div>
     <button class="btn btn-primary btn-block" onclick="addTransport()">Calculer & Ajouter</button>
   </div>
 </div>
@@ -624,6 +655,8 @@ function stab(name, btn) {
   if (name === 'comediens')  renderComediensList();
   if (name === 'dept')       { currentDept = 'decoration'; renderDeptPills(); loadDeptNote(); }
   if (name === 'equipe')     { currentEquipeDept = 'realisateur'; renderEquipePills(); renderEquipeList(); }
+  if (name === 'figuration') renderTypeList('figurant','figuration-list');
+  if (name === 'silhouettes') renderTypeList('silhouette','silhouettes-list');
   if (name === 'transports') renderTransportList();
   if (name === 'previsions') renderPrevList();
   if (name === 'apercu')     renderApercu();
@@ -1134,13 +1167,17 @@ function renderTransportList() {
 
 function addTransport() {
   const f = activeFDS(); if (!f) return;
+  var trType = document.getElementById('tr-type');
   f.transports.push({
+    type: trType ? trType.value : 'jour',
     comedien: document.getElementById('tr-comedien').value,
     role: document.getElementById('tr-role').value,
     chauffeur: document.getElementById('tr-chauffeur').value,
+    tel: (document.getElementById('tr-tel')||{}).value || '',
     depart: document.getElementById('tr-depart').value,
     arrivee: document.getElementById('tr-arrivee').value,
-    pat: document.getElementById('tr-pat').value || null
+    pat: document.getElementById('tr-pat').value || null,
+    sur_place: (document.getElementById('tr-sur-place')||{}).value || ''
   });
   closeModal('modal-transport'); renderTransportList(); save(); toast('Transport ajouté');
 }
@@ -1201,61 +1238,65 @@ function renderApercu() {
              '<td style="padding:1px 6px;font-size:9px">' + m.nom + '</td></tr>';
     }).join('');
   }
-
-  function tdC(v,w,bold,center) {
+  function td(v,w,bold,center,extra) {
     return '<td style="padding:2px 5px;font-size:9px;border:1px solid #999;' +
-      (w?'width:'+w+';':'') + (bold?'font-weight:700;':'') + (center?'text-align:center;':'') + '">' + (v||'') + '</td>';
+      (w?'width:'+w+';':'')+(bold?'font-weight:700;':'')+(center?'text-align:center;':'')+(extra||'')+'">'+(v||'&nbsp;')+'</td>';
   }
-  function thC(v,w) {
-    return '<th style="padding:3px 5px;font-size:8.5px;border:1px solid #999;background:#ddd;text-align:center;' + (w?'width:'+w+';':'') + '">' + v + '</th>';
+  function th(v,w) {
+    return '<th style="padding:3px 5px;font-size:8.5px;border:1px solid #999;background:#ddd;text-align:center;'+(w?'width:'+w+';':'')+'">' + v + '</th>';
   }
-  function sectionHead(titre) {
-    return '<tr><td colspan="20" style="background:#e8e8e8;padding:3px 6px;font-size:9.5px;font-weight:700;font-style:italic;border:1px solid #999">' + titre + '</td></tr>';
+  function secHead(titre, cols) {
+    return '<tr><td colspan="'+(cols||10)+'" style="background:#ddd;padding:3px 8px;font-size:9.5px;font-weight:700;border:1px solid #999;text-align:center">' + titre + '</td></tr>';
+  }
+  function deptRow(label, val) {
+    return '<tr><td style="padding:2px 8px;font-size:8.5px;font-weight:700;border:1px solid #999;white-space:nowrap;width:160px;vertical-align:top">' + label + '</td>' +
+           '<td style="padding:2px 8px;font-size:8.5px;border:1px solid #999;white-space:pre-wrap">'+(val||'&nbsp;')+'</td></tr>';
   }
 
   var h = '<div style="font-family:Arial,sans-serif;font-size:10px;line-height:1.5;max-width:780px;margin:0 auto;background:#fff;padding:10px">';
 
-  // ── PAGE 1 ──────────────────────────────────────────────────────
+  // ── PAGE 1 ───────────────────────────────────────────────────────
 
-  // LOGO + TITRE FILM
-  h += '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 60" width="130" style="display:block;margin-bottom:4px">';
-  h += '<line x1="0" y1="5" x2="260" y2="5" stroke="black" stroke-width="1.5"/>';
-  h += '<text x="2" y="46" font-family="Georgia,serif" font-size="42" font-weight="bold" fill="black">AXEL FILMS</text>';
-  h += '<line x1="0" y1="58" x2="260" y2="58" stroke="black" stroke-width="1.5"/>';
-  h += '</svg>';
-  h += '<div style="text-align:center;font-size:15px;font-weight:700;font-style:italic;margin:6px 0 2px">';
+  // LOGO (reproduit le style original avec petites caps et double soulignement)
+  h += '<div style="margin-bottom:6px">';
+  h += '<div style="font-family:\'Times New Roman\',serif;font-size:36px;font-weight:900;letter-spacing:2px;border-top:2px solid #000;border-bottom:2px solid #000;padding:4px 0;display:inline-block;line-height:1.1">';
+  h += '<span style="font-size:42px">A</span>XEL <span style="font-size:42px">F</span>ILMS</div>';
+  h += '</div>';
+
+  // TITRE FILM
+  h += '<div style="text-align:center;font-size:16px;font-weight:700;font-style:italic;margin:8px 0 3px">';
   h += '&laquo;&nbsp;' + (film ? film.nom.toUpperCase() : 'TITRE DU FILM') + '&nbsp;&raquo;</div>';
-  h += '<div style="text-align:center;font-size:11px;margin-bottom:6px">Un film r\u00e9alis\u00e9 par <b>' + (film ? (film.real||'') : '') + '</b></div>';
+  h += '<div style="text-align:center;font-size:11px;margin-bottom:8px">Un film r\u00e9alis\u00e9 par <b>' + (film ? (film.real||'') : '') + '</b></div>';
 
   // TABLEAU EQUIPE + HORAIRES
-  h += '<table style="width:100%;border-collapse:collapse;border:1px solid #999;margin-bottom:5px"><tr>';
-  h += '<td style="vertical-align:top;border-right:1px solid #999;padding:0">';
+  h += '<table style="width:100%;border-collapse:collapse;border:1px solid #999;margin-bottom:5px;table-layout:fixed"><tr>';
+  h += '<td style="vertical-align:top;border-right:1px solid #999;padding:0;height:1px">';
   h += '<table style="width:100%;border-collapse:collapse">';
   h += membresEq('realisateur');
-  h += '<tr><td colspan="2" style="padding:2px 0"></td></tr>';
+  h += '<tr><td colspan="2" style="padding:1px 0;border-bottom:1px dotted #ddd"></td></tr>';
   h += membresEq('production');
-  h += '<tr><td colspan="2" style="padding:2px 0"></td></tr>';
+  h += '<tr><td colspan="2" style="padding:1px 0;border-bottom:1px dotted #ddd"></td></tr>';
   h += membresEq('mise_en_scene');
-  h += '<tr><td colspan="2" style="padding:2px 0"></td></tr>';
+  h += '<tr><td colspan="2" style="padding:1px 0;border-bottom:1px dotted #ddd"></td></tr>';
   h += membresEq('regie');
   h += '<tr><td colspan="2" style="padding:2px 6px;font-size:8.5px;font-style:italic"><u>D\u00e9l\u00e9gu\u00e9s de plateau :</u> Emilie JUSTIN \u2013 Christophe BOISSY</td></tr>';
   h += '</table></td>';
   h += '<td style="vertical-align:top;width:230px;padding:0">';
-  h += '<div style="padding:8px;text-align:center;border-bottom:1px solid #999">';
+  h += '<div style="padding:5px 8px;text-align:center;border-bottom:1px solid #999">';
   h += '<div style="font-size:17px;font-weight:600">Horaires\u00a0: ' + fmtTime(i.debut) + ' \u2013 ' + fmtTime(i.fin) + '</div>';
   h += '<div style="font-size:22px;font-weight:900;margin:3px 0">PAT\u00a0: ' + fmtTime(i.pat) + '</div>';
   h += '</div>';
   h += '<div style="padding:6px 8px;border-bottom:1px solid #999;font-size:10px;font-weight:600">Repas \u00e0 partir de\u00a0: ' + fmtTime(i.repas) + '</div>';
-  h += '<div style="padding:5px 8px;font-size:8.5px;display:grid;grid-template-columns:1fr 1fr;gap:1px">';
+  h += '<div style="padding:5px 8px;font-size:8.5px;display:grid;grid-template-columns:1fr 1fr;gap:2px">';
   h += '<div>M\u00e9t\u00e9o\u00a0: ' + (i.meteo||'\u2014') + '</div><div>Temp\u00e9rature\u00a0: ' + (i.meteo||'\u2014') + '</div>';
   h += '<div>Cr\u00e9p. matin\u00a0: ' + (fmtTime(i.crep_m)||'\u2014') + '</div><div>Lever\u00a0: ' + (fmtTime(i.lever)||'\u2014') + '</div>';
   h += '<div>Cr\u00e9p. soir\u00a0: ' + (fmtTime(i.crep_s)||'\u2014') + '</div><div>Coucher\u00a0: ' + (fmtTime(i.coucher)||'\u2014') + '</div>';
   h += '</div></td></tr></table>';
 
-  // TITRE JOURNEE
+  // TITRE JOURNEE centré
   h += '<div style="background:#ccc;display:flex;justify-content:space-between;align-items:center;padding:6px 12px;margin-bottom:6px;border:1px solid #999">';
-  h += '<span style="font-size:14px;font-weight:800">FEUILLE DE SERVICE DU ' + (i.date||'').toUpperCase() + '</span>';
-  h += '<span style="font-size:17px;font-weight:900;border-left:2px solid #999;padding-left:12px">' + (i.journee||'') + '</span>';
+  h += '<span style="flex:1;text-align:center;font-size:14px;font-weight:800">FEUILLE DE SERVICE DU ' + (i.date||'').toUpperCase() + '</span>';
+  h += '<span style="font-size:17px;font-weight:900;border-left:2px solid #999;padding-left:12px;flex-shrink:0">' + (i.journee||'') + '</span>';
   h += '</div>';
 
   // NOTE EQUIPE
@@ -1269,137 +1310,164 @@ function renderApercu() {
   h += '<div style="border:1px solid #ccc;padding:5px;text-align:center;font-size:9px;margin-bottom:5px">';
   h += '<b>ECOPROD</b><br>Chaque geste compte !<br>N\u2019h\u00e9sitez pas \u00e0 ramener votre gourde ou votre ecocup<br>Restons responsable !</div>';
 
-  // PREVENTION HARCELEMENT (fond orange comme l'original)
+  // HARCELEMENT fond orange
   h += '<div style="border:1px solid #c07000;background:#e8850a;color:#fff;padding:8px;font-size:8.5px;margin-bottom:8px;text-align:center">';
   h += '<div style="font-weight:700;text-decoration:underline;font-size:10px;margin-bottom:3px">PR\u00c9VENTION HARC\u00c8LEMENT</div>';
   h += 'Toute personne s\u2019estimant victime de harc\u00e8lement peut s\u2019adresser aux r\u00e9f\u00e9rents de notre film<br>';
   h += '<b>Louise Jacquet \u2013 Nina Allimann</b><br>';
-  h += '<i>(cf. convocation pour les num\u00e9ros de t\u00e9l\u00e9phone) et/ou<br>';
-  h += 'envoyer un mail \u00e0 l\u2019adresse axelfilmsproduction@gmail.com</i><br>';
+  h += '<i>(cf. convocation pour les num\u00e9ros de t\u00e9l\u00e9phone) et/ou<br>envoyer un mail \u00e0 l\u2019adresse axelfilmsproduction@gmail.com</i><br>';
   h += 'Au m\u00e9decin du travail \u2013 Centre Thalie Sant\u00e9 : (+33)1 49 27 60 00 / Au CCHSCT : (+33)1 53 89 01 30 /<br>';
-  h += 'Au N\u00b0 vert AP-HP St Antoine : +33 800 00 46 41 / Au N\u00b0 d\u2019urgence du Minist\u00e8re de la Justice destin\u00e9 aux victimes ou t\u00e9moins de harc\u00e8lement : + 33 884 284 63</div>';
+  h += 'Au N\u00b0 vert AP-HP St Antoine : +33 800 00 46 41 / Au N\u00b0 d\u2019urgence du Minist\u00e8re de la Justice : +33 884 284 63</div>';
 
   // LIEUX
   if (f.lieux && f.lieux.length) {
     h += '<table style="width:100%;border-collapse:collapse;margin-bottom:5px">';
-    h += '<tr><td colspan="2" style="background:#e0e0e0;padding:3px 8px;font-size:9px;font-weight:700;border:1px solid #999">LIEUX DE RDV ET DE TOURNAGE</td></tr>';
     f.lieux.forEach(function(l) {
-      if (l.valeur) h += '<tr>' + tdC(l.label.toUpperCase()+' :','220px',true,true) + tdC(l.valeur,'','',false) + '</tr>';
+      if (l.valeur) h += '<tr>' + td(l.label.toUpperCase()+' :','220px',true,true) + td(l.valeur,'',false,false) + '</tr>';
     });
     h += '</table>';
   }
 
-  // ── PAGE 2 ──────────────────────────────────────────────────────
-  h += '<div style="margin-top:12px;border-top:2px solid #999;padding-top:8px"></div>';
+  // ── PAGE 2 ───────────────────────────────────────────────────────
+  h += '<div style="margin-top:14px;border-top:2px solid #999;padding-top:8px"></div>';
 
   // SEQUENCES
   if (f.sequences && f.sequences.length) {
     h += '<table style="width:100%;border-collapse:collapse;margin-bottom:8px">';
-    h += '<tr>' + thC('SEQ','50px') + thC('EFFET','50px') + thC('D\u00c9COR') + thC('R\u00c9SUM\u00c9') + thC('R\u00d4LES','60px') + thC('CONT.','80px') + thC('MIN','50px') + '</tr>';
+    h += '<tr>'+th('SEQ','45px')+th('EFFET','45px')+th('D\u00c9COR')+th('R\u00c9SUM\u00c9')+th('R\u00d4LES','55px')+th('CONT.','75px')+th('MIN','48px')+'</tr>';
     f.sequences.forEach(function(s) {
-      h += '<tr>' + tdC(s.num,'',true,true) + tdC(s.effet,'',false,true) + tdC(s.decor,'',true,true) +
-           '<td style="padding:2px 5px;font-size:9px;border:1px solid #999;font-style:italic;text-align:center">' + (s.resume||'') + '</td>' +
-           tdC(s.roles,'',false,true) + tdC(s.cont||'','',false,true) + tdC(s.duree,'',false,true) + '</tr>';
+      h += '<tr>'+td(s.num,'',true,true)+td(s.effet,'',false,true)+td(s.decor,'',true,true)+
+           '<td style="padding:2px 5px;font-size:9px;border:1px solid #999;font-style:italic;text-align:center">'+(s.resume||'&nbsp;')+'</td>'+
+           td(s.roles,'',false,true)+td(s.cont||'','',false,true)+td(s.duree,'',false,true)+'</tr>';
     });
-    h += '<tr><td colspan="6" style="text-align:right;padding:2px 6px;font-size:9px;font-weight:700;border:1px solid #999">TOTAL</td>' +
-         '<td style="padding:2px 5px;font-size:9px;font-weight:700;border:1px solid #999;text-align:center">' + (f.total_min||'') + '</td></tr>';
+    h += '<tr><td colspan="6" style="text-align:right;padding:2px 8px;font-size:9px;font-weight:700;border:1px solid #999">TOTAL</td>'+
+         td(f.total_min||'','',true,true)+'</tr>';
     h += '</table>';
   }
 
-  // COMEDIENS
-  if (f.comediens && f.comediens.length) {
-    var roles = f.comediens.filter(function(c){ return c.type === 'comedien' || !c.type; });
-    var doublures = f.comediens.filter(function(c){ return c.type === 'doublure'; });
-    var silhouettes = f.comediens.filter(function(c){ return c.type === 'silhouette'; });
-    var figurants = f.comediens.filter(function(c){ return c.type === 'figurant'; });
+  // COMEDIENS par type
+  var allCom = f.comediens || [];
+  var roles = allCom.filter(function(c){ return !c.type || c.type==='comedien'; });
+  var doublures = allCom.filter(function(c){ return c.type==='doublure'; });
+  var silhouettes = allCom.filter(function(c){ return c.type==='silhouette'; });
+  var figurants = allCom.filter(function(c){ return c.type==='figurant'; });
 
-    if (roles.length) {
-      h += '<table style="width:100%;border-collapse:collapse;margin-bottom:5px">';
-      h += '<tr>' + thC('N\u00b0','35px') + thC('R\u00d4LES ('+roles.length+')') + thC('COM\u00c9DIENS') +
-           thC('S\u00c9QUENCES') + thC('HMC','60px') + thC('D\u00e9part Loges','70px') + thC('PAT','55px') + '</tr>';
-      roles.forEach(function(c) {
-        h += '<tr>' + tdC(c.num,'',false,true) + tdC(c.role,'',true,false) + tdC(c.nom,'',false,false) +
-             tdC(c.seqs,'',false,true) + tdC(fmtTime(c.hmc),'',false,true) +
-             tdC(fmtTime(c.loges),'',false,true) + tdC(fmtTime(c.pat),'',true,true) + '</tr>';
-      });
-      h += '</table>';
-    }
-
-    if (doublures.length) {
-      h += '<table style="width:100%;border-collapse:collapse;margin-bottom:2px">';
-      h += '<tr>' + thC('N\u00b0','35px') + thC('DOUBLURES* ('+doublures.length+')') + thC('NOMS') +
-           thC('S\u00c9QUENCES') + thC('HMC','60px') + thC('MeP','60px') + thC('PAT','55px') + '</tr>';
-      doublures.forEach(function(c) {
-        h += '<tr>' + tdC(c.num,'',false,true) + tdC(c.role,'',false,false) + tdC(c.nom,'',false,false) +
-             tdC(c.seqs,'',false,true) + tdC(fmtTime(c.hmc),'',false,true) +
-             tdC(fmtTime(c.loges),'',false,true) + tdC(fmtTime(c.pat),'',true,true) + '</tr>';
-      });
-      h += '</table>';
-      h += '<div style="font-size:8px;font-style:italic;color:#c00;margin-bottom:5px">*Pr\u00e9paration des doublures \u00e0 la loge r\u00f4les</div>';
-    }
-
-    if (silhouettes.length) {
-      h += '<table style="width:100%;border-collapse:collapse;margin-bottom:2px">';
-      h += '<tr>' + thC('N\u00b0','35px') + thC('SILHOUETTES* ('+silhouettes.length+')') + thC('NOMS') +
-           thC('S\u00c9QUENCES') + thC('HMC','60px') + thC('PAT','55px') + '</tr>';
-      silhouettes.forEach(function(c) {
-        h += '<tr>' + tdC(c.num,'',false,true) + tdC(c.role,'',false,false) + tdC(c.nom,'',false,false) +
-             tdC(c.seqs,'',false,true) + tdC(fmtTime(c.hmc),'',false,true) + tdC(fmtTime(c.pat),'',true,true) + '</tr>';
-      });
-      h += '</table>';
-      h += '<div style="font-size:8px;font-style:italic;color:#c00;margin-bottom:5px">*Pr\u00e9paration des silhouettes \u00e0 la loge figuration</div>';
-    }
-
-    if (figurants.length) {
-      h += '<div style="font-size:9px;font-weight:700;margin:3px 0">FIGURATION : ' + figurants.length + ' figurant(s)</div>';
-      h += '<table style="width:100%;border-collapse:collapse;margin-bottom:5px">';
-      h += '<tr>' + thC('Nbre','40px') + thC('FIGURATION') + thC('S\u00c9QUENCES') + thC('HMC','60px') + thC('PAT','55px') + '</tr>';
-      figurants.forEach(function(c) {
-        h += '<tr>' + tdC('1','',false,true) + tdC(c.role+' '+c.nom,'',false,false) +
-             tdC(c.seqs,'',false,true) + tdC(fmtTime(c.hmc),'',false,true) + tdC(fmtTime(c.pat),'',true,true) + '</tr>';
-      });
-      h += '</table>';
-    }
+  if (roles.length) {
+    h += '<table style="width:100%;border-collapse:collapse;margin-bottom:3px">';
+    h += '<tr>'+th('N\u00b0','35px')+th('R\u00d4LES ('+roles.length+')')+th('COM\u00c9DIENS')+
+         th('S\u00c9QUENCES')+th('HMC','60px')+th('D\u00e9part Loges','70px')+th('PAT','55px')+'</tr>';
+    roles.forEach(function(c) {
+      h += '<tr>'+td(c.num,'',false,true)+td(c.role,'',true,false)+td(c.nom,'',false,false)+
+           td(c.seqs,'',false,true)+td(fmtTime(c.hmc),'',false,true)+td(fmtTime(c.loges),'',false,true)+td(fmtTime(c.pat),'',true,true)+'</tr>';
+    });
+    h += '</table>';
+  }
+  if (doublures.length) {
+    h += '<table style="width:100%;border-collapse:collapse;margin-bottom:2px">';
+    h += '<tr>'+th('N\u00b0','35px')+th('DOUBLURES* ('+doublures.length+')')+th('NOMS')+
+         th('S\u00c9QUENCES')+th('HMC','60px')+th('MeP','60px')+th('PAT','55px')+'</tr>';
+    doublures.forEach(function(c) {
+      h += '<tr>'+td(c.num,'',false,true)+td(c.role,'',false,false)+td(c.nom,'',false,false)+
+           td(c.seqs,'',false,true)+td(fmtTime(c.hmc),'',false,true)+td(fmtTime(c.loges),'',false,true)+td(fmtTime(c.pat),'',true,true)+'</tr>';
+    });
+    h += '</table>';
+    h += '<div style="font-size:8px;font-style:italic;color:#c00;margin-bottom:4px">*Pr\u00e9paration des doublures \u00e0 la loge r\u00f4les</div>';
+  }
+  if (silhouettes.length) {
+    h += '<table style="width:100%;border-collapse:collapse;margin-bottom:2px">';
+    h += '<tr>'+th('N\u00b0','35px')+th('SILHOUETTES* ('+silhouettes.length+')')+th('NOMS')+
+         th('S\u00c9QUENCES')+th('HMC','60px')+th('PAT','55px')+'</tr>';
+    silhouettes.forEach(function(c) {
+      h += '<tr>'+td(c.num,'',false,true)+td(c.role,'',false,false)+td(c.nom,'',false,false)+
+           td(c.seqs,'',false,true)+td(fmtTime(c.hmc),'',false,true)+td(fmtTime(c.pat),'',true,true)+'</tr>';
+    });
+    h += '</table>';
+    h += '<div style="font-size:8px;font-style:italic;color:#c00;margin-bottom:4px">*Pr\u00e9paration des silhouettes \u00e0 la loge figuration</div>';
+  }
+  if (figurants.length) {
+    h += '<div style="font-size:9px;font-weight:700;margin:3px 0 2px">FIGURATION : ' + figurants.length + ' figurant(s)</div>';
+    h += '<table style="width:100%;border-collapse:collapse;margin-bottom:5px">';
+    h += '<tr>'+th('Nbre','40px')+th('FIGURATION')+th('S\u00c9QUENCES')+th('HMC','60px')+th('PAT','55px')+'</tr>';
+    figurants.forEach(function(c) {
+      h += '<tr>'+td('1','',false,true)+td(c.role+(c.nom?' ('+c.nom+')':''),'',false,false)+
+           td(c.seqs,'',false,true)+td(fmtTime(c.hmc),'',false,true)+td(fmtTime(c.pat),'',true,true)+'</tr>';
+    });
+    h += '</table>';
   }
 
-  // DEPARTEMENTS - tous affichés même vides
+  // DEPARTEMENTS — tous affichés même vides
   var DEPT_ORDER = ['decoration','accessoires','armes','costumes','maquillage','coiffure','son','machinerie','cascade','vfx','vehicules','regie'];
   DEPT_ORDER.forEach(function(d) {
     var note = (f.deptNotes && f.deptNotes[d]) || '';
-    h += '<table style="width:100%;border-collapse:collapse;margin-bottom:3px">';
-    h += sectionHead(DEPT_LABELS[d].toUpperCase());
-    h += '<tr><td style="padding:3px 6px;font-size:9px;min-height:18px;border:1px solid #999;white-space:pre-wrap">' + (note || '&nbsp;') + '</td></tr>';
+    h += '<table style="width:100%;border-collapse:collapse;margin-bottom:2px">';
+    h += '<tr><td colspan="2" style="background:#e8e8e8;padding:2px 6px;font-size:9px;font-weight:700;font-style:italic;border:1px solid #999">' + DEPT_LABELS[d].toUpperCase() + '</td></tr>';
+    h += '<tr><td style="padding:3px 6px;font-size:9px;border:1px solid #999;white-space:pre-wrap;min-height:16px">'+(note||'&nbsp;')+'</td></tr>';
     h += '</table>';
   });
 
-  // ── PAGE 3 ──────────────────────────────────────────────────────
-  h += '<div style="margin-top:12px;border-top:2px solid #999;padding-top:8px"></div>';
+  // ── PAGE 3 — TRANSPORTS ─────────────────────────────────────────
+  h += '<div style="margin-top:14px;border-top:2px solid #999;padding-top:8px"></div>';
 
-  // TRANSPORTS
   if (f.transports && f.transports.length) {
-    h += '<div style="font-weight:800;font-size:10px;text-align:center;background:#ddd;padding:4px;border:1px solid #999;margin-bottom:3px">';
-    h += 'TRANSPORTS COM\u00c9DIENS \u2013 ' + (i.date||'').toUpperCase() + '</div>';
-    h += '<table style="width:100%;border-collapse:collapse;margin-bottom:8px">';
-    h += '<tr>' + thC('NOMS') + thC('CHAUFFEUR') + thC('PICK-UP','65px') + thC('LIEUX') + thC('SUR PLACE','65px') + thC('PAT','55px') + '</tr>';
-    f.transports.forEach(function(t) {
+    // Transports jour
+    h += '<table style="width:100%;border-collapse:collapse;margin-bottom:6px">';
+    h += secHead('TRANSPORTS COM\u00c9DIENS \u2013 ' + (i.date||'').toUpperCase(), 6);
+    h += '<tr>'+th('NOMS')+th('CHAUFFEUR')+th('PICK-UP','65px')+th('LIEUX')+th('SUR PLACE','65px')+th('PAT','55px')+'</tr>';
+    (f.transports||[]).filter(function(t){ return !t.type || t.type==='jour'; }).forEach(function(t) {
       var pickup = t.pat ? calcPickup(t.pat, estimerTrajet(t.depart, t.arrivee)) : 'Sur tel';
-      h += '<tr>' + tdC(t.comedien,'',true,true) + tdC(t.chauffeur,'',false,true) +
-           tdC(pickup,'',true,true) + tdC(t.depart,'',false,true) +
-           tdC(fmtTime(t.sur_place)||'','',false,true) + tdC(fmtTime(t.pat),'',true,true) + '</tr>';
+      h += '<tr>'+td(t.comedien,'',true,true)+td(t.chauffeur+(t.tel?'<br><span style="font-size:8px">'+t.tel+'</span>':''),'',false,true)+
+           td(pickup,'',true,true)+td(t.depart,'',false,true)+td(t.sur_place||'\u2014','',false,true)+td(fmtTime(t.pat)||'\u2014','',true,true)+'</tr>';
     });
     h += '</table>';
+
+    // Arrivées veille
+    var arr_veille = (f.transports||[]).filter(function(t){ return t.type==='arrivee_veille'; });
+    if (arr_veille.length) {
+      h += '<table style="width:100%;border-collapse:collapse;margin-bottom:6px">';
+      var veille = i.date ? 'ARRIV\u00c9E(S) \u2013 VEILLE' : 'ARRIV\u00c9E(S) \u2013 VEILLE';
+      h += secHead(veille, 5);
+      h += '<tr>'+th('NOMS')+th('CHAUFFEUR')+th('PICK-UP','65px')+th('LIEUX DE PICK-UP')+th('ARRIV\u00c9E')+'</tr>';
+      arr_veille.forEach(function(t) {
+        h += '<tr>'+td(t.comedien,'',true,true)+td(t.chauffeur,'',false,true)+td(t.pickup||'\u2014','',false,true)+td(t.depart,'',false,true)+td(t.arrivee,'',false,false)+'</tr>';
+      });
+      h += '</table>';
+    }
+
+    // Arrivées jour
+    var arr_jour = (f.transports||[]).filter(function(t){ return t.type==='arrivee_jour'; });
+    if (arr_jour.length) {
+      h += '<table style="width:100%;border-collapse:collapse;margin-bottom:6px">';
+      h += secHead('ARRIV\u00c9E(S) \u2013 ' + (i.date||'').toUpperCase(), 5);
+      h += '<tr>'+th('NOMS')+th('CHAUFFEUR')+th('PICK-UP','65px')+th('LIEUX DE PICK-UP')+th('ARRIV\u00c9E')+'</tr>';
+      arr_jour.forEach(function(t) {
+        h += '<tr>'+td(t.comedien,'',true,true)+td(t.chauffeur,'',false,true)+td(t.pickup||'\u2014','',false,true)+td(t.depart,'',false,true)+td(t.arrivee,'',false,false)+'</tr>';
+      });
+      h += '</table>';
+    }
+
+    // Départs
+    var departs = (f.transports||[]).filter(function(t){ return t.type==='depart'; });
+    if (departs.length) {
+      h += '<table style="width:100%;border-collapse:collapse;margin-bottom:6px">';
+      h += secHead('D\u00c9PART(S) \u2013 ' + (i.date||'').toUpperCase(), 5);
+      h += '<tr>'+th('NOMS')+th('CHAUFFEUR')+th('PICK-UP','65px')+th('LIEUX DE PICK-UP')+th('ARRIV\u00c9E')+'</tr>';
+      departs.forEach(function(t) {
+        h += '<tr>'+td(t.comedien,'',true,true)+td(t.chauffeur||'PPM','',false,true)+td('\u2014','',false,true)+td('\u2014','',false,true)+td('\u2014','',false,true)+'</tr>';
+      });
+      h += '</table>';
+    }
   }
 
-  // PREVISIONS
+  // ── PAGE 4 — PREVISIONS ─────────────────────────────────────────
   if (f.previsions && f.previsions.length) {
     f.previsions.forEach(function(p) {
-      h += '<table style="width:100%;border-collapse:collapse;margin-bottom:6px">';
-      h += '<tr><td style="background:#ddd;padding:4px 8px;font-size:9.5px;font-weight:800;border:1px solid #999;width:60%">PR\u00c9VISIONS DU ' + (p.journee||'').toUpperCase() + '</td>';
-      h += '<td style="background:#ddd;padding:4px 8px;font-size:9.5px;font-weight:800;border:1px solid #999;text-align:right">HORAIRES\u00a0: ' + (p.horaires||'') + '</td></tr>';
-      if (p.decors) h += '<tr><td style="padding:2px 8px;font-size:8.5px;font-weight:700;border:1px solid #999;white-space:nowrap;width:120px">D\u00c9CORS / LIEU\u00a0:</td><td style="padding:2px 8px;font-size:8.5px;border:1px solid #999">' + p.decors + '</td></tr>';
-      if (p.seqs) h += '<tr><td style="padding:2px 8px;font-size:8.5px;font-weight:700;border:1px solid #999">S\u00c9QUENCES / EFFETS\u00a0:</td><td style="padding:2px 8px;font-size:8.5px;border:1px solid #999">' + p.seqs + '</td></tr>';
-      if (p.roles) h += '<tr><td style="padding:2px 8px;font-size:8.5px;font-weight:700;border:1px solid #999">R\u00d4LES\u00a0:</td><td style="padding:2px 8px;font-size:8.5px;border:1px solid #999">' + p.roles + '</td></tr>';
-      if (p.notes) h += '<tr><td colspan="2" style="padding:2px 8px;font-size:8.5px;border:1px solid #999;color:#444">' + p.notes + '</td></tr>';
+      h += '<table style="width:100%;border-collapse:collapse;margin-bottom:8px">';
+      h += '<tr><td style="background:#ddd;padding:4px 8px;font-size:9.5px;font-weight:800;border:1px solid #999">PR\u00c9VISIONS DU ' + (p.journee||'').toUpperCase() + '</td>';
+      h += '<td style="background:#ddd;padding:4px 8px;font-size:9.5px;font-weight:800;border:1px solid #999;text-align:right;white-space:nowrap">HORAIRES\u00a0: ' + (p.horaires||'') + '</td></tr>';
+      if (p.decors) h += deptRow('D\u00c9CORS / LIEU\u00a0:', p.decors);
+      if (p.seqs)   h += deptRow('S\u00c9QUENCES / EFFETS\u00a0:', p.seqs);
+      if (p.roles)  h += deptRow('R\u00d4LES\u00a0:', p.roles);
+      if (p.notes)  h += '<tr><td colspan="2" style="padding:2px 8px;font-size:8.5px;border:1px solid #999;color:#333">' + p.notes + '</td></tr>';
       h += '</table>';
     });
   }
@@ -1407,6 +1475,27 @@ function renderApercu() {
   h += '</div>';
   el.innerHTML = h;
 }
+function openComModal(type) {
+  document.getElementById('co-type').value = type;
+  openModal('modal-comedien');
+}
+
+function renderTypeList(type, elId) {
+  var f = activeFDS(); var el = document.getElementById(elId); if (!el) return;
+  var list = (f && f.comediens || []).filter(function(c){ return c.type === type; });
+  if (!list.length) { el.innerHTML = '<div class="empty">Aucun élément</div>'; return; }
+  el.innerHTML = list.map(function(c, i) {
+    return '<div class="list-row">' +
+      '<div class="num-big">' + (c.num||'') + '</div>' +
+      '<div class="row-main"><div class="row-title">' + (c.role||'') + '</div>' +
+      '<div class="row-sub">' + (c.nom||'') + '</div>' +
+      '<div class="row-sub">Séq : ' + (c.seqs||'—') + ' · HMC ' + fmtTime(c.hmc) + ' · PAT ' + fmtTime(c.pat) + '</div></div>' +
+      '<button class="icon-btn" onclick="removeComedien(' + (f.comediens||[]).indexOf(c) + ')">' +
+      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/></svg>' +
+      '</button></div>';
+  }).join('');
+}
+
 function envoyerProd() {
   const f = activeFDS(); const film = activeFilm(); if (!f) return;
   const i = f.infos || {};
