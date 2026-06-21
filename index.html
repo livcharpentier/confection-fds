@@ -506,6 +506,27 @@ textarea.form-input{resize:vertical;min-height:72px;}
   </div>
 </div>
 
+<div class="modal-overlay" id="modal-residence">
+  <div class="modal">
+    <div class="modal-head"><h2>Ajouter une résidence</h2><button class="modal-close" onclick="closeModal('modal-residence')">×</button></div>
+    <div class="form-row"><label class="form-label">Comédien</label><input class="form-input" id="res-comedien" placeholder="Lucas HECTOR"/></div>
+    <div class="form-row"><label class="form-label">Adresse</label><input class="form-input" id="res-adresse" placeholder="Hôtel Le Maxime, 2 quai de la Marine, Auxerre"/></div>
+    <div class="form-row"><label class="form-label">Note</label><input class="form-input" id="res-note" placeholder="Chambre 12, entrée côté rue..."/></div>
+    <button class="btn btn-primary btn-block" onclick="addResidence()">Enregistrer</button>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-edit-residence">
+  <div class="modal">
+    <div class="modal-head"><h2>Modifier la résidence</h2><button class="modal-close" onclick="closeModal('modal-edit-residence')">×</button></div>
+    <input type="hidden" id="edit-res-idx"/>
+    <div class="form-row"><label class="form-label">Comédien</label><input class="form-input" id="edit-res-comedien"/></div>
+    <div class="form-row"><label class="form-label">Adresse</label><input class="form-input" id="edit-res-adresse"/></div>
+    <div class="form-row"><label class="form-label">Note</label><input class="form-input" id="edit-res-note"/></div>
+    <button class="btn btn-primary btn-block" onclick="saveResidence()">Enregistrer</button>
+  </div>
+</div>
+
 <div class="modal-overlay" id="modal-seq">
   <div class="modal">
     <div class="modal-head"><h2>Ajouter une séquence</h2><button class="modal-close" onclick="closeModal('modal-seq')">×</button></div>
@@ -764,7 +785,7 @@ function showPage(name) {
   document.getElementById('page-' + name).classList.add('active');
   const idx = {films:0, fds:1, edit:null, info:2}[name];
   if (idx !== null && idx !== undefined) document.querySelectorAll('.nav-btn')[idx].classList.add('active');
-  if (name === 'films') renderFilms();
+  if (name === 'films') { renderFilms(); renderResidences(); }
   if (name === 'fds') renderJournees();
   if (name === 'info') { const el = document.getElementById('info-email'); if(el && currentUser) el.textContent = currentUser.email; }
   if (name === 'apercu-nav') {
@@ -2146,6 +2167,83 @@ function changerJourneeApercu(fdsId) {
     renderApercu();
     navEl.id = 'apercu-nav-content';
   }
+}
+
+// ── RÉSIDENCES ────────────────────────────────────────────────
+function renderResidences() {
+  var el = document.getElementById('residences-list'); if (!el) return;
+  var film = activeFilm();
+  if (!film) { el.innerHTML = '<div class="empty">Sélectionnez un film</div>'; return; }
+  var residences = film.residences || [];
+  if (!residences.length) { el.innerHTML = '<div class="empty">Aucune résidence — cliquez + pour ajouter</div>'; return; }
+  el.innerHTML = residences.map(function(r, i) {
+    return '<div class="list-row">' +
+      '<div class="row-main">' +
+        '<div class="row-title">' + r.comedien + '</div>' +
+        '<div class="row-sub">' + r.adresse + (r.note ? ' · ' + r.note : '') + '</div>' +
+      '</div>' +
+      '<button onclick="editResidence(' + i + ')" style="background:none;border:none;cursor:pointer;padding:4px" title="Modifier">' +
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:15px;height:15px">' +
+        '<path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>' +
+        '<path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>' +
+      '<button onclick="removeResidence(' + i + ')" style="background:none;border:none;cursor:pointer;padding:4px;color:#999">' +
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px">' +
+        '<polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/></svg></button>' +
+    '</div>';
+  }).join('');
+}
+
+function addResidence() {
+  var film = activeFilm(); if (!film) return;
+  if (!film.residences) film.residences = [];
+  film.residences.push({
+    comedien: document.getElementById('res-comedien').value.trim(),
+    adresse: document.getElementById('res-adresse').value.trim(),
+    note: document.getElementById('res-note').value.trim()
+  });
+  document.getElementById('res-comedien').value = '';
+  document.getElementById('res-adresse').value = '';
+  document.getElementById('res-note').value = '';
+  closeModal('modal-residence');
+  save(); renderResidences();
+  toast('Résidence ajoutée');
+}
+
+function editResidence(i) {
+  var film = activeFilm(); if (!film) return;
+  var r = (film.residences||[])[i]; if (!r) return;
+  document.getElementById('edit-res-idx').value = i;
+  document.getElementById('edit-res-comedien').value = r.comedien;
+  document.getElementById('edit-res-adresse').value = r.adresse;
+  document.getElementById('edit-res-note').value = r.note||'';
+  openModal('modal-edit-residence');
+}
+
+function saveResidence() {
+  var film = activeFilm(); if (!film) return;
+  var i = parseInt(document.getElementById('edit-res-idx').value);
+  if (!film.residences || !film.residences[i]) return;
+  film.residences[i].comedien = document.getElementById('edit-res-comedien').value.trim();
+  film.residences[i].adresse = document.getElementById('edit-res-adresse').value.trim();
+  film.residences[i].note = document.getElementById('edit-res-note').value.trim();
+  closeModal('modal-edit-residence');
+  save(); renderResidences();
+  toast('Résidence mise à jour');
+}
+
+function removeResidence(i) {
+  var film = activeFilm(); if (!film) return;
+  film.residences.splice(i, 1);
+  save(); renderResidences();
+}
+
+function getResidence(nomComedien) {
+  var film = activeFilm(); if (!film || !film.residences) return '';
+  var r = film.residences.find(function(r){ 
+    return r.comedien.toLowerCase().indexOf(nomComedien.toLowerCase()) !== -1 ||
+           nomComedien.toLowerCase().indexOf(r.comedien.toLowerCase()) !== -1;
+  });
+  return r ? r.adresse : '';
 }
 
 function envoyerProd() {
