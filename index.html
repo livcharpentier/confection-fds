@@ -44,7 +44,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 /* NAV */
 .nav{display:flex;border-top:1px solid var(--border);background:var(--bg);flex-shrink:0;overflow-x:auto;scrollbar-width:none;}
 .nav::-webkit-scrollbar{display:none;}
-.nav-btn{flex:1;min-width:52px;padding:8px 4px 6px;display:flex;flex-direction:column;align-items:center;gap:2px;background:none;border:none;cursor:pointer;font-size:10px;color:var(--text-muted);font-weight:500;border-top:2px solid transparent;}
+.nav-btn{flex:0 0 auto;min-width:0;padding:10px 12px;font-size:12px;font-weight:500;border:none;background:none;color:var(--text-muted);cursor:pointer;white-space:nowrap;border-bottom:2px solid transparent;transition:color .15s;}
 .nav-btn.active{color:var(--purple);border-top-color:var(--purple);}
 .nav-btn svg{width:20px;height:20px;}
 
@@ -637,7 +637,7 @@ textarea.form-input{resize:vertical;min-height:72px;}
   <!-- PAGE DEPARTEMENTS -->
   <div class="page" id="page-pg-dept">
     <div class="page-header">
-      <div class="page-title">Départements</div>
+      <div class="page-title">Postes</div>
       <div class="page-sub" id="pg-dept-sub"></div>
     </div>
     <div class="scroll">
@@ -729,51 +729,18 @@ textarea.form-input{resize:vertical;min-height:72px;}
   </div>
 
   <!-- NAV -->
-  <nav class="nav" style="overflow-x:auto;scrollbar-width:none">
-    <button class="nav-btn active" id="nav-films" onclick="navTo('films',this)">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="15" rx="2"/><polyline points="17 2 12 7 7 2"/></svg>
-      Films
-    </button>
-    <button class="nav-btn" id="nav-journees" onclick="navTo('fds',this)">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-      Journées
-    </button>
-    <button class="nav-btn" id="nav-infos" onclick="navTo('pg-infos',this)">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16" stroke-width="3"/></svg>
-      Infos
-    </button>
-    <button class="nav-btn" id="nav-comediens" onclick="navTo('pg-comediens',this)">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M3 20a9 9 0 0 1 18 0"/></svg>
-      Comédiens
-    </button>
-    <button class="nav-btn" id="nav-complements" onclick="navTo('pg-complements',this)">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-      Acteurs compl.
-    </button>
-    <button class="nav-btn" id="nav-equipe" onclick="navTo('pg-equipe',this)">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 3h-8a2 2 0 0 0-2 2v2h12V5a2 2 0 0 0-2-2z"/></svg>
-      Techniciens
-    </button>
-    <button class="nav-btn" id="nav-convoc" onclick="navTo('pg-convoc',this)">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,12 2,6"/></svg>
-      Convocations
-    </button>
-    <button class="nav-btn" id="nav-dept" onclick="navTo('pg-dept',this)">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
-      Départements
-    </button>
-    <button class="nav-btn" id="nav-transport" onclick="navTo('transport-nav',this)">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
-      Transports
-    </button>
-    <button class="nav-btn" id="nav-apercu" onclick="navTo('apercu-nav',this)">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
-      Aperçu
-    </button>
-    <button class="nav-btn" id="nav-bilan" onclick="navTo('bilan',this)">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6" stroke-width="3"/><line x1="3" y1="12" x2="3.01" y2="12" stroke-width="3"/><line x1="3" y1="18" x2="3.01" y2="18" stroke-width="3"/></svg>
-      Bilan
-    </button>
+  <nav class="nav">
+    <button class="nav-btn active" id="nav-films" onclick="navTo('films',this)">Films</button>
+    <button class="nav-btn" id="nav-journees" onclick="navTo('fds',this)">Journées</button>
+    <button class="nav-btn" id="nav-infos" onclick="navTo('pg-infos',this)">Infos</button>
+    <button class="nav-btn" id="nav-comediens" onclick="navTo('pg-comediens',this)">Comédiens</button>
+    <button class="nav-btn" id="nav-complements" onclick="navTo('pg-complements',this)">Acteurs compl.</button>
+    <button class="nav-btn" id="nav-equipe" onclick="navTo('pg-equipe',this)">Techniciens</button>
+    <button class="nav-btn" id="nav-convoc" onclick="navTo('pg-convoc',this)">Convocations</button>
+    <button class="nav-btn" id="nav-dept" onclick="navTo('pg-dept',this)">Postes</button>
+    <button class="nav-btn" id="nav-transport" onclick="navTo('transport-nav',this)">Transports</button>
+    <button class="nav-btn" id="nav-apercu" onclick="navTo('apercu-nav',this)">Aperçu</button>
+    <button class="nav-btn" id="nav-bilan" onclick="navTo('bilan',this)">Bilan</button>
   </nav>
 
 </div><!-- /app -->
@@ -1636,6 +1603,127 @@ function confirmEditHeure() {
     membres[editHeureTarget].heure = document.getElementById('edit-heure-val').value;
   }
   closeModal('modal-edit-heure'); renderEquipeList(); pgRenderEquipeTableau(); pgRenderConvocations(); save(); toast('Heure modifiée ✓');
+}
+
+function pgRenderEquipe() { pgRenderEquipeTableau(); }
+
+function pgRenderEquipeTableau() {
+  pgSetSub('pg-equipe-sub');
+  var f = activeFDS(); if (!f) return;
+  var pillsEl = document.getElementById('pg-equipe-pills');
+  if (pillsEl) {
+    pillsEl.innerHTML = Object.keys(EQUIPE_DEPT_LABELS).map(function(d){
+      var n = (f.equipe&&f.equipe[d]&&f.equipe[d].length)||0;
+      var active = d===pgCurrentEquipeDept?'active':'';
+      return '<button class="pill '+active+'" data-dept="'+d+'" onclick="pgSelectEquipeDeptTab(this,this.dataset.dept)">'
+        +EQUIPE_DEPT_LABELS[d]+(n?' <span style="background:var(--purple);color:#fff;border-radius:99px;padding:0 5px;font-size:9px">'+n+'</span>':'')
+        +'</button>';
+    }).join('');
+  }
+  var tb = document.getElementById('pg-equipe-tbody'); if (!tb) return;
+  var membres = (f.equipe&&f.equipe[pgCurrentEquipeDept])||[];
+  if (!membres.length) {
+    tb.innerHTML = '<tr><td colspan="5" style="padding:12px;text-align:center;color:#999;font-size:12px">Aucun membre — cliquez + Renfort pour ajouter</td></tr>';
+    return;
+  }
+  tb.innerHTML = membres.map(function(m,i){
+    return '<tr>'+
+      '<td style="padding:5px 8px;border:1px solid #ddd;font-size:11px">'+m.poste+(m.renfort?' <span style="background:#f59e0b;color:#fff;border-radius:3px;padding:1px 4px;font-size:9px">RENFORT</span>':'')+' </td>'+
+      '<td style="padding:5px 8px;border:1px solid #ddd;font-size:11px;font-weight:600">'+m.nom+'</td>'+
+      '<td style="padding:5px 8px;border:1px solid #ddd;font-size:10px;color:var(--text-muted)">'+(m.tel||'')+'</td>'+
+      '<td style="padding:5px 8px;border:1px solid #ddd;font-size:12px;font-weight:700;text-align:center;color:var(--purple)">'+(m.heure||'Own Call')+'</td>'+
+      '<td style="padding:2px;border:1px solid #ddd;text-align:center">'+
+        '<button onclick="pgEditHeureIdx('+i+')" style="background:none;border:none;cursor:pointer;padding:3px" title="Modifier heure">'+
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:13px;height:13px">'+
+        '<path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>'+
+        '<path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>'+
+      '</td></tr>';
+  }).join('');
+}
+
+function pgSelectEquipeDeptTab(el, dept) {
+  pgCurrentEquipeDept = dept;
+  document.querySelectorAll('#pg-equipe-pills .pill').forEach(function(b){b.classList.remove('active');});
+  el.classList.add('active');
+  pgRenderEquipeTableau();
+}
+
+function pgEditHeureIdx(i) {
+  pgCurrentEquipeDept = pgCurrentEquipeDept||'realisateur';
+  var f = activeFDS(); if (!f) return;
+  var m = ((f.equipe&&f.equipe[pgCurrentEquipeDept])||[])[i]; if (!m) return;
+  editHeure(i, m.nom, m.heure);
+}
+
+function pgRenderConvocations() {
+  pgSetSub('pg-convoc-sub');
+  var titleEl = document.getElementById('pg-convoc-title');
+  var f = activeFDS();
+  if (titleEl && f) titleEl.textContent = 'Convocations '+(f.infos&&f.infos.journee?f.infos.journee:'');
+  var el = document.getElementById('pg-convoc-content'); if (!el||!f) return;
+  var film = activeFilm();
+  var h = '<div style="text-align:center;font-weight:700;font-size:13px;margin-bottom:4px">'+(film?film.nom:'')+'</div>';
+  h += '<div style="text-align:center;font-size:11px;color:var(--text-muted);margin-bottom:14px">CONVOCATIONS – '+((f.infos&&f.infos.date)||'').toUpperCase()+' – '+((f.infos&&f.infos.journee)||'')+'</div>';
+  Object.keys(EQUIPE_DEPT_LABELS).forEach(function(dept){
+    var membres = (f.equipe&&f.equipe[dept])||[];
+    if (!membres.length) return;
+    h += '<div style="margin-bottom:10px">';
+    h += '<div style="background:var(--purple);color:#fff;padding:4px 10px;font-size:11px;font-weight:700;border-radius:var(--radius-sm) var(--radius-sm) 0 0">'+(EQUIPE_DEPT_LABELS[dept]||dept).toUpperCase()+'</div>';
+    h += '<table style="width:100%;border-collapse:collapse;font-size:11px">';
+    membres.forEach(function(m,i){
+      h += '<tr>'+
+        '<td style="padding:5px 8px;border:1px solid #ddd;border-top:none">'+m.poste+'</td>'+
+        '<td style="padding:5px 8px;border:1px solid #ddd;border-top:none;font-weight:600">'+m.nom+'</td>'+
+        '<td style="padding:5px 8px;border:1px solid #ddd;border-top:none;color:var(--text-muted);font-size:10px">'+(m.tel||'')+'</td>'+
+        '<td style="padding:5px 8px;border:1px solid #ddd;border-top:none;font-weight:700;color:var(--purple);text-align:center;white-space:nowrap">'+(m.heure||'Own Call')+'</td>'+
+        '<td style="padding:2px;border:1px solid #ddd;border-top:none;text-align:center">'+
+          '<button onclick="editHeureConvoc(this.dataset.dept,'+i+')" style="background:none;border:none;cursor:pointer;padding:2px">'+
+          '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:12px;height:12px">'+
+          '<path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>'+
+          '<path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>'+
+        '</td></tr>';
+    });
+    h += '</table></div>';
+  });
+  el.innerHTML = h;
+}
+
+function editHeureConvoc(dept, idx) {
+  pgCurrentEquipeDept = dept;
+  var f = activeFDS(); if (!f) return;
+  var m = ((f.equipe&&f.equipe[dept])||[])[idx]; if (!m) return;
+  editHeure(idx, m.nom, m.heure);
+}
+
+function envoyerConvocations() {
+  var f = activeFDS(); var film = activeFilm();
+  if (!f) { toast('Aucune journée active'); return; }
+  var i = f.infos||{};
+  var sujet = 'Convocations '+(film?film.nom:'')+' – '+(i.journee||'')+' – '+(i.date||'');
+  var corps = 'CONVOCATIONS\n'+(film?film.nom:'')+' \u2013 '+(i.date||'')+' \u2013 PAT '+(fmtTime(i.pat)||'')+'\n\n';
+  Object.keys(EQUIPE_DEPT_LABELS).forEach(function(dept){
+    var membres = (f.equipe&&f.equipe[dept])||[];
+    if (!membres.length) return;
+    corps += '\u2014 '+(EQUIPE_DEPT_LABELS[dept]||dept).toUpperCase()+' \u2014\n';
+    membres.forEach(function(m){ corps += m.poste+' : '+m.nom+(m.tel?' ('+m.tel+')':'')+'  '+(m.heure||'Own Call')+'\n'; });
+    corps += '\n';
+  });
+  var mailto = 'mailto:?subject='+encodeURIComponent(sujet)+'&body='+encodeURIComponent(corps);
+  window.open(mailto);
+}
+
+function pgRenderDept() {
+  pgSetSub('pg-dept-sub');
+  var f = activeFDS();
+  var el = document.getElementById('pg-dept-pills'); if (!el) return;
+  el.innerHTML = Object.keys(DEPT_LABELS).map(function(d){
+    var filled = f&&f.deptNotes&&f.deptNotes[d]&&f.deptNotes[d].trim();
+    return '<button class="pill '+(d===pgCurrentDept?'active':'')+' '+(filled?'done':'')+'" onclick="pgSelectDept(this,this.dataset.dept)" data-dept="'+d+'">'+(DEPT_LABELS[d]||d)+'</button>';
+  }).join('');
+  var area = document.getElementById('pg-dept-note');
+  var label = document.getElementById('pg-dept-label');
+  if (area) area.value = (f&&f.deptNotes&&f.deptNotes[pgCurrentDept])||'';
+  if (label) label.textContent = DEPT_LABELS[pgCurrentDept]||'';
 }
 
 function addMembre() {
