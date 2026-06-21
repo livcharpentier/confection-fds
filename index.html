@@ -1783,13 +1783,14 @@ function renderApercu() {
 
   if (roles.length) {
     h += '<table style="width:100%;border-collapse:collapse;margin-bottom:3px">';
+    var hasLoges = roles.some(function(c){ return c.loges; });
     h += '<caption style="caption-side:top;text-align:left;font-size:9px;font-weight:700;padding:3px 0">COM\u00c9DIENS ' + pencilInline("goToTab(\'comediens\')","les com\u00e9diens") + '</caption>';
     h += '<tr>'+th('N\u00b0','35px')+th('R\u00d4LES ('+roles.length+')')+th('COM\u00c9DIENS')+
-         th('S\u00c9QUENCES')+th('HMC','60px')+th('D\u00e9part Loges','70px')+th('PAT','55px')+'</tr>';
+         th('S\u00c9QUENCES')+th('HMC','60px')+(hasLoges?th('D\u00e9part Loges','70px'):'')+th('PAT','55px')+'</tr>';
     roles.forEach(function(c) {
       var cidx = (f.comediens||[]).indexOf(c);
       h += '<tr>'+td(c.num,'',false,true)+td(c.role,'',true,false)+td(c.nom,'',false,false)+
-           td(c.seqs,'',false,true)+td(fmtTime(c.hmc),'',false,true)+td(fmtTime(c.loges),'',false,true)+td(fmtTime(c.pat),'',true,true)+
+           td(c.seqs,'',false,true)+td(fmtTime(c.hmc),'',false,true)+(hasLoges?td(fmtTime(c.loges),'',false,true):'')+td(fmtTime(c.pat),'',true,true)+
            '<td style="padding:2px;border:1px solid #999;text-align:center">' + pencilInline('openEditComedien('+cidx+')',c.role) + '</td>'+'</tr>';
     });
     h += '</table>';
@@ -2058,13 +2059,14 @@ function renderApercu() {
 
   if (roles.length) {
     h += '<table style="width:100%;border-collapse:collapse;margin-bottom:3px">';
+    var hasLoges = roles.some(function(c){ return c.loges; });
     h += '<caption style="caption-side:top;text-align:left;font-size:9px;font-weight:700;padding:3px 0">COM\u00c9DIENS ' + pencilInline("goToTab(\'comediens\')","les com\u00e9diens") + '</caption>';
     h += '<tr>'+th('N\u00b0','35px')+th('R\u00d4LES ('+roles.length+')')+th('COM\u00c9DIENS')+
-         th('S\u00c9QUENCES')+th('HMC','60px')+th('D\u00e9part Loges','70px')+th('PAT','55px')+'</tr>';
+         th('S\u00c9QUENCES')+th('HMC','60px')+(hasLoges?th('D\u00e9part Loges','70px'):'')+th('PAT','55px')+'</tr>';
     roles.forEach(function(c) {
       var cidx = (f.comediens||[]).indexOf(c);
       h += '<tr>'+td(c.num,'',false,true)+td(c.role,'',true,false)+td(c.nom,'',false,false)+
-           td(c.seqs,'',false,true)+td(fmtTime(c.hmc),'',false,true)+td(fmtTime(c.loges),'',false,true)+td(fmtTime(c.pat),'',true,true)+
+           td(c.seqs,'',false,true)+td(fmtTime(c.hmc),'',false,true)+(hasLoges?td(fmtTime(c.loges),'',false,true):'')+td(fmtTime(c.pat),'',true,true)+
            '<td style="padding:2px;border:1px solid #999;text-align:center">' + pencilInline('openEditComedien('+cidx+')',c.role) + '</td>'+'</tr>';
     });
     h += '</table>';
