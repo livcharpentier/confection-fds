@@ -2175,21 +2175,48 @@ function importerPDT() {
     const pdt = PDT_DATA.find(j => j.jdt === jdt_num);
     if (!pdt) continue;
     
-    // Construire les lieux
-    const lieux = [{label:'Lieu principal', valeur:pdt.lieu}];
-    pdt.decors.forEach((d,i) => lieux.push({label:`Décor ${i+1}`, valeur:d}));
-    lieux.push({label:'HMC', valeur:''},{label:'Cantine', valeur:''},{label:'Accès', valeur:''},{label:'Production', valeur:''});
+    // Construire les lieux depuis le PDT
+    var lieux = [];
+    pdt.decors.forEach(function(d, i) { lieux.push({label: 'D\u00e9cor ' + (i+1), valeur: d}); });
+    if (!lieux.length) lieux.push({label: 'D\u00e9cor 1', valeur: pdt.lieu||''});
+    lieux.push(
+      {label:'Acc\u00e8s', valeur: 'Camp de base'},
+      {label:'HMC', valeur: ''},
+      {label:'LOGES', valeur: ''},
+      {label:'CANTINE', valeur: ''},
+      {label:'STATIONNEMENT V\u00c9HIC. TECHNIQUES', valeur: ''},
+      {label:'STATIONNEMENT V\u00c9HIC. PERSONNELS', valeur: ''},
+      {label:'PRODUCTION', valeur: ''}
+    );
     
-    // Construire les comédiens depuis le PDT
-    const comediens = pdt.roles.map(r => ({
-      type:'comedien', num:r.num, role:r.role, nom:r.comedien,
-      seqs: pdt.sequences.join(', '), hmc:'', loges:'', pat:''
-    }));
+    // Construire les comédiens depuis le PDT - pré-remplis avec num, rôle, nom, séquences du jour
+    // HMC, Loges, PAT restent vides à remplir
+    const comediens = pdt.roles.map(function(r) {
+      return {
+        type: 'comedien',
+        num: r.num,
+        role: r.role,
+        nom: r.comedien,
+        seqs: pdt.sequences.join(', '), // toutes les séquences du jour - à affiner
+        hmc: '',
+        loges: '',
+        pat: '',
+        nbre: 1
+      };
+    });
     
-    // Construire les séquences (sans détail, juste les numéros)
-    const sequences = pdt.sequences.map(s => ({
-      num:s, effet:'', decor:pdt.decors[0]||'', resume:'', roles: pdt.roles.map(r=>r.num).join(', '), duree:''
-    }));
+    // Construire les séquences avec effet et décor depuis le PDT
+    const sequences = pdt.sequences.map(function(s) {
+      return {
+        num: s,
+        effet: pdt.decors && pdt.decors.length ? '' : '',
+        decor: pdt.decors && pdt.decors.length ? pdt.decors[0] : '',
+        resume: '',
+        roles: pdt.roles.map(function(r){ return r.num; }).join(', '),
+        duree: '',
+        cont: ''
+      };
+    });
     
     const fds = {
       id: 'fds_' + Date.now() + '_' + jdt_num,
