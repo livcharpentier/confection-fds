@@ -1408,55 +1408,59 @@ function renderApercu() {
   // ── PAGE 3 — TRANSPORTS ─────────────────────────────────────────
   h += '<div style="margin-top:14px;border-top:2px solid #999;padding-top:8px"></div>';
 
-  if (f.transports && f.transports.length) {
-    // Transports jour
-    h += '<table style="width:100%;border-collapse:collapse;margin-bottom:6px">';
-    h += secHead('TRANSPORTS COM\u00c9DIENS \u2013 ' + (i.date||'').toUpperCase(), 6);
-    h += '<tr>'+th('NOMS')+th('CHAUFFEUR')+th('PICK-UP','65px')+th('LIEUX')+th('SUR PLACE','65px')+th('PAT','55px')+'</tr>';
-    (f.transports||[]).filter(function(t){ return !t.type || t.type==='jour' || t.type===''; }).forEach(function(t) {
+  var transJour = (f.transports||[]).filter(function(t){ return !t.type || t.type==='' || t.type==='jour'; });
+  h += '<table style="width:100%;border-collapse:collapse;margin-bottom:6px">';
+  h += secHead('TRANSPORTS COM\u00c9DIENS \u2013 ' + (i.date||'').toUpperCase(), 6);
+  h += '<tr>'+th('NOMS')+th('CHAUFFEUR')+th('PICK-UP','65px')+th('LIEUX')+th('SUR PLACE','65px')+th('PAT','55px')+'</tr>';
+  if (transJour.length) {
+    transJour.forEach(function(t) {
       var pickup = t.pat ? calcPickup(t.pat, estimerTrajet(t.depart, t.arrivee)) : 'Sur tel';
       h += '<tr>'+td(t.comedien,'',true,true)+td(t.chauffeur+(t.tel?'<br><span style="font-size:8px">'+t.tel+'</span>':''),'',false,true)+
            td(pickup,'',true,true)+td(t.depart,'',false,true)+td(t.sur_place||'\u2014','',false,true)+td(fmtTime(t.pat)||'\u2014','',true,true)+'</tr>';
     });
-    h += '</table>';
-
-    // Arrivées veille
-    var arr_veille = (f.transports||[]).filter(function(t){ return t.type==='arrivee_veille'; });
-    if (arr_veille.length) {
-      h += '<table style="width:100%;border-collapse:collapse;margin-bottom:6px">';
-      var veille = i.date ? 'ARRIV\u00c9E(S) \u2013 VEILLE' : 'ARRIV\u00c9E(S) \u2013 VEILLE';
-      h += secHead(veille, 5);
-      h += '<tr>'+th('NOMS')+th('CHAUFFEUR')+th('PICK-UP','65px')+th('LIEUX DE PICK-UP')+th('ARRIV\u00c9E')+'</tr>';
-      arr_veille.forEach(function(t) {
-        h += '<tr>'+td(t.comedien,'',true,true)+td(t.chauffeur,'',false,true)+td(t.pickup||'\u2014','',false,true)+td(t.depart,'',false,true)+td(t.arrivee,'',false,false)+'</tr>';
-      });
-      h += '</table>';
-    }
-
-    // Arrivées jour
-    var arr_jour = (f.transports||[]).filter(function(t){ return t.type==='arrivee_jour'; });
-    if (arr_jour.length) {
-      h += '<table style="width:100%;border-collapse:collapse;margin-bottom:6px">';
-      h += secHead('ARRIV\u00c9E(S) \u2013 ' + (i.date||'').toUpperCase(), 5);
-      h += '<tr>'+th('NOMS')+th('CHAUFFEUR')+th('PICK-UP','65px')+th('LIEUX DE PICK-UP')+th('ARRIV\u00c9E')+'</tr>';
-      arr_jour.forEach(function(t) {
-        h += '<tr>'+td(t.comedien,'',true,true)+td(t.chauffeur,'',false,true)+td(t.pickup||'\u2014','',false,true)+td(t.depart,'',false,true)+td(t.arrivee,'',false,false)+'</tr>';
-      });
-      h += '</table>';
-    }
-
-    // Départs
-    var departs = (f.transports||[]).filter(function(t){ return t.type==='depart'; });
-    if (departs.length) {
-      h += '<table style="width:100%;border-collapse:collapse;margin-bottom:6px">';
-      h += secHead('D\u00c9PART(S) \u2013 ' + (i.date||'').toUpperCase(), 5);
-      h += '<tr>'+th('NOMS')+th('CHAUFFEUR')+th('PICK-UP','65px')+th('LIEUX DE PICK-UP')+th('ARRIV\u00c9E')+'</tr>';
-      departs.forEach(function(t) {
-        h += '<tr>'+td(t.comedien,'',true,true)+td(t.chauffeur||'PPM','',false,true)+td('\u2014','',false,true)+td('\u2014','',false,true)+td('\u2014','',false,true)+'</tr>';
-      });
-      h += '</table>';
-    }
+  } else {
+    h += '<tr><td colspan="6" style="padding:8px;border:1px solid #999">&nbsp;</td></tr>';
   }
+  h += '</table>';
+
+  var arr_veille = (f.transports||[]).filter(function(t){ return t.type==='arrivee_veille'; });
+  h += '<table style="width:100%;border-collapse:collapse;margin-bottom:6px">';
+  h += secHead('ARRIV\u00c9E(S) \u2013 VEILLE', 5);
+  h += '<tr>'+th('NOMS')+th('CHAUFFEUR')+th('PICK-UP','65px')+th('LIEUX DE PICK-UP')+th('ARRIV\u00c9E')+'</tr>';
+  if (arr_veille.length) {
+    arr_veille.forEach(function(t) {
+      h += '<tr>'+td(t.comedien,'',true,true)+td(t.chauffeur,'',false,true)+td(t.pickup||'\u2014','',false,true)+td(t.depart,'',false,true)+td(t.arrivee||'','',false,false)+'</tr>';
+    });
+  } else {
+    h += '<tr><td colspan="5" style="padding:8px;border:1px solid #999">&nbsp;</td></tr>';
+  }
+  h += '</table>';
+
+  var arr_jour = (f.transports||[]).filter(function(t){ return t.type==='arrivee_jour'; });
+  h += '<table style="width:100%;border-collapse:collapse;margin-bottom:6px">';
+  h += secHead('ARRIV\u00c9E(S) \u2013 ' + (i.date||'').toUpperCase(), 5);
+  h += '<tr>'+th('NOMS')+th('CHAUFFEUR')+th('PICK-UP','65px')+th('LIEUX DE PICK-UP')+th('ARRIV\u00c9E')+'</tr>';
+  if (arr_jour.length) {
+    arr_jour.forEach(function(t) {
+      h += '<tr>'+td(t.comedien,'',true,true)+td(t.chauffeur,'',false,true)+td(t.pickup||'\u2014','',false,true)+td(t.depart,'',false,true)+td(t.arrivee||'','',false,false)+'</tr>';
+    });
+  } else {
+    h += '<tr><td colspan="5" style="padding:8px;border:1px solid #999">&nbsp;</td></tr>';
+  }
+  h += '</table>';
+
+  var departs = (f.transports||[]).filter(function(t){ return t.type==='depart'; });
+  h += '<table style="width:100%;border-collapse:collapse;margin-bottom:6px">';
+  h += secHead('D\u00c9PART(S) \u2013 ' + (i.date||'').toUpperCase(), 5);
+  h += '<tr>'+th('NOMS')+th('CHAUFFEUR')+th('PICK-UP','65px')+th('LIEUX DE PICK-UP')+th('ARRIV\u00c9E')+'</tr>';
+  if (departs.length) {
+    departs.forEach(function(t) {
+      h += '<tr>'+td(t.comedien,'',true,true)+td(t.chauffeur||'PPM','',false,true)+td('\u2014','',false,true)+td('\u2014','',false,true)+td('\u2014','',false,true)+'</tr>';
+    });
+  } else {
+    h += '<tr><td colspan="5" style="padding:8px;border:1px solid #999">&nbsp;</td></tr>';
+  }
+  h += '</table>';
 
   // ── PAGE 4 — PREVISIONS ─────────────────────────────────────────
   if (f.previsions && f.previsions.length) {
