@@ -644,6 +644,7 @@ function showPage(name) {
   if (name === 'films') renderFilms();
   if (name === 'fds') renderJournees();
   if (name === 'info') { const el = document.getElementById('info-email'); if(el && currentUser) el.textContent = currentUser.email; }
+  if (name === 'apercu-nav') { renderApercuNav(); }
 }
 
 function stab(name, btn) {
@@ -1765,6 +1766,63 @@ function renderTypeList(type, elId) {
       '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/></svg>' +
       '</button></div>';
   }).join('');
+}
+
+function renderApercuNav() {
+  // Sélecteur de journée
+  var sel = document.getElementById('apercu-nav-selector');
+  var cont = document.getElementById('apercu-nav-content');
+  var titleEl = document.getElementById('apercu-nav-title');
+  var subEl = document.getElementById('apercu-nav-sub');
+  if (!sel || !cont) return;
+
+  var film = activeFilm();
+  var fdsList = (state.fds||[]).filter(function(f){ return f.filmId === activeFilmId; });
+
+  if (!fdsList.length) {
+    sel.innerHTML = '<div style="padding:12px;font-size:13px;color:var(--text-muted);text-align:center">Aucune journée — importez le PDT d’abord</div>';
+    cont.innerHTML = '';
+    return;
+  }
+
+  // Sélecteur de journée
+  var currentFdsId = activeFdsId || fdsList[0].id;
+  sel.innerHTML = '<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">' +
+    '<span style="font-size:12px;font-weight:600;color:var(--text-muted)">Journée :</span>' +
+    '<select id="apercu-nav-select" style="flex:1;padding:7px 10px;font-size:13px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--surface);color:var(--text);font-family:inherit" onchange="changerJourneeApercu(this.value)">' +
+    fdsList.map(function(f) {
+      var i = f.infos || {};
+      return '<option value="' + f.id + '"' + (f.id === currentFdsId ? ' selected' : '') + '>' +
+             (i.journee||'J?') + ' — ' + (i.date||'Date non définie') + '</option>';
+    }).join('') +
+    '</select></div>';
+
+  // Afficher la FDS sélectionnée
+  changerJourneeApercu(currentFdsId);
+}
+
+function changerJourneeApercu(fdsId) {
+  activeFdsId = fdsId;
+  var f = activeFDS();
+  if (!f) return;
+  var i = f.infos || {};
+  var film = activeFilm();
+
+  var titleEl = document.getElementById('apercu-nav-title');
+  var subEl = document.getElementById('apercu-nav-sub');
+  if (titleEl) titleEl.textContent = 'Aperçu ' + (i.journee||'') + ' — ' + (i.date||'');
+  if (subEl) subEl.textContent = film ? film.nom : '';
+
+  // Utiliser renderApercu mais sur le bon conteneur
+  var oldEl = document.getElementById('apercu-content');
+  var navEl = document.getElementById('apercu-nav-content');
+
+  // Swap temporaire
+  if (navEl) {
+    navEl.id = 'apercu-content';
+    renderApercu();
+    navEl.id = 'apercu-nav-content';
+  }
 }
 
 function envoyerProd() {
