@@ -1232,23 +1232,22 @@ function renderApercu() {
   // NOTE EQUIPE
   if (i.note) {
     h += '<div style="border:1px solid #ccc;padding:8px;margin-bottom:6px;text-align:center">';
-    h += '<u><b>Note à l'équipe</b></u><br>';
-    h += '<span style="color:#cc0000;font-style:italic;font-size:9px">' + i.note.replace(/
-/g,'<br>') + '</span></div>';
+    h += '<u><b>Note à l\'\u00e9quipe</b></u><br>';
+    h += '<span style="color:#cc0000;font-style:italic;font-size:9px">' + i.note.replace(/\n/g,'<br>') + '</span></div>';
   }
 
   // ECOPROD
   h += '<div style="border:1px solid #ccc;padding:6px;text-align:center;font-size:9px;margin-bottom:6px">';
-  h += '<b>🌿 ECOPROD 🌿</b><br>Chaque geste compte !<br>N'hésitez pas à ramener votre gourde ou votre ecocup<br>Restons responsable !</div>';
+  h += '<b>🌿 ECOPROD 🌿</b><br>Chaque geste compte !<br>N\'h\u00e9sitez pas à ramener votre gourde ou votre ecocup<br>Restons responsable !</div>';
 
   // PREVENTION HARCELEMENT
   h += '<div style="border:2px solid #d4a000;background:#fff8e1;padding:8px;font-size:8.5px;margin-bottom:8px;text-align:center">';
   h += '<div style="font-weight:700;text-decoration:underline;font-size:10px;margin-bottom:3px">PRÉVENTION HARCÈLEMENT</div>';
-  h += 'Toute personne s'estimant victime de harcèlement peut s'adresser aux référents de notre film<br>';
+  h += 'Toute personne s\'estimant victime de harcèlement peut s\'adresser aux référents de notre film<br>';
   h += '<b>Louise Jacquet – Nina Allimann</b><br>';
-  h += '(cf. convocation pour les numéros de téléphone) et/ou envoyer un mail à l'adresse <b>axelfilmsproduction@gmail.com</b><br>';
+  h += '(cf. convocation pour les numéros de téléphone) et/ou envoyer un mail à l\'adresse <b>axelfilmsproduction@gmail.com</b><br>';
   h += 'Au médecin du travail – Centre Thalie Santé : (+33)1 49 27 60 00 / Au CCHSCT : (+33)1 53 89 01 30 /<br>';
-  h += 'Au N° vert AP-HP St Antoine : +33 800 00 46 41 / Au N° d'urgence du Ministère de la Justice : +33 884 284 63</div>';
+  h += 'Au N° vert AP-HP St Antoine : +33 800 00 46 41 / Au N° d\'urgence du Ministère de la Justice : +33 884 284 63</div>';
 
   // LIEUX
   if (f.lieux && f.lieux.length) {
@@ -1315,7 +1314,6 @@ function renderApercu() {
 
   h += '</div>';
   el.innerHTML = h;
-}
 }
 
 function envoyerProd() {
