@@ -781,6 +781,14 @@ textarea.form-input{resize:vertical;min-height:72px;}
     <div class="form-row"><label class="form-label">Résumé</label><input class="form-input" id="sq-resume" placeholder="Bref résumé de la scène"/></div>
     <div class="form-row"><label class="form-label">Rôles</label><input class="form-input" id="sq-roles" placeholder="1, 9, 19, 20"/></div>
     <div class="form-row"><label class="form-label">Durée</label><input class="form-input" id="sq-duree" placeholder="1'25''"/></div>
+    <div class="form-row"><label class="form-label">Équipe</label>
+      <select class="form-input" id="sq-equipe">
+        <option value="">Équipe principale</option>
+        <option value="B">Équipe B</option>
+        <option value="C">Équipe C</option>
+      </select>
+    </div>
+    <div class="form-row" id="sq-pat-b-row"><label class="form-label">PAT Équipe B</label><input class="form-input" id="sq-pat-b" type="time" placeholder=""/></div>
     <button class="btn btn-primary btn-block" onclick="addSeq()">Ajouter</button>
   </div>
 </div>
@@ -1252,13 +1260,16 @@ function renderSeqList() {
 
 function addSeq() {
   const f = activeFDS(); if (!f) return;
+  var sqEquipe = (document.getElementById('sq-equipe')||{}).value||'';
   f.sequences.push({
     num: document.getElementById('sq-num').value,
     effet: document.getElementById('sq-effet').value,
     decor: document.getElementById('sq-decor').value,
     resume: document.getElementById('sq-resume').value,
     roles: document.getElementById('sq-roles').value,
-    duree: document.getElementById('sq-duree').value
+    duree: document.getElementById('sq-duree').value,
+    equipe: sqEquipe,
+    pat_b: sqEquipe ? ((document.getElementById('sq-pat-b')||{}).value||'') : ''
   });
   closeModal('modal-seq'); renderSeqList(); save(); toast('Séquence ajoutée');
 }
@@ -2981,9 +2992,8 @@ function importerPDT() {
     pdt.decors.forEach(function(d, i) { lieux.push({label: 'D\u00e9cor ' + (i+1), valeur: d}); });
     if (!lieux.length) lieux.push({label: 'D\u00e9cor 1', valeur: pdt.lieu||''});
     lieux.push(
-      {label:'Acc\u00e8s', valeur: 'Camp de base'},
-      {label:'HMC', valeur: ''},
-      {label:'LOGES', valeur: ''},
+      {label:'HMC / LOGES', valeur: ''},
+      {label:'FIGURATION', valeur: ''},
       {label:'CANTINE', valeur: ''},
       {label:'STATIONNEMENT V\u00c9HIC. TECHNIQUES', valeur: ''},
       {label:'STATIONNEMENT V\u00c9HIC. PERSONNELS', valeur: ''},
