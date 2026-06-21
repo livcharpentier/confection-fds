@@ -437,36 +437,12 @@ textarea.form-input{resize:vertical;min-height:72px;}
       <div class="page-sub" id="apercu-nav-sub">Feuille de service</div>
     </div>
     <div class="scroll">
-      <!-- Sous-onglets Aperçu / Convocations -->
-      <div style="display:flex;gap:0;margin-bottom:12px;border-bottom:2px solid var(--border)">
-        <button id="subtab-apercu" onclick="switchApercuTab('apercu')"
-          style="flex:1;padding:8px;font-size:13px;font-weight:600;border:none;background:none;cursor:pointer;border-bottom:2px solid var(--purple);color:var(--purple);margin-bottom:-2px">
-          Aperçu FDS
-        </button>
-        <button id="subtab-convoc" onclick="switchApercuTab('convoc')"
-          style="flex:1;padding:8px;font-size:13px;font-weight:500;border:none;background:none;cursor:pointer;border-bottom:2px solid transparent;color:var(--text-muted);margin-bottom:-2px">
-          Convocations
-        </button>
+      <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">
+        <button class="btn btn-primary" style="flex:1;justify-content:center" onclick="envoyerProd()">✉ Envoyer FDS</button>
+        <button class="btn btn-secondary" style="flex:1;justify-content:center" onclick="window.print()">🖨 Imprimer</button>
       </div>
-
-      <!-- Panel Aperçu FDS -->
-      <div id="panel-apercu-fds">
-        <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">
-          <button class="btn btn-primary" style="flex:1;justify-content:center" onclick="envoyerProd()">✉ Envoyer FDS</button>
-          <button class="btn btn-secondary" style="flex:1;justify-content:center" onclick="window.print()">🖨 Imprimer</button>
-        </div>
-        <div id="apercu-nav-selector" style="margin-bottom:12px"></div>
-        <div id="apercu-nav-content" style="border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;background:#fff"></div>
-      </div>
-
-      <!-- Panel Convocations -->
-      <div id="panel-convoc-fds" style="display:none">
-        <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">
-          <button class="btn btn-primary" style="flex:1;justify-content:center" onclick="envoyerConvocations()">✉ Envoyer convocations</button>
-          <button class="btn btn-secondary" style="flex:1;justify-content:center" onclick="window.print()">🖨 Imprimer</button>
-        </div>
-        <div id="apercu-convoc-content"></div>
-      </div>
+      <div id="apercu-nav-selector" style="margin-bottom:12px"></div>
+      <div id="apercu-nav-content" style="border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;background:#fff"></div>
     </div>
   </div>
 
@@ -746,6 +722,21 @@ textarea.form-input{resize:vertical;min-height:72px;}
     </div>
   </div>
 
+  <!-- PAGE RESUME CONVOCATIONS -->
+  <div class="page" id="page-resume-convoc">
+    <div class="page-header">
+      <div class="page-title" id="resume-convoc-title">Résumé convocations</div>
+      <div class="page-sub" id="resume-convoc-sub"></div>
+    </div>
+    <div class="scroll">
+      <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">
+        <button class="btn btn-primary" style="flex:1;justify-content:center" onclick="envoyerConvocations()">✉ Envoyer</button>
+        <button class="btn btn-secondary" style="flex:1;justify-content:center" onclick="window.print()">🖨 Imprimer</button>
+      </div>
+      <div id="apercu-convoc-content"></div>
+    </div>
+  </div>
+
   <!-- NAV -->
   <nav class="nav">
     <button class="nav-btn active" id="nav-films" onclick="navTo('films',this)">Films</button>
@@ -757,6 +748,7 @@ textarea.form-input{resize:vertical;min-height:72px;}
     <button class="nav-btn" id="nav-dept" onclick="navTo('pg-dept',this)">Postes</button>
     <button class="nav-btn" id="nav-transport" onclick="navTo('transport-nav',this)">Trans<br>ports</button>
     <button class="nav-btn" id="nav-apercu" onclick="navTo('apercu-nav',this)">Aperçu<br>FDS</button>
+    <button class="nav-btn" id="nav-resume-convoc" onclick="navTo('resume-convoc',this)">Résumé<br>convoc.</button>
     <button class="nav-btn" id="nav-bilan" onclick="navTo('bilan',this)">Bilan</button>
   </nav>
 
@@ -1081,6 +1073,7 @@ function showPage(name) {
   if (name === 'info') { const el = document.getElementById('info-email'); if(el && currentUser) el.textContent = currentUser.email; }
   if (name === 'transport-nav') { renderTransportNav(); }
   if (name === 'apercu-nav') { renderApercuNav(); }
+  if (name === 'resume-convoc') { renderResumeConvoc(); }
   if (name === 'bilan') { renderBilan(); }
 }
 
@@ -2603,7 +2596,6 @@ function renderTypeList(type, elId) {
 }
 
 function renderApercuNav() {
-  switchApercuTab('apercu'); // reset sur Aperçu FDS par défaut
 
   var sel = document.getElementById('apercu-nav-selector');
   var cont = document.getElementById('apercu-nav-content');
@@ -3279,6 +3271,15 @@ function exportBilanCSV() {
   var blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
   var url = URL.createObjectURL(blob);
   var a = document.createElement('a'); a.href=url; a.download='bilan-fds.csv'; a.click();
+}
+
+function renderResumeConvoc() {
+  var titleEl = document.getElementById('resume-convoc-title');
+  var subEl = document.getElementById('resume-convoc-sub');
+  var f = activeFDS(); var film = activeFilm();
+  if (titleEl && f) titleEl.textContent = 'Résumé convocations '+(f.infos&&f.infos.journee?f.infos.journee:'');
+  if (subEl && f) subEl.textContent = (f.infos&&f.infos.date)||'';
+  renderConvocationsApercu();
 }
 
 function switchApercuTab(tab) {
