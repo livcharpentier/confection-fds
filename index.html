@@ -1898,7 +1898,9 @@ function goToTab(tabName, fdsId) {
 }
 
 function renderApercu() {
-  var f = activeFDS(); var el = document.getElementById('apercu-content'); if (!el || !f) return;
+  var f = activeFDS(); var el = document.getElementById('apercu-content');
+  if (!el) { console.log('renderApercu: pas de #apercu-content'); return; }
+  if (!f) { el.innerHTML = '<div style="padding:20px;text-align:center;color:#999">Aucune journée sélectionnée</div>'; return; }
   var i = f.infos || {}; var film = activeFilm();
   var eq = f.equipe || {};
 
@@ -2641,7 +2643,10 @@ function renderApercuNav() {
 function changerJourneeApercuJdt(jdtNum) {
   // Créer la FDS si elle n'existe pas encore
   var fdsExist = (state.fds||[]).find(function(f){ return f.filmId===activeFilmId && f.jdt===jdtNum; });
-  if (!fdsExist) { ouvrirOuCreerFDSSilent(jdtNum); fdsExist = (state.fds||[]).find(function(f){ return f.filmId===activeFilmId && f.jdt===jdtNum; }); }
+  if (!fdsExist) {
+    ouvrirOuCreerFDSSilent(jdtNum);
+    fdsExist = (state.fds||[]).find(function(f){ return f.filmId===activeFilmId && f.jdt===jdtNum; });
+  }
   if (!fdsExist) return;
   activeFdsId = fdsExist.id;
   var i = fdsExist.infos||{};
@@ -2650,9 +2655,16 @@ function changerJourneeApercuJdt(jdtNum) {
   var subEl = document.getElementById('apercu-nav-sub');
   if (titleEl) titleEl.textContent = 'Aperçu ' + (i.journee||'') + ' — ' + (i.date||'');
   if (subEl) subEl.textContent = film ? film.nom : '';
-  // Render dans le bon conteneur
+  // Swap le conteneur, rendre, puis remettre l'id
   var navEl = document.getElementById('apercu-nav-content');
-  if (navEl) { navEl.id = 'apercu-content'; renderApercu(); navEl.id = 'apercu-nav-content'; }
+  if (!navEl) return;
+  // S'assurer qu'il n'y a pas déjà un élément apercu-content
+  var oldEl = document.getElementById('apercu-content');
+  if (oldEl && oldEl !== navEl) oldEl.id = 'apercu-content-backup';
+  navEl.id = 'apercu-content';
+  try { renderApercu(); } catch(e) { console.error('renderApercu:', e); }
+  navEl.id = 'apercu-nav-content';
+  if (oldEl && oldEl !== navEl) oldEl.id = 'apercu-content';
 }
 
 function changerJourneeApercu(fdsId) {
