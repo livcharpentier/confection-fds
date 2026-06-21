@@ -49,12 +49,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .nav-btn svg{width:20px;height:20px;}
 
 /* PAGES */
-.page{display:none;flex:1;overflow-y:auto;flex-direction:column;}
+.page{display:none;flex:1;overflow:hidden;flex-direction:column;}
 .page.active{display:flex;}
 .page-header{padding:14px 14px 0;flex-shrink:0;}
 .page-title{font-size:18px;font-weight:700;}
 .page-sub{font-size:12px;color:var(--text-muted);margin-top:2px;}
-.scroll{flex:1;overflow-y:auto;padding:12px 14px;}
+.scroll{flex:1;overflow-y:auto;padding:12px 14px;-webkit-overflow-scrolling:touch;}
 
 /* CARDS */
 .card{background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;margin-bottom:10px;}
@@ -331,8 +331,8 @@ textarea.form-input{resize:vertical;min-height:72px;}
       </div>
 
       <!-- APERCU -->
-      <div class="spanel" id="sp-apercu">
-        <div id="apercu-content" style="border:1px solid var(--border);border-radius:var(--radius);padding:0;overflow:hidden"></div>
+      <div class="spanel" id="sp-apercu" style="display:none">
+        <div id="apercu-content" style="border:1px solid var(--border);border-radius:var(--radius);padding:0;overflow:hidden;background:#fff"></div>
         <button class="btn btn-primary btn-block" onclick="envoyerProd()" style="margin-top:8px">✉ Envoyer à la prod</button>
         <button class="btn btn-secondary btn-block" onclick="showPage('fds')" style="margin-top:6px">← Retour aux journées</button>
       </div>
