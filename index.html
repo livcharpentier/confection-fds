@@ -1675,8 +1675,10 @@ function pgRenderConvocations() {
   var film = activeFilm();
   var h = '<div style="text-align:center;font-weight:700;font-size:13px;margin-bottom:4px">'+(film?film.nom:'')+'</div>';
   h += '<div style="text-align:center;font-size:11px;color:var(--text-muted);margin-bottom:14px">CONVOCATIONS – '+((f.infos&&f.infos.date)||'').toUpperCase()+' – '+((f.infos&&f.infos.journee)||'')+'</div>';
+  // Utiliser EQUIPE_FIXE si pas d'équipe dans la FDS
+  var equipe = (f.equipe && Object.values(f.equipe).some(function(v){return v&&v.length;})) ? f.equipe : EQUIPE_FIXE;
   Object.keys(EQUIPE_DEPT_LABELS).forEach(function(dept){
-    var membres = (f.equipe&&f.equipe[dept])||[];
+    var membres = (equipe[dept])||[];
     if (!membres.length) return;
     h += '<div style="margin-bottom:10px">';
     h += '<div style="background:var(--purple);color:#fff;padding:4px 10px;font-size:11px;font-weight:700;border-radius:var(--radius-sm) var(--radius-sm) 0 0">'+(EQUIPE_DEPT_LABELS[dept]||dept).toUpperCase()+'</div>';
@@ -1712,8 +1714,10 @@ function envoyerConvocations() {
   var i = f.infos||{};
   var sujet = 'Convocations '+(film?film.nom:'')+' – '+(i.journee||'')+' – '+(i.date||'');
   var corps = 'CONVOCATIONS\n'+(film?film.nom:'')+' \u2013 '+(i.date||'')+' \u2013 PAT '+(fmtTime(i.pat)||'')+'\n\n';
+  // Utiliser EQUIPE_FIXE si pas d'équipe dans la FDS
+  var equipe = (f.equipe && Object.values(f.equipe).some(function(v){return v&&v.length;})) ? f.equipe : EQUIPE_FIXE;
   Object.keys(EQUIPE_DEPT_LABELS).forEach(function(dept){
-    var membres = (f.equipe&&f.equipe[dept])||[];
+    var membres = (equipe[dept])||[];
     if (!membres.length) return;
     corps += '\u2014 '+(EQUIPE_DEPT_LABELS[dept]||dept).toUpperCase()+' \u2014\n';
     membres.forEach(function(m){ corps += m.poste+' : '+m.nom+(m.tel?' ('+m.tel+')':'')+'  '+(m.heure||'Own Call')+'\n'; });
@@ -3314,6 +3318,13 @@ function renderResumeConvoc() {
   var titleEl = document.getElementById('resume-convoc-title');
   var subEl = document.getElementById('resume-convoc-sub');
   var f = activeFDS(); var film = activeFilm();
+  if (!f && typeof PDT_DATA !== 'undefined' && PDT_DATA.length) {
+    // Prendre J15 par défaut (journée courante)
+    var jdtCible = PDT_DATA[14] ? PDT_DATA[14].jdt : PDT_DATA[0].jdt;
+    ouvrirOuCreerFDSSilent(jdtCible);
+    var fdsList3 = (state.fds||[]).filter(function(x){ return x.filmId===activeFilmId; });
+    if (fdsList3.length) { activeFdsId = fdsList3[fdsList3.length-1].id; f = activeFDS(); }
+  }
   if (titleEl) titleEl.textContent = 'Résumé convocations '+(f&&f.infos&&f.infos.journee?f.infos.journee:'');
   if (subEl) subEl.textContent = f&&f.infos ? (f.infos.date||'') : 'Sélectionnez une journée';
   renderConvocationsApercu();
@@ -3349,8 +3360,10 @@ function renderConvocationsApercu() {
   var h = '<div style="text-align:center;font-weight:700;font-size:14px;margin-bottom:4px">'+(film?film.nom:'')+'</div>';
   h += '<div style="text-align:center;font-size:12px;color:var(--text-muted);margin-bottom:6px">CONVOCATIONS – '+(i.date||'').toUpperCase()+' – '+(i.journee||'')+'</div>';
   h += '<div style="text-align:center;font-size:13px;font-weight:700;margin-bottom:14px">PAT : '+(fmtTime(i.pat)||'—')+'</div>';
+  // Utiliser EQUIPE_FIXE si pas d'équipe dans la FDS
+  var equipe = (f.equipe && Object.values(f.equipe).some(function(v){return v&&v.length;})) ? f.equipe : EQUIPE_FIXE;
   Object.keys(EQUIPE_DEPT_LABELS).forEach(function(dept){
-    var membres = (f.equipe&&f.equipe[dept])||[];
+    var membres = (equipe[dept])||[];
     if (!membres.length) return;
     h += '<div style="margin-bottom:10px">';
     h += '<div style="background:var(--purple);color:#fff;padding:5px 10px;font-size:11px;font-weight:700;border-radius:var(--radius-sm) var(--radius-sm) 0 0">'+(EQUIPE_DEPT_LABELS[dept]||dept).toUpperCase()+'</div>';
