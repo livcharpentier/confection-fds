@@ -1,0 +1,1361 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#4338ca">
+<title>Confection FDS</title>
+<style>
+:root {
+  --purple:#4338ca; --purple-light:#ede9fe; --purple-mid:#a5b4fc; --purple-dark:#3730a3;
+  --green:#059669; --green-light:#d1fae5;
+  --amber:#d97706; --amber-light:#fef3c7;
+  --red:#dc2626; --red-light:#fee2e2;
+  --text:#111827; --text-muted:#6b7280;
+  --border:#e5e7eb; --surface:#f9fafb; --bg:#fff;
+  --radius:10px; --radius-sm:6px;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--surface);color:var(--text);font-size:15px;overscroll-behavior:none;}
+
+/* LOGIN */
+#login-screen{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:24px;background:var(--purple);}
+.login-box{background:#fff;border-radius:16px;padding:28px 24px;width:100%;max-width:360px;}
+.login-logo{font-size:22px;font-weight:800;color:var(--purple);margin-bottom:4px;}
+.login-sub{font-size:13px;color:var(--text-muted);margin-bottom:20px;}
+.login-input{width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:var(--radius-sm);font-size:14px;margin-bottom:10px;font-family:inherit;}
+.login-input:focus{outline:none;border-color:var(--purple);}
+.login-btn{width:100%;padding:11px;background:var(--purple);color:#fff;border:none;border-radius:var(--radius-sm);font-size:15px;font-weight:700;cursor:pointer;margin-top:4px;}
+.login-err{color:var(--red);font-size:12px;margin-top:6px;min-height:16px;}
+
+/* APP */
+.app{display:none;flex-direction:column;height:100vh;max-width:700px;margin:0 auto;}
+.app.visible{display:flex;}
+
+/* TOPBAR */
+.topbar{display:flex;align-items:center;gap:10px;padding:11px 14px;background:var(--purple);color:#fff;flex-shrink:0;}
+.topbar-title{flex:1;}
+.topbar-title h1{font-size:15px;font-weight:700;}
+.topbar-title p{font-size:11px;opacity:.75;}
+.topbar-btn{background:rgba(255,255,255,.2);border:none;color:#fff;padding:5px 10px;border-radius:var(--radius-sm);font-size:12px;cursor:pointer;}
+
+/* NAV */
+.nav{display:flex;border-top:1px solid var(--border);background:var(--bg);flex-shrink:0;overflow-x:auto;scrollbar-width:none;}
+.nav::-webkit-scrollbar{display:none;}
+.nav-btn{flex:1;min-width:52px;padding:8px 4px 6px;display:flex;flex-direction:column;align-items:center;gap:2px;background:none;border:none;cursor:pointer;font-size:10px;color:var(--text-muted);font-weight:500;border-top:2px solid transparent;}
+.nav-btn.active{color:var(--purple);border-top-color:var(--purple);}
+.nav-btn svg{width:20px;height:20px;}
+
+/* PAGES */
+.page{display:none;flex:1;overflow-y:auto;flex-direction:column;}
+.page.active{display:flex;}
+.page-header{padding:14px 14px 0;flex-shrink:0;}
+.page-title{font-size:18px;font-weight:700;}
+.page-sub{font-size:12px;color:var(--text-muted);margin-top:2px;}
+.scroll{flex:1;overflow-y:auto;padding:12px 14px;}
+
+/* CARDS */
+.card{background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;margin-bottom:10px;}
+.card-title{font-size:13px;font-weight:700;color:var(--text);margin-bottom:10px;display:flex;justify-content:space-between;align-items:center;}
+.form-row{margin-bottom:9px;}
+.form-label{font-size:11px;color:var(--text-muted);font-weight:600;display:block;margin-bottom:3px;}
+.form-input{width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:var(--radius-sm);font-size:13px;background:var(--surface);color:var(--text);font-family:inherit;}
+.form-input:focus{outline:none;border-color:var(--purple);}
+.form-row-inline{display:flex;gap:8px;align-items:center;margin-bottom:9px;}
+.form-row-inline .form-label{min-width:72px;margin-bottom:0;flex-shrink:0;}
+.form-row-inline .form-input{flex:1;}
+textarea.form-input{resize:vertical;min-height:72px;}
+
+/* SOUS-ONGLETS */
+.subtabs{display:flex;overflow-x:auto;border-bottom:1px solid var(--border);margin:10px -14px 12px;scrollbar-width:none;background:var(--surface);}
+.subtabs::-webkit-scrollbar{display:none;}
+.stab{flex-shrink:0;padding:9px 14px;font-size:12px;font-weight:600;color:var(--text-muted);background:none;border:none;border-bottom:2px solid transparent;cursor:pointer;white-space:nowrap;}
+.stab.active{color:var(--purple);border-bottom-color:var(--purple);}
+.spanel{display:none;}
+.spanel.active{display:block;}
+
+/* PILLS */
+.pills{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px;}
+.pill{padding:5px 11px;border-radius:999px;border:1px solid var(--border);background:var(--surface);font-size:11px;font-weight:600;color:var(--text-muted);cursor:pointer;white-space:nowrap;}
+.pill.active{background:var(--purple-light);border-color:var(--purple-mid);color:var(--purple-dark);}
+.pill.done::after{content:' ✓';color:var(--green);}
+
+/* ROWS */
+.list-row{display:flex;align-items:flex-start;gap:10px;padding:9px 0;border-bottom:1px solid var(--border);}
+.list-row:last-child{border-bottom:none;}
+.row-main{flex:1;min-width:0;}
+.row-title{font-size:13px;font-weight:600;color:var(--text);}
+.row-sub{font-size:11px;color:var(--text-muted);margin-top:2px;}
+.row-right{display:flex;align-items:center;gap:6px;flex-shrink:0;}
+.badge{display:inline-block;font-size:10px;padding:2px 7px;border-radius:999px;font-weight:700;}
+.badge-ej{background:var(--amber-light);color:var(--amber);}
+.badge-ij{background:var(--green-light);color:var(--green);}
+.badge-renfort{background:var(--amber-light);color:var(--amber);}
+.num-big{font-size:20px;font-weight:800;color:var(--purple);min-width:36px;line-height:1.2;}
+.icon-btn{background:none;border:none;padding:3px;cursor:pointer;color:var(--text-muted);line-height:1;}
+.icon-btn svg{width:15px;height:15px;}
+
+/* TRANSPORT */
+.pickup-bar{background:var(--green-light);border-radius:var(--radius-sm);padding:7px 10px;margin-top:6px;font-size:12px;color:#065f46;display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.pickup-badge{font-weight:800;font-size:13px;}
+.waze-link{font-size:11px;font-weight:700;color:var(--purple);background:var(--purple-light);border-radius:999px;padding:3px 9px;text-decoration:none;}
+
+/* APERCU */
+.apercu-section{margin-bottom:12px;padding-bottom:12px;border-bottom:1px solid var(--border);}
+.apercu-section:last-child{border-bottom:none;}
+.apercu-head{font-size:11px;font-weight:800;color:var(--purple);text-transform:uppercase;letter-spacing:.05em;margin-bottom:5px;}
+.apercu-body{font-size:12px;line-height:1.6;white-space:pre-wrap;}
+.apercu-titre{text-align:center;font-size:17px;font-weight:800;padding:10px;border:2px solid var(--text);border-radius:var(--radius-sm);margin-bottom:12px;}
+.apercu-grid{display:grid;grid-template-columns:1fr 1fr;gap:4px;font-size:12px;}
+.apercu-kv{display:flex;gap:4px;}
+.apercu-k{color:var(--text-muted);font-weight:600;}
+
+/* JOURNEES LIST */
+.j-card{display:flex;align-items:center;gap:12px;padding:11px 0;border-bottom:1px solid var(--border);cursor:pointer;}
+.j-card:last-child{border-bottom:none;}
+.j-num{font-size:22px;font-weight:800;color:var(--purple);min-width:40px;}
+.j-arrow{color:var(--text-muted);font-size:20px;}
+.empty{text-align:center;padding:30px 16px;color:var(--text-muted);font-size:13px;}
+
+/* FILMS */
+.film-card{display:flex;align-items:center;gap:10px;padding:11px 0;border-bottom:1px solid var(--border);cursor:pointer;}
+.film-card:last-child{border-bottom:none;}
+.film-dot{width:10px;height:10px;border-radius:50%;background:var(--purple-mid);flex-shrink:0;}
+.film-dot.active{background:var(--purple);}
+
+/* BTNS */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:9px 16px;border-radius:var(--radius-sm);font-size:13px;font-weight:600;cursor:pointer;border:none;font-family:inherit;}
+.btn-primary{background:var(--purple);color:#fff;}
+.btn-secondary{background:var(--surface);color:var(--text);border:1px solid var(--border);}
+.btn-block{width:100%;margin-top:8px;}
+.btn-sm{padding:5px 12px;font-size:12px;}
+
+/* MODAL */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:200;align-items:flex-end;justify-content:center;}
+.modal-overlay.open{display:flex;}
+.modal{background:var(--bg);border-radius:var(--radius) var(--radius) 0 0;padding:20px 16px 28px;width:100%;max-width:700px;max-height:88vh;overflow-y:auto;}
+.modal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
+.modal-head h2{font-size:16px;font-weight:700;}
+.modal-close{background:none;border:none;font-size:22px;color:var(--text-muted);cursor:pointer;padding:0;}
+
+/* TOAST */
+.toast{position:fixed;bottom:72px;left:50%;transform:translateX(-50%);background:#111;color:#fff;padding:9px 18px;border-radius:999px;font-size:13px;z-index:999;opacity:0;transition:opacity .25s;pointer-events:none;white-space:nowrap;}
+.toast.show{opacity:1;}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login-screen">
+  <div class="login-box">
+    <div class="login-logo">🎬 Confection FDS</div>
+    <div class="login-sub">Feuilles de service cinéma</div>
+    <input class="login-input" id="login-email" type="email" placeholder="Email" autocomplete="email"/>
+    <input class="login-input" id="login-password" type="password" placeholder="Mot de passe" autocomplete="current-password"/>
+    <button class="login-btn" id="login-btn" onclick="handleLogin()">Se connecter</button>
+    <div class="login-err" id="login-err"></div>
+  </div>
+</div>
+
+<!-- APP -->
+<div class="app" id="app">
+
+  <div class="topbar">
+    <div class="topbar-title">
+      <h1 id="top-title">Confection FDS</h1>
+      <p id="top-sub">Feuilles de service cinéma</p>
+    </div>
+    <button class="topbar-btn" onclick="showPage('films')">⚙ Films</button>
+    <button class="topbar-btn" onclick="sbLogout()" style="opacity:.7">⏻</button>
+  </div>
+
+  <!-- PAGE FILMS -->
+  <div class="page active" id="page-films">
+    <div class="page-header"><div class="page-title">Films</div><div class="page-sub">Vos productions</div></div>
+    <div class="scroll">
+      <div class="card">
+        <div class="card-title">Productions actives
+          <button class="btn btn-sm btn-primary" onclick="openModal('modal-film')">+ Nouveau</button>
+        </div>
+        <div style="margin-bottom:10px;padding:10px;background:var(--purple-light);border-radius:var(--radius-sm);font-size:12px;color:var(--purple-dark)">
+          <b>PDT LEDR2 chargé</b> — 44 journées prêtes à importer<br>
+          <button class="btn btn-primary btn-sm" style="margin-top:6px" onclick="ouvrirModalImportPDT()">⬇ Importer journées depuis PDT</button>
+        </div>
+        <div id="films-list"><div class="empty">Aucun film — créez votre première production</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PAGE FDS (liste des journées) -->
+  <div class="page" id="page-fds">
+    <div class="page-header">
+      <div class="page-title" id="fds-page-title">Journées</div>
+      <div class="page-sub" id="fds-page-sub">Feuilles de service du film</div>
+    </div>
+    <div class="scroll">
+      <div class="card">
+        <div class="card-title" id="fds-list-titre">Journées
+          <button class="btn btn-sm btn-primary" onclick="fdsNouvelle()">+ Nouvelle journée</button>
+        </div>
+        <div id="fds-journees-list"><div class="empty">Aucune FDS — créez la première journée</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PAGE EDIT FDS -->
+  <div class="page" id="page-edit">
+    <div class="page-header">
+      <div class="page-title" id="edit-title">Journée</div>
+      <div class="page-sub" id="edit-sub">Édition</div>
+    </div>
+    <div class="scroll">
+      <!-- Sous-onglets -->
+      <div class="subtabs">
+        <button class="stab active" onclick="stab('infos',this)">Infos</button>
+        <button class="stab" onclick="stab('sequences',this)">Séquences</button>
+        <button class="stab" onclick="stab('comediens',this)">Comédiens</button>
+        <button class="stab" onclick="stab('dept',this)">Départements</button>
+        <button class="stab" onclick="stab('equipe',this)">Équipe</button>
+        <button class="stab" onclick="stab('transports',this)">Transports</button>
+        <button class="stab" onclick="stab('previsions',this)">Prévisions</button>
+        <button class="stab" onclick="stab('apercu',this)">Aperçu</button>
+      </div>
+
+      <!-- INFOS -->
+      <div class="spanel active" id="sp-infos">
+        <div class="card">
+          <div class="card-title">Infos générales</div>
+          <div class="form-row-inline"><span class="form-label">Journée</span><input class="form-input" id="f-journee" placeholder="J15" style="max-width:60px;flex:none"/><input class="form-input" id="f-date" placeholder="Lundi 22 juin 2026" style="flex:1;margin-left:6px"/></div>
+          <div class="form-row-inline"><span class="form-label">PAT</span><input class="form-input" id="f-pat" type="time" style="max-width:110px"/></div>
+          <div class="form-row-inline"><span class="form-label">Tournage</span><input class="form-input" id="f-debut" type="time" style="max-width:100px"/><span style="padding:0 4px;color:var(--text-muted)">→</span><input class="form-input" id="f-fin" type="time" style="max-width:100px"/></div>
+          <div class="form-row-inline"><span class="form-label">Repas</span><input class="form-input" id="f-repas" type="time" style="max-width:110px"/></div>
+          <div class="form-row-inline"><span class="form-label">Météo</span><input class="form-input" id="f-meteo" placeholder="Grand Soleil 29°-38°C"/></div>
+          <div class="form-row-inline"><span class="form-label">Lever</span><input class="form-input" id="f-lever" type="time" style="max-width:100px"/><span style="padding:0 4px;color:var(--text-muted)">—</span><input class="form-input" id="f-coucher" type="time" style="max-width:100px"/></div>
+          <div class="form-row-inline"><span class="form-label">Crépusc.</span><input class="form-input" id="f-crep-m" type="time" style="max-width:100px"/><span style="padding:0 4px;color:var(--text-muted)">—</span><input class="form-input" id="f-crep-s" type="time" style="max-width:100px"/></div>
+        </div>
+        <div class="card">
+          <div class="card-title">Lieux</div>
+          <div id="lieux-container"></div>
+          <button class="btn btn-secondary btn-block" onclick="addLieu()">+ Ajouter un lieu</button>
+        </div>
+        <div class="card">
+          <div class="card-title">Note à l'équipe</div>
+          <textarea class="form-input" id="f-note" rows="4" placeholder="Message spécial pour l'équipe…"></textarea>
+        </div>
+        <button class="btn btn-primary btn-block" onclick="saveInfos()">Enregistrer</button>
+      </div>
+
+      <!-- SEQUENCES -->
+      <div class="spanel" id="sp-sequences">
+        <div class="card">
+          <div class="card-title">Séquences du jour
+            <button class="btn btn-sm btn-primary" onclick="openModal('modal-seq')">+ Ajouter</button>
+          </div>
+          <div id="seq-list"><div class="empty">Aucune séquence</div></div>
+        </div>
+      </div>
+
+      <!-- COMEDIENS -->
+      <div class="spanel" id="sp-comediens">
+        <div class="card">
+          <div class="card-title">Comédiens / Doublures / Figuration
+            <button class="btn btn-sm btn-primary" onclick="openModal('modal-comedien')">+ Ajouter</button>
+          </div>
+          <div id="comediens-list"><div class="empty">Aucun comédien</div></div>
+        </div>
+      </div>
+
+      <!-- DEPARTEMENTS -->
+      <div class="spanel" id="sp-dept">
+        <div class="card">
+          <div class="pills" id="dept-pills"></div>
+          <div class="form-label" id="dept-current-label" style="margin-bottom:6px">Décoration</div>
+          <textarea class="form-input" id="dept-note-area" rows="8" placeholder="Notes pour ce département…" onchange="saveDeptNote()"></textarea>
+          <button class="btn btn-primary btn-block" onclick="saveDeptNote();save()">Enregistrer</button>
+        </div>
+      </div>
+
+      <!-- EQUIPE -->
+      <div class="spanel" id="sp-equipe">
+        <div class="card">
+          <div class="card-title">Convocations équipe
+            <button class="btn btn-sm btn-primary" onclick="openModal('modal-membre')">+ Renfort</button>
+          </div>
+          <div class="pills" id="equipe-pills"></div>
+          <div id="equipe-list"><div class="empty">Aucun membre</div></div>
+        </div>
+      </div>
+
+      <!-- TRANSPORTS -->
+      <div class="spanel" id="sp-transports">
+        <div class="card">
+          <div class="card-title">Transports comédiens
+            <button class="btn btn-sm btn-primary" onclick="openModal('modal-transport')">+ Ajouter</button>
+          </div>
+          <div id="transport-list"><div class="empty">Aucun transport</div></div>
+        </div>
+      </div>
+
+      <!-- PREVISIONS -->
+      <div class="spanel" id="sp-previsions">
+        <div class="card">
+          <div class="card-title">Prévisions J+1, J+2…
+            <button class="btn btn-sm btn-primary" onclick="openModal('modal-prev')">+ Ajouter</button>
+          </div>
+          <div id="prev-list"><div class="empty">Aucune prévision</div></div>
+        </div>
+      </div>
+
+      <!-- APERCU -->
+      <div class="spanel" id="sp-apercu">
+        <div class="card" id="apercu-content"></div>
+        <button class="btn btn-primary btn-block" onclick="envoyerProd()" style="margin-top:8px">✉ Envoyer à la prod</button>
+        <button class="btn btn-secondary btn-block" onclick="showPage('fds')" style="margin-top:6px">← Retour aux journées</button>
+      </div>
+
+    </div><!-- /scroll -->
+  </div><!-- /page-edit -->
+
+  <!-- PAGE INFO -->
+  <div class="page" id="page-info">
+    <div class="page-header"><div class="page-title">Infos</div></div>
+    <div class="scroll">
+      <div class="card">
+        <div class="card-title">Confection FDS</div>
+        <p style="font-size:13px;color:var(--text-muted);line-height:1.6">Application de création de Feuilles de Service pour les productions cinéma et audiovisuelles.<br><br>Données sauvegardées sur Supabase, accessibles sur tous vos appareils.</p>
+      </div>
+      <div class="card">
+        <div class="card-title">Compte</div>
+        <p style="font-size:13px;color:var(--text-muted)" id="info-email"></p>
+        <button class="btn btn-secondary btn-block" onclick="sbLogout()" style="margin-top:8px">Se déconnecter</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- NAV -->
+  <nav class="nav">
+    <button class="nav-btn active" onclick="showPage('films',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="15" rx="2"/><polyline points="17 2 12 7 7 2"/></svg>Films
+    </button>
+    <button class="nav-btn" onclick="showPage('fds',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="2"/><path d="M7 2v20M2 7h5M2 12h5M2 17h5"/></svg>FDS
+    </button>
+    <button class="nav-btn" onclick="showPage('info',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16" stroke-width="3"/></svg>Info
+    </button>
+  </nav>
+
+</div><!-- /app -->
+
+<!-- MODAL IMPORT PDT -->
+<div class="modal-overlay" id="modal-import-pdt">
+  <div class="modal">
+    <div class="modal-head"><h2>Importer depuis le PDT</h2><button class="modal-close" onclick="closeModal('modal-import-pdt')">×</button></div>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px">Sélectionnez les journées à créer. Les infos (date, horaires, décors, séquences, comédiens) seront pré-remplies depuis le PDT LEDR2.</p>
+    <div style="display:flex;gap:8px;margin-bottom:10px">
+      <button class="btn btn-secondary btn-sm" onclick="pdtSelectAll()">Tout sélectionner</button>
+      <button class="btn btn-secondary btn-sm" onclick="pdtSelectNone()">Tout déselectionner</button>
+    </div>
+    <div id="pdt-journees-select" style="max-height:300px;overflow-y:auto;border:1px solid var(--border);border-radius:var(--radius-sm);padding:6px"></div>
+    <button class="btn btn-primary btn-block" style="margin-top:12px" onclick="importerPDT()">Créer les journées sélectionnées</button>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<!-- MODALS -->
+<div class="modal-overlay" id="modal-film">
+  <div class="modal">
+    <div class="modal-head"><h2>Nouveau film</h2><button class="modal-close" onclick="closeModal('modal-film')">×</button></div>
+    <div class="form-row"><label class="form-label">Titre du film / production</label><input class="form-input" id="new-film-nom" placeholder="Les Enfants de la Résistance"/></div>
+    <div class="form-row"><label class="form-label">Réalisateur</label><input class="form-input" id="new-film-real" placeholder="Christophe BARRATIER"/></div>
+    <div class="form-row"><label class="form-label">Société de production</label><input class="form-input" id="new-film-societe" placeholder="AXEL FILMS"/></div>
+    <div class="form-row"><label class="form-label">Mail assistante prod (envoi FDS)</label><input class="form-input" id="new-film-mail" type="email" placeholder="prod@exemple.com"/></div>
+    <button class="btn btn-primary btn-block" onclick="addFilm()">Créer le film</button>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-seq">
+  <div class="modal">
+    <div class="modal-head"><h2>Ajouter une séquence</h2><button class="modal-close" onclick="closeModal('modal-seq')">×</button></div>
+    <div class="form-row"><label class="form-label">Numéro</label><input class="form-input" id="sq-num" placeholder="65 ou 65TER"/></div>
+    <div class="form-row"><label class="form-label">Effet</label><input class="form-input" id="sq-effet" placeholder="E/J, I/N, E/Crep…"/></div>
+    <div class="form-row"><label class="form-label">Décor</label><input class="form-input" id="sq-decor" placeholder="CALVAIRE (en forêt)"/></div>
+    <div class="form-row"><label class="form-label">Résumé</label><input class="form-input" id="sq-resume" placeholder="Bref résumé de la scène"/></div>
+    <div class="form-row"><label class="form-label">Rôles</label><input class="form-input" id="sq-roles" placeholder="1, 9, 19, 20"/></div>
+    <div class="form-row"><label class="form-label">Durée</label><input class="form-input" id="sq-duree" placeholder="1'25''"/></div>
+    <button class="btn btn-primary btn-block" onclick="addSeq()">Ajouter</button>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-comedien">
+  <div class="modal">
+    <div class="modal-head"><h2>Ajouter un comédien</h2><button class="modal-close" onclick="closeModal('modal-comedien')">×</button></div>
+    <div class="form-row"><label class="form-label">Type</label><select class="form-input" id="co-type"><option value="comedien">Comédien</option><option value="doublure">Doublure</option><option value="silhouette">Silhouette</option><option value="figurant">Figurant</option></select></div>
+    <div class="form-row"><label class="form-label">N° rôle</label><input class="form-input" id="co-num" placeholder="1"/></div>
+    <div class="form-row"><label class="form-label">Nom du rôle</label><input class="form-input" id="co-role" placeholder="FRANÇOIS"/></div>
+    <div class="form-row"><label class="form-label">Comédien</label><input class="form-input" id="co-nom" placeholder="Lucas HECTOR"/></div>
+    <div class="form-row"><label class="form-label">Séquences</label><input class="form-input" id="co-seqs" placeholder="65, 78, 95"/></div>
+    <div class="form-row"><label class="form-label">HMC</label><input class="form-input" id="co-hmc" type="time"/></div>
+    <div class="form-row"><label class="form-label">Départ loges</label><input class="form-input" id="co-loges" type="time"/></div>
+    <div class="form-row"><label class="form-label">PAT</label><input class="form-input" id="co-pat" type="time"/></div>
+    <button class="btn btn-primary btn-block" onclick="addComedien()">Ajouter</button>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-membre">
+  <div class="modal">
+    <div class="modal-head"><h2>Ajouter un membre / renfort</h2><button class="modal-close" onclick="closeModal('modal-membre')">×</button></div>
+    <div class="form-row"><label class="form-label">Département</label>
+      <select class="form-input" id="mb-dept">
+        <option value="realisateur">Réalisateur</option><option value="mise_en_scene">Mise en scène</option>
+        <option value="enfants">Enfants</option><option value="production">Production</option>
+        <option value="regie">Régie</option><option value="camera">Caméra</option>
+        <option value="electricite">Électricité</option><option value="machinerie">Machinerie</option>
+        <option value="son">Son</option><option value="costumes">Costumes</option>
+        <option value="hmac">HMC</option><option value="decoration">Décoration</option>
+      </select>
+    </div>
+    <div class="form-row"><label class="form-label">Poste</label><input class="form-input" id="mb-poste" placeholder="4e assistant réalisateur"/></div>
+    <div class="form-row"><label class="form-label">Nom</label><input class="form-input" id="mb-nom" placeholder="Marie DUPONT"/></div>
+    <div class="form-row"><label class="form-label">Téléphone</label><input class="form-input" id="mb-tel" type="tel" placeholder="06 XX XX XX XX"/></div>
+    <div class="form-row"><label class="form-label">Heure convoc.</label><input class="form-input" id="mb-heure" placeholder="8H00 ou Own Call"/></div>
+    <div class="form-row"><label class="form-label">Type</label><select class="form-input" id="mb-renfort"><option value="">Équipe fixe</option><option value="renfort">Renfort du jour</option></select></div>
+    <button class="btn btn-primary btn-block" onclick="addMembre()">Ajouter</button>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-transport">
+  <div class="modal">
+    <div class="modal-head"><h2>Ajouter un transport</h2><button class="modal-close" onclick="closeModal('modal-transport')">×</button></div>
+    <div class="form-row"><label class="form-label">Comédien</label><input class="form-input" id="tr-comedien" placeholder="Lucas HECTOR"/></div>
+    <div class="form-row"><label class="form-label">Rôle</label><input class="form-input" id="tr-role" placeholder="François"/></div>
+    <div class="form-row"><label class="form-label">Chauffeur</label><input class="form-input" id="tr-chauffeur" placeholder="Delphine & Liv"/></div>
+    <div class="form-row"><label class="form-label">Adresse départ</label><input class="form-input" id="tr-depart" placeholder="Hôtel Le Maxime, Auxerre"/></div>
+    <div class="form-row"><label class="form-label">Adresse arrivée</label><input class="form-input" id="tr-arrivee" placeholder="D965, 89130 Mézilles"/></div>
+    <div class="form-row"><label class="form-label">PAT comédien</label><input class="form-input" id="tr-pat" type="time"/></div>
+    <button class="btn btn-primary btn-block" onclick="addTransport()">Calculer & Ajouter</button>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-prev">
+  <div class="modal">
+    <div class="modal-head"><h2>Ajouter une prévision</h2><button class="modal-close" onclick="closeModal('modal-prev')">×</button></div>
+    <div class="form-row"><label class="form-label">Journée</label><input class="form-input" id="pv-journee" placeholder="J16 — Mardi 23 juin 2026"/></div>
+    <div class="form-row"><label class="form-label">Horaires</label><input class="form-input" id="pv-horaires" placeholder="10H30 – 20H30"/></div>
+    <div class="form-row"><label class="form-label">Décors</label><textarea class="form-input" id="pv-decors" rows="2" placeholder="Forêt, Route de campagne…"></textarea></div>
+    <div class="form-row"><label class="form-label">Séquences</label><input class="form-input" id="pv-seqs" placeholder="91P1, 93, 139…"/></div>
+    <div class="form-row"><label class="form-label">Rôles / Comédiens</label><textarea class="form-input" id="pv-roles" rows="2"></textarea></div>
+    <div class="form-row"><label class="form-label">Notes</label><textarea class="form-input" id="pv-notes" rows="2"></textarea></div>
+    <button class="btn btn-primary btn-block" onclick="addPrev()">Ajouter</button>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-edit-heure">
+  <div class="modal">
+    <div class="modal-head"><h2>Modifier l'heure</h2><button class="modal-close" onclick="closeModal('modal-edit-heure')">×</button></div>
+    <div class="form-row"><label class="form-label" id="edit-heure-label">Heure de convocation</label><input class="form-input" id="edit-heure-val" placeholder="7H45 ou Own Call"/></div>
+    <button class="btn btn-primary btn-block" onclick="confirmEditHeure()">Enregistrer</button>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════ SUPABASE ═══════════════════════
+const SB_URL = 'https://ljregtoosrhetgocvrkg.supabase.co';
+const SB_KEY = 'sb_publishable_zBiWpvk73YHJepQ1Ds2PXA_naS3HTPB';
+const SB_TABLE = 'fds_data';
+let currentUser = null;
+let accessToken = null;
+
+async function sbLogin(email, password) {
+  try {
+    const r = await fetch(SB_URL + '/auth/v1/token?grant_type=password', {
+      method:'POST', headers:{'Content-Type':'application/json','apikey':SB_KEY},
+      body: JSON.stringify({email, password})
+    });
+    const d = await r.json();
+    if (d.access_token) {
+      accessToken = d.access_token; currentUser = d.user;
+      localStorage.setItem('fds_token', d.access_token);
+      localStorage.setItem('fds_refresh', d.refresh_token);
+      return true;
+    }
+    return false;
+  } catch(e) { return false; }
+}
+
+async function sbRefresh() {
+  const ref = localStorage.getItem('fds_refresh');
+  if (!ref) return false;
+  try {
+    const r = await fetch(SB_URL + '/auth/v1/token?grant_type=refresh_token', {
+      method:'POST', headers:{'Content-Type':'application/json','apikey':SB_KEY},
+      body: JSON.stringify({refresh_token: ref})
+    });
+    const d = await r.json();
+    if (d.access_token) {
+      accessToken = d.access_token; currentUser = d.user;
+      localStorage.setItem('fds_token', d.access_token);
+      localStorage.setItem('fds_refresh', d.refresh_token);
+      return true;
+    }
+  } catch(e) {}
+  return false;
+}
+
+function sbLogout() {
+  accessToken = null; currentUser = null;
+  localStorage.removeItem('fds_token'); localStorage.removeItem('fds_refresh'); localStorage.removeItem('fds_local');
+  document.getElementById('app').classList.remove('visible');
+  document.getElementById('login-screen').style.display = 'flex';
+}
+
+async function sbSave(data) {
+  if (!accessToken) return;
+  const uid = currentUser.id;
+  try {
+    await fetch(SB_URL + '/rest/v1/' + SB_TABLE, {
+      method:'POST',
+      headers:{'Content-Type':'application/json','apikey':SB_KEY,'Authorization':'Bearer '+accessToken,'Prefer':'resolution=merge-duplicates'},
+      body: JSON.stringify({id:uid, user_id:uid, data, updated_at: new Date().toISOString()})
+    });
+  } catch(e) {}
+}
+
+async function sbLoad() {
+  if (!accessToken) return null;
+  try {
+    const r = await fetch(SB_URL + '/rest/v1/' + SB_TABLE + '?id=eq.' + currentUser.id, {
+      headers:{'apikey':SB_KEY,'Authorization':'Bearer '+accessToken}
+    });
+    if (r.ok) { const rows = await r.json(); if (rows.length) return rows[0].data; }
+  } catch(e) {}
+  return null;
+}
+
+// ═══════════════════════ STATE ═══════════════════════
+let state = { films: [], fds: [] };
+let activeFilmId = null;
+let activeFdsId = null;
+let currentDept = 'decoration';
+let currentEquipeDept = 'realisateur';
+let editHeureTarget = null;
+let saveTimer = null;
+
+function activeFilm() { return state.films.find(f => f.id === activeFilmId) || null; }
+function activeFDS()  { return state.fds.find(f => f.id === activeFdsId) || null; }
+
+function save() {
+  try { localStorage.setItem('fds_local', JSON.stringify({state, activeFilmId})); } catch(e) {}
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(() => sbSave({state, activeFilmId}), 2000);
+}
+
+async function loadData() {
+  const remote = await sbLoad();
+  if (remote) {
+    state = remote.state || state;
+    activeFilmId = remote.activeFilmId || null;
+    try { localStorage.setItem('fds_local', JSON.stringify(remote)); } catch(e) {}
+  } else {
+    try {
+      const raw = localStorage.getItem('fds_local');
+      if (raw) { const d = JSON.parse(raw); state = d.state || state; activeFilmId = d.activeFilmId || null; }
+    } catch(e) {}
+  }
+}
+
+// ═══════════════════════ AUTH ═══════════════════════
+async function handleLogin() {
+  const email = document.getElementById('login-email').value.trim();
+  const pw = document.getElementById('login-password').value;
+  const btn = document.getElementById('login-btn');
+  const err = document.getElementById('login-err');
+  if (!email || !pw) { err.textContent = 'Entrez votre email et mot de passe.'; return; }
+  btn.textContent = 'Connexion…'; btn.disabled = true;
+  const ok = await sbLogin(email, pw);
+  if (ok) {
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('app').classList.add('visible');
+    await loadData();
+    initUI();
+  } else {
+    err.textContent = 'Email ou mot de passe incorrect.';
+    btn.textContent = 'Se connecter'; btn.disabled = false;
+  }
+}
+
+async function autoLogin() {
+  const token = localStorage.getItem('fds_token');
+  if (!token) return;
+  accessToken = token;
+  const ok = await sbRefresh();
+  if (ok) {
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('app').classList.add('visible');
+    await loadData();
+    initUI();
+  } else {
+    accessToken = null;
+  }
+}
+
+// ═══════════════════════ NAVIGATION ═══════════════════════
+function showPage(name) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('page-' + name).classList.add('active');
+  const idx = {films:0, fds:1, edit:null, info:2}[name];
+  if (idx !== null && idx !== undefined) document.querySelectorAll('.nav-btn')[idx].classList.add('active');
+  if (name === 'films') renderFilms();
+  if (name === 'fds') renderJournees();
+  if (name === 'info') { const el = document.getElementById('info-email'); if(el && currentUser) el.textContent = currentUser.email; }
+}
+
+function stab(name, btn) {
+  document.querySelectorAll('.stab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.spanel').forEach(p => p.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('sp-' + name).classList.add('active');
+  if (name === 'sequences')  renderSeqList();
+  if (name === 'comediens')  renderComediensList();
+  if (name === 'dept')       { currentDept = 'decoration'; renderDeptPills(); loadDeptNote(); }
+  if (name === 'equipe')     { currentEquipeDept = 'realisateur'; renderEquipePills(); renderEquipeList(); }
+  if (name === 'transports') renderTransportList();
+  if (name === 'previsions') renderPrevList();
+  if (name === 'apercu')     renderApercu();
+}
+
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+document.querySelectorAll('.modal-overlay').forEach(m => m.addEventListener('click', e => { if(e.target===m) m.classList.remove('open'); }));
+
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+function initUI() {
+  showPage('films');
+  if (activeFilmId) { updateTopbar(); }
+}
+
+// ═══════════════════════ FILMS ═══════════════════════
+function renderFilms() {
+  const el = document.getElementById('films-list');
+  if (!state.films.length) { el.innerHTML = '<div class="empty">Aucun film — créez votre première production</div>'; return; }
+  el.innerHTML = state.films.map(f => `
+    <div class="film-card" onclick="selectFilm('${f.id}')">
+      <div class="film-dot ${f.id === activeFilmId ? 'active' : ''}"></div>
+      <div class="row-main">
+        <div class="row-title">${f.nom}</div>
+        <div class="row-sub">${f.real || ''} ${f.societe ? '· ' + f.societe : ''}</div>
+      </div>
+      ${f.id === activeFilmId ? '<span style="font-size:11px;font-weight:700;color:var(--purple)">ACTIF</span>' : ''}
+      <button class="icon-btn" onclick="event.stopPropagation();removeFilm('${f.id}')" title="Supprimer">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/></svg>
+      </button>
+    </div>`).join('');
+}
+
+function addFilm() {
+  const nom = document.getElementById('new-film-nom').value.trim();
+  if (!nom) { toast('Entrez un titre'); return; }
+  const f = {
+    id: 'film_' + Date.now(),
+    nom, real: document.getElementById('new-film-real').value.trim(),
+    societe: document.getElementById('new-film-societe').value.trim(),
+    mail: document.getElementById('new-film-mail').value.trim()
+  };
+  state.films.push(f);
+  activeFilmId = f.id;
+  save(); closeModal('modal-film');
+  updateTopbar(); renderFilms(); toast('Film créé !');
+}
+
+function selectFilm(id) {
+  activeFilmId = id;
+  save(); updateTopbar(); renderFilms(); showPage('fds');
+}
+
+function removeFilm(id) {
+  if (!confirm('Supprimer ce film et toutes ses FDS ?')) return;
+  state.films = state.films.filter(f => f.id !== id);
+  state.fds = state.fds.filter(f => f.filmId !== id);
+  if (activeFilmId === id) activeFilmId = state.films[0]?.id || null;
+  save(); renderFilms(); updateTopbar();
+}
+
+function updateTopbar() {
+  const f = activeFilm();
+  document.getElementById('top-title').textContent = f ? f.nom : 'Confection FDS';
+  document.getElementById('top-sub').textContent = f ? (f.real || 'Feuilles de service') : 'Feuilles de service cinéma';
+}
+
+// ═══════════════════════ JOURNEES ═══════════════════════
+function renderJournees() {
+  const f = activeFilm();
+  document.getElementById('fds-page-title').textContent = f ? f.nom : 'Journées';
+  document.getElementById('fds-page-sub').textContent = f ? 'Feuilles de service' : 'Sélectionnez un film';
+  document.getElementById('fds-list-titre').childNodes[0].textContent = f ? 'Journées — ' + f.nom : 'Journées ';
+  const el = document.getElementById('fds-journees-list');
+  const liste = state.fds.filter(f2 => f2.filmId === activeFilmId);
+  if (!liste.length) { el.innerHTML = '<div class="empty">Aucune FDS — créez la première journée</div>'; return; }
+  el.innerHTML = liste.map(fds => {
+    const i = fds.infos || {};
+    return `<div class="j-card" onclick="openFDS('${fds.id}')">
+      <div class="j-num">${i.journee || 'J?'}</div>
+      <div class="row-main">
+        <div class="row-title">${i.date || 'Date non définie'}</div>
+        <div class="row-sub">${i.debut ? i.debut.replace(':','H')+' – '+(i.fin||'').replace(':','H') : '—'} · PAT ${i.pat ? i.pat.replace(':','H') : '—'}</div>
+      </div>
+      <button class="icon-btn" onclick="event.stopPropagation();removeFDS('${fds.id}')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/></svg>
+      </button>
+      <div class="j-arrow">›</div>
+    </div>`;
+  }).join('');
+}
+
+function fdsNouvelle() {
+  if (!activeFilmId) { toast('Sélectionnez d\'abord un film'); showPage('films'); return; }
+  const fds = {
+    id: 'fds_' + Date.now(), filmId: activeFilmId,
+    infos: { journee:'', date:'', pat:'', debut:'', fin:'', repas:'', meteo:'', lever:'', coucher:'', crep_m:'', crep_s:'', note:'' },
+    lieux: [
+      {label:'Décor 1', valeur:''}, {label:'Décor 2', valeur:''},
+      {label:'HMC', valeur:''}, {label:'Cantine', valeur:''},
+      {label:'Accès', valeur:''}, {label:'Production', valeur:''}
+    ],
+    sequences: [], comediens: [], deptNotes: {},
+    equipe: JSON.parse(JSON.stringify(EQUIPE_FIXE)),
+    transports: [], previsions: []
+  };
+  state.fds.push(fds);
+  activeFdsId = fds.id;
+  save(); openFDS(fds.id);
+}
+
+function openFDS(id) {
+  activeFdsId = id;
+  const fds = activeFDS();
+  if (!fds) return;
+  const i = fds.infos || {};
+  document.getElementById('edit-title').textContent = (i.journee || 'Nouvelle journée') + (i.date ? ' — ' + i.date : '');
+  document.getElementById('edit-sub').textContent = activeFilm()?.nom || '';
+  // reset au premier onglet
+  document.querySelectorAll('.stab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.spanel').forEach(p => p.classList.remove('active'));
+  document.querySelector('.stab').classList.add('active');
+  document.getElementById('sp-infos').classList.add('active');
+  loadInfosForm();
+  showPage('edit');
+}
+
+function removeFDS(id) {
+  if (!confirm('Supprimer cette journée ?')) return;
+  state.fds = state.fds.filter(f => f.id !== id);
+  save(); renderJournees();
+}
+
+// ═══════════════════════ INFOS ═══════════════════════
+function loadInfosForm() {
+  const f = activeFDS(); if (!f) return;
+  const i = f.infos || {};
+  ['journee','date','pat','debut','fin','repas','meteo','lever','coucher','crep_m','crep_s','note'].forEach(k => {
+    const el = document.getElementById('f-' + k.replace('_','-'));
+    if (el) el.value = i[k] || '';
+  });
+  renderLieux();
+}
+
+function saveInfos() {
+  const f = activeFDS(); if (!f) return;
+  ['journee','date','pat','debut','fin','repas','meteo','lever','coucher','crep_m','crep_s','note'].forEach(k => {
+    const el = document.getElementById('f-' + k.replace('_','-'));
+    if (el) f.infos[k] = el.value;
+  });
+  // lieux
+  document.querySelectorAll('.lieu-val').forEach((inp, idx) => { if(f.lieux[idx]) f.lieux[idx].valeur = inp.value; });
+  document.querySelectorAll('.lieu-label').forEach((inp, idx) => { if(f.lieux[idx]) f.lieux[idx].label = inp.value; });
+  // màj titre
+  const i = f.infos;
+  document.getElementById('edit-title').textContent = (i.journee || 'Journée') + (i.date ? ' — ' + i.date : '');
+  save(); toast('Enregistré ✓');
+}
+
+function renderLieux() {
+  const f = activeFDS(); const c = document.getElementById('lieux-container'); if (!f || !c) return;
+  c.innerHTML = (f.lieux || []).map((l, i) => `
+    <div style="display:flex;gap:6px;align-items:center;margin-bottom:7px">
+      <input class="form-input lieu-label" value="${l.label}" style="max-width:90px;font-size:11px;color:var(--text-muted)"/>
+      <input class="form-input lieu-val" value="${l.valeur}" placeholder="—" style="flex:1"/>
+      <button onclick="removeLieu(${i})" style="border:none;background:none;color:var(--text-muted);cursor:pointer;font-size:18px;line-height:1;padding:0 2px">×</button>
+    </div>`).join('');
+}
+
+function addLieu() {
+  const f = activeFDS(); if (!f) return;
+  f.lieux.push({label:'Autre', valeur:''});
+  renderLieux();
+}
+
+function removeLieu(i) {
+  const f = activeFDS(); if (!f) return;
+  f.lieux.splice(i, 1); renderLieux();
+}
+
+// ═══════════════════════ SEQUENCES ═══════════════════════
+function renderSeqList() {
+  const f = activeFDS(); const el = document.getElementById('seq-list'); if (!el) return;
+  const list = f?.sequences || [];
+  if (!list.length) { el.innerHTML = '<div class="empty">Aucune séquence</div>'; return; }
+  el.innerHTML = list.map((s, i) => `
+    <div class="list-row">
+      <div class="num-big">${s.num}</div>
+      <div class="row-main">
+        <div class="row-title">${s.decor} <span class="badge badge-ej">${s.effet}</span></div>
+        <div class="row-sub">${s.resume}</div>
+        <div class="row-sub">Rôles : ${s.roles} · ${s.duree}</div>
+      </div>
+      <button class="icon-btn" onclick="removeSeq(${i})">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/></svg>
+      </button>
+    </div>`).join('');
+}
+
+function addSeq() {
+  const f = activeFDS(); if (!f) return;
+  f.sequences.push({
+    num: document.getElementById('sq-num').value,
+    effet: document.getElementById('sq-effet').value,
+    decor: document.getElementById('sq-decor').value,
+    resume: document.getElementById('sq-resume').value,
+    roles: document.getElementById('sq-roles').value,
+    duree: document.getElementById('sq-duree').value
+  });
+  closeModal('modal-seq'); renderSeqList(); save(); toast('Séquence ajoutée');
+}
+
+function removeSeq(i) {
+  const f = activeFDS(); if (!f) return;
+  f.sequences.splice(i, 1); renderSeqList(); save();
+}
+
+// ═══════════════════════ COMEDIENS ═══════════════════════
+function renderComediensList() {
+  const f = activeFDS(); const el = document.getElementById('comediens-list'); if (!el) return;
+  const list = f?.comediens || [];
+  if (!list.length) { el.innerHTML = '<div class="empty">Aucun comédien</div>'; return; }
+  el.innerHTML = list.map((c, i) => `
+    <div class="list-row">
+      <div class="num-big">${c.num||''}</div>
+      <div class="row-main">
+        <div class="row-title">${c.role} <span style="font-size:10px;color:var(--text-muted);font-weight:400">${c.type}</span></div>
+        <div class="row-sub">${c.nom}</div>
+        <div class="row-sub">Séq : ${c.seqs||'—'} · HMC ${fmtTime(c.hmc)} · Loges ${fmtTime(c.loges)} · PAT ${fmtTime(c.pat)}</div>
+      </div>
+      <button class="icon-btn" onclick="removeComedien(${i})">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/></svg>
+      </button>
+    </div>`).join('');
+}
+
+function addComedien() {
+  const f = activeFDS(); if (!f) return;
+  f.comediens.push({
+    type: document.getElementById('co-type').value,
+    num: document.getElementById('co-num').value,
+    role: document.getElementById('co-role').value,
+    nom: document.getElementById('co-nom').value,
+    seqs: document.getElementById('co-seqs').value,
+    hmc: document.getElementById('co-hmc').value,
+    loges: document.getElementById('co-loges').value,
+    pat: document.getElementById('co-pat').value
+  });
+  closeModal('modal-comedien'); renderComediensList(); save(); toast('Comédien ajouté');
+}
+
+function removeComedien(i) {
+  const f = activeFDS(); if (!f) return;
+  f.comediens.splice(i, 1); renderComediensList(); save();
+}
+
+// ═══════════════════════ DEPARTEMENTS ═══════════════════════
+const DEPT_LABELS = {
+  decoration:'Décoration', accessoires:'Accessoires', armes:'Armes', costumes:'Costumes',
+  maquillage:'Maquillage', coiffure:'Coiffure', son:'Son', machinerie:'Machinerie',
+  cascade:'Cascades', vfx:'VFX', vehicules:'Véhicules', regie:'Régie / Production'
+};
+
+function renderDeptPills() {
+  const f = activeFDS();
+  const el = document.getElementById('dept-pills'); if (!el) return;
+  el.innerHTML = Object.keys(DEPT_LABELS).map(d => {
+    const filled = f?.deptNotes?.[d]?.trim();
+    return `<button class="pill ${d===currentDept?'active':''} ${filled?'done':''}" data-dept="${d}" onclick="selectDept(this,'${d}')">${DEPT_LABELS[d]}</button>`;
+  }).join('');
+}
+
+function selectDept(el, dept) {
+  saveDeptNote();
+  currentDept = dept;
+  document.querySelectorAll('#dept-pills .pill').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('dept-current-label').textContent = DEPT_LABELS[dept];
+  loadDeptNote();
+}
+
+function loadDeptNote() {
+  const f = activeFDS();
+  document.getElementById('dept-note-area').value = f?.deptNotes?.[currentDept] || '';
+}
+
+function saveDeptNote() {
+  const f = activeFDS(); if (!f) return;
+  if (!f.deptNotes) f.deptNotes = {};
+  f.deptNotes[currentDept] = document.getElementById('dept-note-area').value;
+  renderDeptPills();
+}
+
+// ═══════════════════════ EQUIPE ═══════════════════════
+const EQUIPE_DEPT_LABELS = {
+  realisateur:'Réalisateur', mise_en_scene:'Mise en scène', enfants:'Enfants',
+  production:'Production', regie:'Régie', camera:'Caméra',
+  electricite:'Électricité', machinerie:'Machinerie', son:'Son',
+  costumes:'Costumes', hmac:'HMC', decoration:'Décoration'
+};
+
+const EQUIPE_FIXE = {
+  realisateur: [{poste:'Réalisateur', nom:'BARRATIER Christophe', tel:'', heure:'7H45'}],
+  mise_en_scene: [
+    {poste:'1er assistant réalisateur', nom:'RAPP Joseph', tel:'06 09 66 90 66', heure:'7H45'},
+    {poste:'2nde assistante réalisatrice', nom:'JUSTIN Emilie', tel:'06 60 81 45 86', heure:'7H45'},
+    {poste:'3ème assistante réalisatrice', nom:'DUTHEIL Clementine', tel:'06 15 95 77 07', heure:'7H15'},
+    {poste:'Scripte', nom:'THOUVENOT Françoise', tel:'06 82 90 67 04', heure:'8H30'},
+    {poste:'Assistant scripte', nom:'DELSAUT Thomas', tel:'07 62 52 03 46', heure:'8H30'}
+  ],
+  enfants: [
+    {poste:'Coach enfants', nom:'LABEY Delphine', tel:'06 07 76 23 13', heure:'Own Call'},
+    {poste:'Référent Enfants', nom:'CHARPENTIER Liv', tel:'06 19 60 12 96', heure:'Own Call'}
+  ],
+  production: [
+    {poste:'Directeur de production', nom:'WELCH Robin', tel:'06 22 21 15 62', heure:'Own Call'},
+    {poste:'Administratrice de production', nom:'VAESKEN Svetlane', tel:'06 13 21 37 68', heure:'Own Call'},
+    {poste:'Administrateur adjoint', nom:'MEUNIER Olivier', tel:'06 25 51 68 61', heure:'Own Call'},
+    {poste:'Assistante de production', nom:'DESVALLÉES Anaïs', tel:'06 49 63 27 98', heure:'Own Call'},
+    {poste:'Assistante prod adjointe', nom:'MASSAULT Valentine', tel:'06 86 23 02 61', heure:'Own Call'}
+  ],
+  regie: [
+    {poste:'Régisseur général', nom:'DUFOURT Antoine', tel:'06 12 82 27 28', heure:'Own Call'},
+    {poste:'Régisseur adjoint', nom:'CAILLIBOT Stanislas', tel:'06 74 75 25 77', heure:'Own Call'},
+    {poste:'Auxiliaire régie plateau', nom:'JACQUET Louise', tel:'07 89 44 89 82', heure:'7H45'},
+    {poste:'Auxiliaire régie', nom:'BENOVICI Michael', tel:'06 07 29 26 70', heure:'5H00'},
+    {poste:'Auxiliaire régie', nom:'TROTTA Noam', tel:'07 81 52 44 79', heure:'5H00'},
+    {poste:'Auxiliaire régie', nom:"L'ÉTANG Ilona", tel:'06 95 81 83 81', heure:'9H00'},
+    {poste:'Auxiliaire régie', nom:'QUINTANE Paul', tel:'07 85 50 31 77', heure:'7H20'},
+    {poste:'Auxiliaire régie', nom:'BRESSOLIER Clemence', tel:'06 59 49 55 03', heure:'9H00'},
+    {poste:'Auxiliaire régie', nom:'GIRARD Charlotte', tel:'06 37 33 53 85', heure:'7H45'},
+    {poste:'Auxiliaire régie renfort', nom:'LAFOND Lisa', tel:'07 82 67 53 19', heure:'7H45', renfort:true}
+  ],
+  camera: [
+    {poste:'Directeur de la photographie', nom:'ALMERAS Jérôme', tel:'06 12 11 00 67', heure:'7H45'},
+    {poste:'Cadreur', nom:'MOYROUD Alex', tel:'07 81 57 94 25', heure:'7H45'},
+    {poste:'1er asst op caméra A', nom:'DELAUNAY Antoine', tel:'06 25 32 01 60', heure:'7H30'},
+    {poste:'1er asst op caméra B', nom:'BRANDOIS Guillaume', tel:'06 33 46 33 20', heure:'7H30'},
+    {poste:'2nd asst opérateur', nom:'IKNOYAN Anouche', tel:'06 86 59 44 77', heure:'7H30'},
+    {poste:'2nd asst opérateur', nom:'GADEL Amaury', tel:'06 99 29 22 64', heure:'7H30'},
+    {poste:'Technicien retour image', nom:'VARICHON Adèle', tel:'06 95 55 86 24', heure:'7H30'},
+    {poste:'Stagiaire caméra', nom:'TIJERAS Louison', tel:'06 72 80 20 06', heure:'7H30'}
+  ],
+  electricite: [
+    {poste:'Chef électricien', nom:'GALLY William', tel:'06 07 85 15 09', heure:'6H00'},
+    {poste:'Électricien', nom:'BOISSY Christophe', tel:'06 81 79 85 23', heure:'6H00'},
+    {poste:'Électricien', nom:'PANTANELLA Vincent', tel:'06 20 54 62 99', heure:'6H00'},
+    {poste:'Électricien', nom:'BENETEAU Cédric', tel:'06 85 01 17 03', heure:'6H00'},
+    {poste:'Groupeman', nom:'TRAINI Hervé', tel:'06 12 11 63 33', heure:'6H00'}
+  ],
+  machinerie: [
+    {poste:'Chef machiniste', nom:'IMBERT Arnaud', tel:'06 82 17 43 51', heure:'6H30'},
+    {poste:'Machiniste', nom:'REMIGEREAU Charly', tel:'06 79 63 75 76', heure:'6H30'},
+    {poste:'Machiniste', nom:'DESCHAMPS Gabriel', tel:'06 80 50 15 56', heure:'6H30'},
+    {poste:'Machiniste', nom:'DUMON Stephane', tel:'06 16 76 32 19', heure:'6H30'}
+  ],
+  son: [
+    {poste:'Ingénieur du son', nom:'SOBRINO Daniel', tel:'06 11 78 74 46', heure:'7H30'},
+    {poste:'Perchman', nom:'VAN CAENEGHEM Robinson', tel:'06 48 41 07 37', heure:'7H30'},
+    {poste:'2nde perche', nom:'NICOLAS Clara', tel:'06 26 33 08 26', heure:'7H30'}
+  ],
+  costumes: [
+    {poste:'Créatrice de costumes', nom:'FREMONT Marie', tel:'06 61 40 88 83', heure:'Own call'},
+    {poste:'Resp. costumes figuration', nom:'VADUVA Hélène', tel:'06 15 88 53 07', heure:'9H00'},
+    {poste:'Habilleuse rôles', nom:'ALLIMANN Nina', tel:'06 37 47 10 43', heure:'7H00'},
+    {poste:'Habilleuse rôles', nom:'RIVARD Dune', tel:'06 95 76 75 22', heure:'8H45'},
+    {poste:'Habilleuse rôles', nom:'PECQUENARD Charlotte', tel:'06 63 04 46 82', heure:'8H45'},
+    {poste:'Habilleuse figuration', nom:'ROMAN-JIMENEZ Margot', tel:'07 62 04 46 59', heure:'9H00'},
+    {poste:'Habilleur figuration', nom:'REMIOT Adrien', tel:'06 75 11 93 25', heure:'8H15'},
+    {poste:'Costumière', nom:'JEANNEROD Laurence', tel:'06 82 25 25 01', heure:'9H00'},
+    {poste:'Régisseur costumes', nom:'FRACCHIOLLA Kevin', tel:'06 85 86 82 31', heure:'6H45'}
+  ],
+  hmac: [
+    {poste:'Cheffe maquilleuse rôles', nom:'HUMEAU Mathilde', tel:'06 60 17 33 67', heure:'8H00'},
+    {poste:'Maquilleuse rôles', nom:'LEGRAS Audrey', tel:'06 70 95 34 74', heure:'7H00'},
+    {poste:'Cheffe maquilleuse figuration', nom:'DUMAS Magalie', tel:'06 84 58 23 26', heure:'8H00'},
+    {poste:'Chef coiffeur rôles', nom:'QUINET Sebastien', tel:'06 87 23 60 46', heure:'7H05'},
+    {poste:'Coiffeuse rôles', nom:'DEFOIS Clara', tel:'06 23 83 92 26', heure:'7H05'},
+    {poste:'Chef coiffeur figuration', nom:'EVRARD LEBRET Germain', tel:'06 19 92 35 62', heure:'7H55'}
+  ],
+  decoration: [
+    {poste:'Chef décorateur', nom:'STRELISKI Jérémy', tel:'06 62 35 57 91', heure:'-'},
+    {poste:'1ère assistante décoratrice', nom:'LORENTZ Zoé', tel:'06 31 50 01 65', heure:'-'},
+    {poste:'Ensemblière', nom:'DESCHAMPS Nathalie', tel:'06 88 30 57 94', heure:'-'}
+  ]
+};
+
+function renderEquipePills() {
+  const el = document.getElementById('equipe-pills'); if (!el) return;
+  el.innerHTML = Object.keys(EQUIPE_DEPT_LABELS).map(d =>
+    `<button class="pill ${d===currentEquipeDept?'active':''}" onclick="selectEquipeDept(this,'${d}')">${EQUIPE_DEPT_LABELS[d]}</button>`
+  ).join('');
+}
+
+function selectEquipeDept(el, dept) {
+  currentEquipeDept = dept;
+  document.querySelectorAll('#equipe-pills .pill').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+  renderEquipeList();
+}
+
+function renderEquipeList() {
+  const f = activeFDS(); const el = document.getElementById('equipe-list'); if (!el) return;
+  const membres = f?.equipe?.[currentEquipeDept] || [];
+  if (!membres.length) { el.innerHTML = '<div class="empty">Aucun membre</div>'; return; }
+  el.innerHTML = membres.map((m, i) => `
+    <div class="list-row">
+      <div class="row-main">
+        <div class="row-title">${m.nom} ${m.renfort ? '<span class="badge badge-renfort">RENFORT</span>' : ''}</div>
+        <div class="row-sub">${m.poste}${m.tel ? ' · ' + m.tel : ''}</div>
+      </div>
+      <div class="row-right">
+        <span style="font-size:13px;font-weight:700;color:var(--purple)">${m.heure}</span>
+        <button class="icon-btn" onclick="editHeure(${i},'${m.nom}','${m.heure}')" title="Modifier l'heure">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+        </button>
+        <button class="icon-btn" onclick="removeMembre(${i})">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/></svg>
+        </button>
+      </div>
+    </div>`).join('');
+}
+
+function editHeure(i, nom, heureActuelle) {
+  editHeureTarget = i;
+  document.getElementById('edit-heure-label').textContent = 'Heure de convocation — ' + nom;
+  document.getElementById('edit-heure-val').value = heureActuelle;
+  openModal('modal-edit-heure');
+}
+
+function confirmEditHeure() {
+  const f = activeFDS(); if (!f || editHeureTarget === null) return;
+  const membres = f.equipe?.[currentEquipeDept];
+  if (membres && membres[editHeureTarget]) {
+    membres[editHeureTarget].heure = document.getElementById('edit-heure-val').value;
+  }
+  closeModal('modal-edit-heure'); renderEquipeList(); save(); toast('Heure modifiée ✓');
+}
+
+function addMembre() {
+  const f = activeFDS(); if (!f) return;
+  if (!f.equipe) f.equipe = {};
+  const dept = document.getElementById('mb-dept').value;
+  if (!f.equipe[dept]) f.equipe[dept] = [];
+  f.equipe[dept].push({
+    poste: document.getElementById('mb-poste').value,
+    nom: document.getElementById('mb-nom').value,
+    tel: document.getElementById('mb-tel').value,
+    heure: document.getElementById('mb-heure').value,
+    renfort: document.getElementById('mb-renfort').value === 'renfort'
+  });
+  closeModal('modal-membre'); renderEquipeList(); save(); toast('Membre ajouté');
+}
+
+function removeMembre(i) {
+  const f = activeFDS(); if (!f) return;
+  f.equipe[currentEquipeDept].splice(i, 1); renderEquipeList(); save();
+}
+
+// ═══════════════════════ TRANSPORTS ═══════════════════════
+function estimerTrajet(depart, arrivee) {
+  const d = (depart||'').toLowerCase(), a = (arrivee||'').toLowerCase();
+  if (a.includes('mézilles') || a.includes('mezilles') || a.includes('d965')) {
+    if (d.includes('auxerre') || d.includes('maxime') || d.includes('foch') || d.includes('maréchauxs')) return 45;
+    if (d.includes('domicile')) return 30;
+    return 40;
+  }
+  return 40;
+}
+
+function calcPickup(patStr, dureeMin) {
+  if (!patStr) return null;
+  const [h, m] = patStr.split(':').map(Number);
+  const tot = h * 60 + m - dureeMin - 5;
+  return Math.floor(tot/60) + 'H' + String(tot%60).padStart(2,'0');
+}
+
+function renderTransportList() {
+  const f = activeFDS(); const el = document.getElementById('transport-list'); if (!el) return;
+  const list = f?.transports || [];
+  if (!list.length) { el.innerHTML = '<div class="empty">Aucun transport</div>'; return; }
+  el.innerHTML = list.map((t, i) => {
+    const duree = estimerTrajet(t.depart, t.arrivee);
+    const pickup = t.pat ? calcPickup(t.pat, duree) : null;
+    return `<div class="list-row" style="flex-direction:column;align-items:stretch">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+        <div>
+          <span class="row-title">${t.comedien}</span>
+          <span class="row-sub" style="display:inline;margin-left:6px">${t.role} · ${t.chauffeur}</span>
+        </div>
+        <button class="icon-btn" onclick="removeTransport(${i})">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/></svg>
+        </button>
+      </div>
+      <div class="row-sub">📍 ${t.depart}</div>
+      <div class="row-sub">🏁 ${t.arrivee}${t.pat ? ' · PAT ' + fmtTime(t.pat) : ' · Sur tel'}</div>
+      ${pickup ? `<div class="pickup-bar">~${duree} min · Pick-up : <span class="pickup-badge">${pickup}</span>
+        <a href="https://waze.com/ul?q=${encodeURIComponent(t.arrivee)}&navigate=yes" target="_blank" class="waze-link">Waze ↗</a>
+      </div>` : ''}
+    </div>`;
+  }).join('');
+}
+
+function addTransport() {
+  const f = activeFDS(); if (!f) return;
+  f.transports.push({
+    comedien: document.getElementById('tr-comedien').value,
+    role: document.getElementById('tr-role').value,
+    chauffeur: document.getElementById('tr-chauffeur').value,
+    depart: document.getElementById('tr-depart').value,
+    arrivee: document.getElementById('tr-arrivee').value,
+    pat: document.getElementById('tr-pat').value || null
+  });
+  closeModal('modal-transport'); renderTransportList(); save(); toast('Transport ajouté');
+}
+
+function removeTransport(i) {
+  const f = activeFDS(); if (!f) return;
+  f.transports.splice(i, 1); renderTransportList(); save();
+}
+
+// ═══════════════════════ PREVISIONS ═══════════════════════
+function renderPrevList() {
+  const f = activeFDS(); const el = document.getElementById('prev-list'); if (!el) return;
+  const list = f?.previsions || [];
+  if (!list.length) { el.innerHTML = '<div class="empty">Aucune prévision</div>'; return; }
+  el.innerHTML = list.map((p, i) => `
+    <div style="padding:10px 0;border-bottom:1px solid var(--border)">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <span style="font-size:14px;font-weight:700;color:var(--purple)">${p.journee}</span>
+        <button class="icon-btn" onclick="removePrev(${i})">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/></svg>
+        </button>
+      </div>
+      <div class="row-sub" style="margin-bottom:4px">Horaires : ${p.horaires}</div>
+      ${p.decors ? `<div style="font-size:12px"><b>Décors :</b> ${p.decors}</div>` : ''}
+      ${p.seqs ? `<div style="font-size:12px"><b>Séquences :</b> ${p.seqs}</div>` : ''}
+      ${p.roles ? `<div style="font-size:12px"><b>Rôles :</b> ${p.roles}</div>` : ''}
+      ${p.notes ? `<div class="row-sub" style="margin-top:3px">${p.notes}</div>` : ''}
+    </div>`).join('');
+}
+
+function addPrev() {
+  const f = activeFDS(); if (!f) return;
+  f.previsions.push({
+    journee: document.getElementById('pv-journee').value,
+    horaires: document.getElementById('pv-horaires').value,
+    decors: document.getElementById('pv-decors').value,
+    seqs: document.getElementById('pv-seqs').value,
+    roles: document.getElementById('pv-roles').value,
+    notes: document.getElementById('pv-notes').value
+  });
+  closeModal('modal-prev'); renderPrevList(); save(); toast('Prévision ajoutée');
+}
+
+function removePrev(i) {
+  const f = activeFDS(); if (!f) return;
+  f.previsions.splice(i, 1); renderPrevList(); save();
+}
+
+// ═══════════════════════ APERCU ═══════════════════════
+function renderApercu() {
+  const f = activeFDS(); const el = document.getElementById('apercu-content'); if (!el || !f) return;
+  const i = f.infos || {}; const film = activeFilm();
+  let h = '';
+  h += `<div class="apercu-titre">FEUILLE DE SERVICE — ${(i.journee||'').toUpperCase()} — ${(i.date||'').toUpperCase()}</div>`;
+  if (film) h += `<div style="text-align:center;font-size:13px;margin-bottom:10px"><b>${film.nom}</b>${film.real ? ' · ' + film.real : ''}</div>`;
+  h += `<div class="apercu-grid" style="margin-bottom:10px">
+    <div class="apercu-kv"><span class="apercu-k">PAT :</span> ${fmtTime(i.pat)}</div>
+    <div class="apercu-kv"><span class="apercu-k">Horaires :</span> ${fmtTime(i.debut)} – ${fmtTime(i.fin)}</div>
+    <div class="apercu-kv"><span class="apercu-k">Repas :</span> ${fmtTime(i.repas)}</div>
+    <div class="apercu-kv"><span class="apercu-k">Météo :</span> ${i.meteo||'—'}</div>
+    <div class="apercu-kv"><span class="apercu-k">Lever :</span> ${fmtTime(i.lever)}</div>
+    <div class="apercu-kv"><span class="apercu-k">Coucher :</span> ${fmtTime(i.coucher)}</div>
+  </div>`;
+  if (i.note) h += `<div class="apercu-section"><div class="apercu-head">Note à l'équipe</div><div class="apercu-body">${i.note}</div></div>`;
+  if (f.lieux?.length) {
+    h += '<div class="apercu-section"><div class="apercu-head">Lieux</div>';
+    f.lieux.forEach(l => { if(l.valeur) h += `<div style="font-size:12px"><b>${l.label} :</b> ${l.valeur}</div>`; });
+    h += '</div>';
+  }
+  if (f.sequences?.length) {
+    h += '<div class="apercu-section"><div class="apercu-head">Séquences</div>';
+    f.sequences.forEach(s => h += `<div style="font-size:12px;padding:3px 0;border-bottom:1px solid var(--border)"><b>${s.num}</b> ${s.effet} — ${s.decor} — ${s.resume} · Rôles ${s.roles} · ${s.duree}</div>`);
+    h += '</div>';
+  }
+  if (f.comediens?.length) {
+    h += '<div class="apercu-section"><div class="apercu-head">Comédiens</div>';
+    f.comediens.forEach(c => h += `<div style="font-size:12px;padding:3px 0;border-bottom:1px solid var(--border)"><b>${c.num} ${c.role}</b> — ${c.nom} · HMC ${fmtTime(c.hmc)} · Loges ${fmtTime(c.loges)} · PAT ${fmtTime(c.pat)}</div>`);
+    h += '</div>';
+  }
+  Object.keys(DEPT_LABELS).forEach(d => {
+    const note = f.deptNotes?.[d];
+    if (note?.trim()) h += `<div class="apercu-section"><div class="apercu-head">${DEPT_LABELS[d]}</div><div class="apercu-body">${note}</div></div>`;
+  });
+  if (f.transports?.length) {
+    h += '<div class="apercu-section"><div class="apercu-head">Transports</div>';
+    f.transports.forEach(t => {
+      const pickup = t.pat ? calcPickup(t.pat, estimerTrajet(t.depart, t.arrivee)) : 'Sur tel';
+      h += `<div style="font-size:12px;padding:3px 0;border-bottom:1px solid var(--border)"><b>${t.comedien}</b> (${t.role}) — ${t.chauffeur} — Pick-up : <b>${pickup}</b> — De : ${t.depart}</div>`;
+    });
+    h += '</div>';
+  }
+  if (f.previsions?.length) {
+    f.previsions.forEach(p => {
+      h += `<div class="apercu-section"><div class="apercu-head">Prévisions — ${p.journee}</div>`;
+      h += `<div style="font-size:12px">${p.horaires}</div>`;
+      if (p.decors) h += `<div style="font-size:12px"><b>Décors :</b> ${p.decors}</div>`;
+      if (p.seqs)   h += `<div style="font-size:12px"><b>Séquences :</b> ${p.seqs}</div>`;
+      if (p.roles)  h += `<div style="font-size:12px"><b>Rôles :</b> ${p.roles}</div>`;
+      if (p.notes)  h += `<div style="font-size:12px;color:var(--text-muted)">${p.notes}</div>`;
+      h += '</div>';
+    });
+  }
+  el.innerHTML = h;
+}
+
+function envoyerProd() {
+  const f = activeFDS(); const film = activeFilm(); if (!f) return;
+  const i = f.infos || {};
+  const mail = film?.mail || '';
+  const subj = encodeURIComponent(`FDS + Convocations — ${i.journee||''} — ${i.date||''} — ${film?.nom||''}`);
+  const body = encodeURIComponent(`Bonjour,\n\nVeuillez trouver la Feuille de Service et les Convocations pour le ${i.journee||''} — ${i.date||''}.\n\nBien cordialement,\nLiv Charpentier — Référent Enfants / Assistante mise en scène`);
+  window.open('mailto:' + mail + '?subject=' + subj + '&body=' + body);
+}
+
+// ═══════════════════════ UTILS ═══════════════════════
+function fmtTime(t) {
+  if (!t) return '—';
+  return t.replace(':', 'H');
+}
+
+// ═══════════════════════ PDT DATA ═══════════════════════
+const PDT_DATA = [{"jdt":1,"journee":"J1","date":"Mardi 2 juin 2026","pat":"09:","debut":"09:","fin":"18:","lieu":"PARIS 15ème / 14ème","decors":["PARIS 11 - Epicerie André/Arrière Boutique","PARIS 11 - Epicerie André","PARIS 11 - Rue épicerie","EPICERIE ANDRE - Arrière boutique"],"sequences":["55 B","55 A","106","107"],"roles":[{"num":"1","role":"FRANÇOIS","comedien":"Lucas HECTOR"},{"num":"7","role":"ANDRÉ (ONCLE)","comedien":"François Xavier DEMAISON"},{"num":"15","role":"VIVIANE","comedien":"Marion CREUSVAUX"},{"num":"26","role":"NOTABLE EPICERIE","comedien":"Christophe FAVRE"},{"num":"27","role":"PÈRE SAMUEL","comedien":"Samuel BRAFMAN"},{"num":"28","role":"MÈRE SAMUEL","comedien":"Marie ZABUKOVEC"},{"num":"29","role":"SAMUEL (7/8 ans)","comedien":"Jules MARIOT"}]},{"jdt":2,"journee":"J2","date":"Mercredi 3 juin 2026","pat":"09:","debut":"09:","fin":"18:","lieu":"PARIS 15ème / 14ème","decors":["PARIS 11 - Epicerie André"],"sequences":["108"],"roles":[{"num":"1","role":"FRANÇOIS","comedien":"Lucas HECTOR"},{"num":"7","role":"ANDRÉ (ONCLE)","comedien":"François Xavier DEMAISON"},{"num":"27","role":"PÈRE SAMUEL","comedien":"Samuel BRAFMAN"},{"num":"28","role":"MÈRE SAMUEL","comedien":"Marie ZABUKOVEC"},{"num":"29","role":"SAMUEL (7/8 ans)","comedien":"Jules MARIOT"},{"num":"38","role":"COMMISSAIRE","comedien":"Philippe BEAUTIER"}]},{"jdt":3,"journee":"J3","date":"Jeudi 4 juin 2026","pat":"09:","debut":"09:","fin":"18:","lieu":"PARIS 15ème / 14ème","decors":["PARIS 11 - Rue","LONDRES - Bureau BCRA","LONDRES – Siège Du BCRA"],"sequences":["105","3","143","2"],"roles":[{"num":"1","role":"FRANÇOIS","comedien":"Lucas HECTOR"},{"num":"9","role":"PÉGASE","comedien":"Axel AURIANT"},{"num":"24","role":"OFFICIER DU RENSEIGNEMENT (EX EVADE 1)","comedien":"Romain RONDEAU"},{"num":"32","role":"CAMIONNEUR","comedien":"Jean-Marie LECOQ"}]},{"jdt":4,"journee":"J4","date":"Vendredi 5 juin 2026","pat":"09:","debut":"09:","fin":"18:","lieu":"MELUN","decors":["PONTAIN-LECLUSE - Salle de classe","AVION ANGLAIS"],"sequences":["11 BIS B","49 A","26","28"],"roles":[{"num":"1","role":"FRANÇOIS","comedien":"Lucas HECTOR"},{"num":"2","role":"LISA","comedien":"Nina FILBRANDT"},{"num":"3","role":"EUSÈBE","comedien":"Octave GERBI"},{"num":"9","role":"PÉGASE","comedien":"Axel AURIANT"},{"num":"17","role":"JEAN","comedien":"Paul DUCLOUX"},{"num":"18","role":"LUC","comedien":"Oscar BOISSIÈRE"},{"num":"22","role":"SBIRE LUC 1","comedien":"Pierre LETELLIER"},{"num":"23","role":"SBIRE LUC 2","comedien":"Clovis MOINAT"}]},{"jdt":5,"journee":"J5","date":"Lundi 8 juin 2026","pat":"09:","debut":"09:","fin":"18:","lieu":"MAILLY LE CHÂTEAU","decors":["PONTAIN-LECLUSE - Mairie/Impasse/Ecole/Ruelle épicerie","CAMPAGNE","PONTAIN-LECLUSE - Café","PONTAIN-LECLUSE - Mairie/Impasse/Ecole/Ruelle épicerie"],"sequences":["23","26 BIS","33","75 C","31 PT A \n(équ. Réduite)"],"roles":[{"num":"1","role":"FRANÇOIS","comedien":"Lucas HECTOR"},{"num":"2","role":"LISA","comedien":"Nina FILBRANDT"},{"num":"3","role":"EUSÈBE","comedien":"Octave GERBI"},{"num":"8","role":"GERMAIN","comedien":"Julien ARRUTI"},{"num":"14","role":"FREDO","comedien":"Olivier BARTHÉLÉMY"},{"num":"21","role":"HENRIETTE (Femme Germain)","comedien":"Julie FOURNIER"}]},{"jdt":6,"journee":"J6","date":"Mardi 9 juin 2026","pat":"12:","debut":"12:","fin":"19:30","lieu":"MAILLY LE CHÂTEAU","decors":["PONTAIN-LECLUSE - Café","PONTAIN-L'ECLUSE - Marchand de cycles"],"sequences":["16","4 BIS","111"],"roles":[{"num":"1","role":"FRANÇOIS","comedien":"Lucas HECTOR"},{"num":"7","role":"ANDRÉ (ONCLE)","comedien":"François Xavier DEMAISON"},{"num":"8","role":"GERMAIN","comedien":"Julien ARRUTI"},{"num":"14","role":"FREDO","comedien":"Olivier BARTHÉLÉMY"},{"num":"16","role":"JAEGER","comedien":"Stefan KONARSKE"},{"num":"21","role":"HENRIETTE (Femme Germain)","comedien":"Julie FOURNIER"},{"num":"37","role":"MARCHAND DE CYCLE","comedien":"Jacques PIOTROWSKA"}]},{"jdt":7,"journee":"J7","date":"Mercredi 10 juin 2026","pat":"16:","debut":"16:","fin":"01:","lieu":"MAILLY LE CHÂTEAU","decors":["PONTAIN-LECLUSE - Place du village","PONTAIN-L'ECLUSE - Marchand de cycles","PONTAIN-LECLUSE - Café","PONTAIN-L'ECLUSE - Devant café"],"sequences":["15 C","102","112","99"],"roles":[{"num":"1","role":"FRANÇOIS","comedien":"Lucas HECTOR"},{"num":"3","role":"EUSÈBE","comedien":"Octave GERBI"},{"num":"6","role":"PERE PROSLIER (CURÉ)","comedien":"Gérard JUGNOT"},{"num":"7","role":"ANDRÉ (ONCLE)","comedien":"François Xavier DEMAISON"},{"num":"8","role":"GERMAIN","comedien":"Julien ARRUTI"},{"num":"14","role":"FREDO","comedien":"Olivier BARTHÉLÉMY"},{"num":"19","role":"POLICIER GESTAPO 1","comedien":"Jannis HAIN"},{"num":"20","role":"POLICIER GESTAPO 2","comedien":"Dominique  ENGELHARDT"},{"num":"21","role":"HENRIETTE (Femme Germain)","comedien":"Julie FOURNIER"},{"num":"37","role":"MARCHAND DE CYCLE","comedien":"Jacques PIOTROWSKA"}]},{"jdt":8,"journee":"J8","date":"Jeudi 11 juin 2026","pat":"15:","debut":"15:","fin":"00:","lieu":"MAILLY LE CHÂTEAU","decors":["PONTAIN-LECLUSE - Epicerie","ROUTE USINE","PONTAIN-LECLUSE - Café"],"sequences":["15 B","59 A","51","98"],"roles":[{"num":"1","role":"FRANÇOIS","comedien":"Lucas HECTOR"},{"num":"3","role":"EUSÈBE","comedien":"Octave GERBI"},{"num":"8","role":"GERMAIN","comedien":"Julien ARRUTI"},{"num":"14","role":"FREDO","comedien":"Olivier BARTHÉLÉMY"},{"num":"19","role":"POLICIER GESTAPO 1","comedien":"Jannis HAIN"},{"num":"20","role":"POLICIER GESTAPO 2","comedien":"Dominique  ENGELHARDT"},{"num":"21","role":"HENRIETTE (Femme Germain)","comedien":"Julie FOURNIER"}]},{"jdt":9,"journee":"J9","date":"Vendredi 12 juin 2026","pat":"13:","debut":"13:","fin":"19:30","lieu":"MAILLY LE CHÂTEAU","decors":["PONTAIN-LECLUSE - Café","PONTAIN-LECLUSE - Place du village"],"sequences":["68","88","133","131 PT"],"roles":[{"num":"8","role":"GERMAIN","comedien":"Julien ARRUTI"},{"num":"9","role":"PÉGASE","comedien":"Axel AURIANT"},{"num":"14","role":"FREDO","comedien":"Olivier BARTHÉLÉMY"},{"num":"18","role":"LUC","comedien":"Oscar BOISSIÈRE"},{"num":"19","role":"POLICIER GESTAPO 1","comedien":"Jannis HAIN"},{"num":"20","role":"POLICIER GESTAPO 2","comedien":"Dominique  ENGELHARDT"},{"num":"21","role":"HENRIETTE (Femme Germain)","comedien":"Julie FOURNIER"}]},{"jdt":10,"journee":"J10","date":"Lundi 15 juin 2026","pat":"09:30","debut":"09:30","fin":"18:30","lieu":"MAILLY LE CHÂTEAU","decors":["MAISON INSTITUTEUR - Devant","MAISON INSTITUTEUR - Fenêtre / Devant","PONTAIN-LECLUSE - Bureau maire"],"sequences":["15 A","114","12 BIS E","87","75 B","17"],"roles":[{"num":"1","role":"FRANÇOIS","comedien":"Lucas HECTOR"},{"num":"3","role":"EUSÈBE","comedien":"Octave GERBI"},{"num":"11","role":"JULIENNE","comedien":"Vanessa GUIDE"},{"num":"12","role":"LE MAIRE","comedien":"Pierre DELADONCHAMPS"},{"num":"13","role":"MAÎTRE BONNEFOY","comedien":"Franz LANG"},{"num":"16","role":"JAEGER","comedien":"Stefan KONARSKE"}]},{"jdt":11,"journee":"J11","date":"Mardi 16 juin 2026","pat":"11:","debut":"11:","fin":"20:","lieu":"MAILLY LE CHÂTEAU /  / FORT DE MÉZILLES","decors":["PONTAIN-LECLUSE - Eglise/Crypte","PONTAIN-L'ECLUSE - Presbytère","PONTAIN-L'ECLUSE - Jardin presbytère","ROUTE DE CAMPAGNE - Sous-bois"],"sequences":["21","118","120","130","91 P2 (EQ.B)"],"roles":[{"num":"1","role":"FRANÇOIS","comedien":"Lucas HECTOR"},{"num":"6","role":"PERE PROSLIER (CURÉ)","comedien":"Gérard JUGNOT"},{"num":"12","role":"LE MAIRE","comedien":"Pierre DELADONCHAMPS"},{"num":"14","role":"FREDO","comedien":"Olivier BARTHÉLÉMY"},{"num":"30","role":"HOMME FORÊT","comedien":"Léopold BERTAUD"},{"num":"31","role":"FEMME FORËT","comedien":"Sarah O'BEIRNE"}]},{"jdt":12,"journee":"J12","date":"Mercredi 17 juin 2026","pat":"13:","debut":"13:","fin":"22:","lieu":"MAILLY LE CHÂTEAU /  / DRUIYES","decors":["FORÊT","FORÊT - Rivière","ROUTE DE CAMPAGNE","CHEMIN DE CAMPAGNE","AQUEDUC"],"sequences":["125","127","123","84","24 (EQ.B)"],"roles":[{"num":"1","role":"FRANÇOIS","comedien":"Lucas HECTOR"},{"num":"2","role":"LISA","comedien":"Nina FILBRANDT"},{"num":"3","role":"EUSÈBE","comedien":"Octave GERBI"},{"num":"6","role":"PERE PROSLIER (CURÉ)","comedien":"Gérard JUGNOT"},{"num":"30","role":"HOMME FORÊT","comedien":"Léopold BERTAUD"},{"num":"31","role":"FEMME FORËT","comedien":"Sarah O'BEIRNE"}]},{"jdt":13,"journee":"J13","date":"Jeudi 18 juin 2026","pat":"10:","debut":"10:","fin":"19:","lieu":"MAILLY LE CHÂTEAU / SURGY","decors":["ESPLANADE","PONTAIN-LECLUSE - Belvédère","MASSIF ROCHEUX - Grotte"],"sequences":["77","31 PT B","12 BIS D","52"],"roles":[{"num":"1","role":"FRANÇOIS","comedien":"Lucas HECTOR"},{"num":"2","role":"LISA","comedien":"Nina FILBRANDT"},{"num":"3","role":"EUSÈBE","comedien":"Octave GERBI"},{"num":"6","role":"PERE PROSLIER (CURÉ)","comedien":"Gérard JUGNOT"},{"num":"9","role":"PÉGASE","comedien":"Axel AURIANT"}]},{"jdt":14,"journee":"J14","date":"Vendredi 19 juin 2026","pat":"12:","debut":"12:","fin":"18:","lieu":"TOUCY","decors":["KOMMANDANTUR - Cellule","ETUDE NOTARIALE - Devant"],"sequences":["47","54","39","38 A"],"roles":[{"num":"1","role":"FRANÇOIS","comedien":"Lucas HECTOR"},{"num":"5","role":"JULES (16 ans)","comedien":"Gaspard LACORNE"},{"num":"7","role":"ANDRÉ (ONCLE)","comedien":"François Xavier DEMAISON"},{"num":"13","role":"MAÎTRE BONNEFOY","comedien":"Franz LANG"},{"num":"15","role":"VIVIANE","comedien":"Marion CREUSVAUX"},{"num":"17","role":"JEAN","comedien":"Paul DUCLOUX"},{"num":"19","role":"POLICIER GESTAPO 1","comedien":"Jannis HAIN"}]},{"jdt":15,"journee":"J15","date":"Lundi 22 juin 2026","pat":"09:","debut":"09:","fin":"18:","lieu":"FORT DE MÉZILLES","decors":["CALVAIRE (EN FORÊT)","ETANG"],"sequences":["78","65","95","65 TER","72"],"roles":[{"num":"1","role":"FRANÇOIS","comedien":"Lucas HECTOR"},{"num":"9","role":"PÉGASE","comedien":"Axel AURIANT"},{"num":"18","role":"LUC","comedien":"Oscar BOISSIÈRE"},{"num":"19","role":"POLICIER GESTAPO 1","comedien":"Jannis HAIN"},{"num":"20","role":"POLICIER GESTAPO 2","comedien":"Dominique  ENGELHARDT"},{"num":"22","role":"SBIRE LUC 1","comedien":"Pierre LETELLIER"},{"num":"23","role":"SBIRE LUC 2","comedien":"Clovis MOINAT"}]},{"jdt":16,"journee":"J16","date":"Mardi 23 juin 2026","pat":"","debut":"","fin":"","lieu":"FORT DE MÉZILLES","decors":["ROUTE DE CAMPAGNE - Sous-bois","FORËT","CALVAIRE (EN FORÊT)","CAMPAGNE - Chêne","PONTAIN-L'ECLUSE - Campagne + Divers Estas"],"sequences":["91 P1","93","139","142","144","145","4 (EQ.Droniste)","+ divers Estas"],"roles":[{"num":"1","role":"FRANÇOIS","comedien":"Lucas HECTOR"},{"num":"2","role":"LISA","comedien":"Nina FILBRANDT"},{"num":"3","role":"EUSÈBE","comedien":"Octave GERBI"},{"num":"9","role":"PÉGASE","comedien":"Axel AURIANT"},{"num":"19","role":"POLICIER GESTAPO 1","comedien":"Jannis HAIN"},{"num":"20","role":"POLICIER GESTAPO 2","comedien":"Dominique  ENGELHARDT"}]},{"jdt":17,"journee":"J17","date":"Mercredi 24 juin 2026","pat":"09:","debut":"09:","fin":"18:","lieu":"FORT DE MÉZILLES","decors":["RELAIS DES VOYAGEURS - Chambre Pégase","RELAIS DES VOYAGEURS - Chambre/Fenêtre","FORÊT - Arbre foudroyé.","AUTRE FERME","BENNE CAMION A BOIS"],"sequences":["41 A","89","79","103","103 BIS"],"roles":[{"num":"1","role":"FRANÇOIS","comedien":"Lucas HECTOR"},{"num":"2","role":"LISA","comedien":"Nina FILBRANDT"},{"num":"3","role":"EUSÈBE","comedien":"Octave GERBI"},{"num":"9","role":"PÉGASE","comedien":"Axel AURIANT"},{"num":"32","role":"CAMIONNEUR","comedien":"Jean-Marie LECOQ"}]},{"jdt":18,"journee":"J18","date":"Jeudi 25 juin 2026","pat":"09:","debut":"09:","fin":"18:","lieu":"FORT DE MÉZILLES","decors":["ETUDE NOTARIALE - Bureau","ETUDE NOTARIALE","RELAIS DES VOYAGEURS - Chambre/Fenêtre","CHAMPS"],"sequences":["38 B","44","90 B","50"],"roles":[{"num":"1","role":"FRANÇOIS","comedien":"Lucas HECTOR"},{"num":"4","role":"MARCELINE","comedien":"Leslie MEDINA"},{"num":"5","role":"JULES (16 ans)","comedien":"Gaspard LACORNE"},{"num":"7","role":"ANDRÉ (ONCLE)","comedien":"François Xavier DEMAISON"},{"num":"13","role":"MAÎTRE BONNEFOY","comedien":"Franz LANG"},{"num":"15","role":"VIVIANE","comedien":"Marion CREUSVAUX"},{"num":"17","role":"JEAN","comedien":"Paul DUCLOUX"},{"num":"19","role":"POLICIER GESTAPO 1","comedien":"Jannis HAIN"},{"num":"20","role":"POLICIER GESTAPO 2","comedien":"Dominique  ENGELHARDT"}]},{"jdt":19,"journee":"J19","date":"Vendredi 26 juin 2026","pat":"08:","debut":"08:","fin":"17:","lieu":"TOUCY","decors":["GUERCHAIN - Kommandantur/Hotel","KOMMANDANTUR - Devant","RELAIS DES VOYAGEURS - Fenêtre/Rue Kommandantur"],"sequences":["32","45","90 A"],"roles":[{"num":"9","role":"PÉGASE","comedien":"Axel AURIANT"},{"num":"13","role":"MAÎTRE BONNEFOY","comedien":"Franz LANG"},{"num":"17","role":"JEAN","comedien":"Paul DUCLOUX"},{"num":"19","role":"POLICIER GESTAPO 1","comedien":"Jannis HAIN"},{"num":"20","role":"POLICIER GESTAPO 2","comedien":"Dominique  ENGELHARDT"}]},{"jdt":20,"journee":"J20","date":"Lundi 29 juin 2026","pat":"08:","debut":"08:","fin":"17:","lieu":"TOUCY","decors":["RELAIS DES VOYAGEURS - Chambre/Rue","KOMMANDANTUR - Devant","KOMMANDANTUR - Couloir/Bureau","CHEMIN/CHAMP/SOUS-BOIS","CHEMIN DE CAMPAGNE"],"sequences":["89 PEL","41 B PEL","62","46","30","29"],"roles":[{"num":"6","role":"PERE PROSLIER (CURÉ)","comedien":"Gérard JUGNOT"},{"num":"9","role":"PÉGASE","comedien":"Axel AURIANT"},{"num":"13","role":"MAÎTRE BONNEFOY","comedien":"Franz LANG"},{"num":"14","role":"FREDO","comedien":"Olivier BARTHÉLÉMY"},{"num":"17","role":"JEAN","comedien":"Paul DUCLOUX"},{"num":"19","role":"POLICIER GESTAPO 1","comedien":"Jannis HAIN"},{"num":"20","role":"POLICIER GESTAPO 2","comedien":"Dominique  ENGELHARDT"}]},{"jdt":21,"journee":"J21","date":"Mardi 30 juin 2026","pat":"09:30","debut":"09:30","fin":"18:30","lieu":"AUXERRE / CRAVANT","decors":["CATHEDRALE","PONTAIN-LECLUSE - Salle de classe"],"sequences":["58","11 BIS C","49 B"],"roles":[{"num":"6","role":"PERE PROSLIER (CURÉ)","comedien":"Gérard JUGNOT"},{"num":"10","role":"MARNIER (INSTITUTEUR)","comedien":"Julien PESTEL"},{"num":"13","role":"MAÎTRE BONNEFOY","comedien":"Franz LANG"},{"num":"34","role":"CARDINAL","comedien":""}]},{"jdt":22,"journee":"J22","date":"Mercredi 1 juin 2026","pat":"10:","debut":"10:","fin":"19:","lieu":"MAILLY LE CHÂTEAU","decors":["MAISON INSTITUTEUR - Entrée/Cuisine","MAISON INSTITUTEUR - Escalier/Cuisine","LIEU INDETERMINÉ"],"sequences":["137","42","40 (EQ.B)"],"roles":[{"num":"9","role":"PÉGASE","comedien":"Axel AURIANT"},{"num":"10","role":"MARNIER (INSTITUTEUR)","comedien":"Julien PESTEL"},{"num":"11","role":"JULIENNE","comedien":"Vanessa GUIDE"},{"num":"33","role":"HOMME (Envoyé de De Gaulle)","comedien":"Nicolas MAFFRE"}]},{"jdt":23,"journee":"J23","date":"Jeudi 2 juillet 2026","pat":"09:","debut":"09:","fin":"18:","lieu":"MAILLY LE CHÂTEAU","decors":["MAISON INSTITUTEUR - Chambre Eusèbe","MAISON INSTITUTEUR - Chbre Eusèbe/Palier","MAISON INSTITUTEUR - Escalier/Cuisine","MAISON INSTITUTEUR - Boîte aux lettres/Cuisine","MAISON INSTITUTEUR - Cave","MAISON INSTITUTEUR - Escalier cave"],"sequences":["116","42 PT","119/122 PT","122","137 PT","75 A","140","85"],"roles":[{"num":"3","role":"EUSÈBE","comedien":"Octave GERBI"},{"num":"10","role":"MARNIER (INSTITUTEUR)","comedien":"Julien PESTEL"},{"num":"11","role":"JULIENNE","comedien":"Vanessa GUIDE"},{"num":"30","role":"HOMME FORÊT","comedien":"Léopold BERTAUD"},{"num":"31","role":"FEMME FORËT","comedien":"Sarah O'BEIRNE"}]},{"jdt":24,"journee":"J24","date":"Vendredi 3 juillet 2026","pat":"09:","debut":"09:","fin":"18:","lieu":"MAILLY LE CHÂTEAU","decors":["PONTAIN-L'ECLUSE - Rue","PONTAIN-LECLUSE - PLace de la mairie","PONTAIN-LECLUSE - Place du village"],"sequences":["31 P1","31 P2","131"],"roles":[{"num":"1","role":"FRANÇOIS","comedien":"Lucas HECTOR"},{"num":"2","role":"LISA","comedien":"Nina FILBRANDT"},{"num":"3","role":"EUSÈBE","comedien":"Octave GERBI"},{"num":"4","role":"MARCELINE","comedien":"Leslie MEDINA"},{"num":"5","role":"JULES (16 ans)","comedien":"Gaspard LACORNE"},{"num":"6","role":"PERE PROSLIER (CURÉ)","comedien":"Gérard JUGNOT"},{"num":"7","role":"ANDRÉ (ONCLE)","comedien":"François Xavier DEMAISON"},{"num":"10","role":"MARNIER (INSTITUTEUR)","comedien":"Julien PESTEL"},{"num":"11","role":"JULIENNE","comedien":"Vanessa GUIDE"},{"num":"12","role":"LE MAIRE","comedien":"Pierre DELADONCHAMPS"},{"num":"13","role":"MAÎTRE BONNEFOY","comedien":"Franz LANG"},{"num":"14","role":"FREDO","comedien":"Olivier BARTHÉLÉMY"},{"num":"15","role":"VIVIANE","comedien":"Marion CREUSVAUX"},{"num":"16","role":"JAEGER","comedien":"Stefan KONARSKE"},{"num":"17","role":"JEAN","comedien":"Paul DUCLOUX"},{"num":"18","role":"LUC","comedien":"Oscar BOISSIÈRE"},{"num":"19","role":"POLICIER GESTAPO 1","comedien":"Jannis HAIN"},{"num":"20","role":"POLICIER GESTAPO 2","comedien":"Dominique  ENGELHARDT"},{"num":"22","role":"SBIRE LUC 1","comedien":"Pierre LETELLIER"},{"num":"23","role":"SBIRE LUC 2","comedien":"Clovis MOINAT"},{"num":"25","role":"AUTRE HOMME VILLAGE (VILLAGEOIS 1)","comedien":"Jean François FARIGOUX"}]},{"jdt":25,"journee":"J25","date":"Lundi 6 juillet 2026","pat":"08:","debut":"08:","fin":"17:","lieu":"CHÂTEL CENSOIR","decors":["PONTAIN-LECLUSE - Cimetière","PONTAIN-L'ECLUSE - Sortie Cimetière"],"sequences":["4 TER","5"],"roles":[{"num":"1","role":"FRANÇOIS","comedien":"Lucas HECTOR"},{"num":"2","role":"LISA","comedien":"Nina FILBRANDT"},{"num":"3","role":"EUSÈBE","comedien":"Octave GERBI"},{"num":"4","role":"MARCELINE","comedien":"Leslie MEDINA"},{"num":"5","role":"JULES (16 ans)","comedien":"Gaspard LACORNE"},{"num":"6","role":"PERE PROSLIER (CURÉ)","comedien":"Gérard JUGNOT"},{"num":"7","role":"ANDRÉ (ONCLE)","comedien":"François Xavier DEMAISON"},{"num":"10","role":"MARNIER (INSTITUTEUR)","comedien":"Julien PESTEL"},{"num":"11","role":"JULIENNE","comedien":"Vanessa GUIDE"},{"num":"12","role":"LE MAIRE","comedien":"Pierre DELADONCHAMPS"},{"num":"13","role":"MAÎTRE BONNEFOY","comedien":"Franz LANG"},{"num":"15","role":"VIVIANE","comedien":"Marion CREUSVAUX"},{"num":"16","role":"JAEGER","comedien":"Stefan KONARSKE"},{"num":"17","role":"JEAN","comedien":"Paul DUCLOUX"}]},{"jdt":26,"journee":"J26","date":"Mardi 7 juillet 2026","pat":"08:","debut":"08:","fin":"17:","lieu":"CHÂTEL CENSOIR","decors":["PONTAIN-L'ECLUSE - Presbytère","PONTAIN-LECLUSE - Cimetière","PONTAIN-L'ECLUSE - Pente"],"sequences":["118 DEB.","19","20","8","15 D"],"roles":[{"num":"1","role":"FRANÇOIS","comedien":"Lucas HECTOR"},{"num":"3","role":"EUSÈBE","comedien":"Octave GERBI"},{"num":"12","role":"LE MAIRE","comedien":"Pierre DELADONCHAMPS"},{"num":"16","role":"JAEGER","comedien":"Stefan KONARSKE"}]},{"jdt":27,"journee":"J27","date":"Mercredi 8 juillet 2026","pat":"09:","debut":"09:","fin":"18:","lieu":"MAILLY LE CHÂTEAU /  / Port de GURGY","decors":["PONTAIN-LECLUSE - Cour d'école","FERME FRANCOIS - Champ","CANAL - Berges"],"sequences":["11 BIS A","69 BIS","70","81 (EQ.B)","59 C P1 (EQ.B)"],"roles":[{"num":"1","role":"FRANÇOIS","comedien":"Lucas HECTOR"},{"num":"2","role":"LISA","comedien":"Nina FILBRANDT"},{"num":"3","role":"EUSÈBE","comedien":"Octave GERBI"},{"num":"10","role":"MARNIER (INSTITUTEUR)","comedien":"Julien PESTEL"},{"num":"17","role":"JEAN","comedien":"Paul DUCLOUX"},{"num":"18","role":"LUC","comedien":"Oscar BOISSIÈRE"},{"num":"22","role":"SBIRE LUC 1","comedien":"Pierre LETELLIER"},{"num":"23","role":"SBIRE LUC 2","comedien":"Clovis MOINAT"}]},{"jdt":28,"journee":"J28","date":"Jeudi 9 juillet 2026","pat":"13:","debut":"13:","fin":"22:","lieu":"SAUSSOIS","decors":["PROMENADE","ROUTE DE CAMPAGNE"],"sequences":["56","61"],"roles":[{"num":"1","role":"FRANÇOIS","comedien":"Lucas HECTOR"},{"num":"2","role":"LISA","comedien":"Nina FILBRANDT"},{"num":"3","role":"EUSÈBE","comedien":"Octave GERBI"},{"num":"9","role":"PÉGASE","comedien":"Axel AURIANT"},{"num":"40","role":"TYPE PROMENADE","comedien":""}]},{"jdt":29,"journee":"J29","date":"Vendredi 10 juillet 2026","pat":"","debut":"","fin":"","lieu":"MAILLY LE CHÂTEAU / Lieu à trouver","decors":["PONTAIN-L'ECLUSE - Pont","ROUTE DE CAMPAGNE"],"sequences":["64","66","77 BIS","12 BIS C","94"],"roles":[{"num":"1","role":"FRANÇOIS","comedien":"Lucas HECTOR"},{"num":"32","role":"CAMIONNEUR","comedien":"Jean-Marie LECOQ"},{"num":"36","role":"GENDARME 2","comedien":"Jean-Remi MARTINEZ"},{"num":"41","role":"FELDGENDARME ALLEMAND","comedien":""}]},{"jdt":30,"journee":"J30","date":"Lundi 13 juillet 2026","pat":"10:","debut":"10:","fin":"19:","lieu":"MEZILLES","decors":["MAISON MARTIN","IMPRESSION MESSAGES"],"sequences":["22","53","97","22 PT"],"roles":[{"num":"1","role":"FRANÇOIS","comedien":"Lucas HECTOR"},{"num":"2","role":"LISA","comedien":"Nina FILBRANDT"},{"num":"3","role":"EUSÈBE","comedien":"Octave GERBI"}]},{"jdt":31,"journee":"J31","date":"Mardi 14 juillet 2026","pat":"10:","debut":"10:","fin":"19:","lieu":"MEZILLES","decors":["RIVIÈRE","MAISON MARTIN"],"sequences":["43","65 BIS","71 B","60","71 A"],"roles":[{"num":"1","role":"FRANÇOIS","comedien":"Lucas HECTOR"},{"num":"2","role":"LISA","comedien":"Nina FILBRANDT"},{"num":"3","role":"EUSÈBE","comedien":"Octave GERBI"}]},{"jdt":32,"journee":"J32","date":"Mercredi 15 juillet 2026","pat":"09:","debut":"09:","fin":"18:","lieu":"SAINTS EN PUISAYE","decors":["FERME FRANÇOIS - Arrière cour","FERME FRANÇOIS - Cour","FERME FRANCOIS - Chambre garçons","FERME FRANCOIS - Cuisine"],"sequences":["10 A","10 B","11 A","11 B"],"roles":[{"num":"1","role":"FRANÇOIS","comedien":"Lucas HECTOR"},{"num":"2","role":"LISA","comedien":"Nina FILBRANDT"},{"num":"4","role":"MARCELINE","comedien":"Leslie MEDINA"},{"num":"5","role":"JULES (16 ans)","comedien":"Gaspard LACORNE"},{"num":"7","role":"ANDRÉ (ONCLE)","comedien":"François Xavier DEMAISON"},{"num":"15","role":"VIVIANE","comedien":"Marion CREUSVAUX"}]},{"jdt":33,"journee":"J33","date":"Jeudi 16 juillet 2026","pat":"09:","debut":"09:","fin":"18:","lieu":"SAINTS EN PUISAYE","decors":["FERME FRANCOIS - Cuisine"],"sequences":["34","35"],"roles":[{"num":"1","role":"FRANÇOIS","comedien":"Lucas HECTOR"},{"num":"2","role":"LISA","comedien":"Nina FILBRANDT"},{"num":"4","role":"MARCELINE","comedien":"Leslie MEDINA"},{"num":"5","role":"JULES (16 ans)","comedien":"Gaspard LACORNE"},{"num":"10","role":"MARNIER (INSTITUTEUR)","comedien":"Julien PESTEL"}]},{"jdt":34,"journee":"J34","date":"Vendredi 17 juillet 2026","pat":"09:","debut":"09:","fin":"18:","lieu":"SAINTS EN PUISAYE","decors":["FERME FRANÇOIS - Cour","FERME FRANCOIS - Champ","FERME FRANÇOIS - Chemin ruisseau","FERME FRANCOIS - Cuisine","FERME FRANÇOIS - Divers Establishing"],"sequences":["36 D","36 C","36 A","36 B","36 G","12 B","36 I","12 A"],"roles":[{"num":"1","role":"FRANÇOIS","comedien":"Lucas HECTOR"},{"num":"2","role":"LISA","comedien":"Nina FILBRANDT"},{"num":"4","role":"MARCELINE","comedien":"Leslie MEDINA"},{"num":"5","role":"JULES (16 ans)","comedien":"Gaspard LACORNE"},{"num":"7","role":"ANDRÉ (ONCLE)","comedien":"François Xavier DEMAISON"},{"num":"15","role":"VIVIANE","comedien":"Marion CREUSVAUX"}]},{"jdt":35,"journee":"J35","date":"Lundi 20 juillet 2026","pat":"09:","debut":"09:","fin":"18:","lieu":"SAINTS EN PUISAYE","decors":["FERME FRANÇOIS - Cuisine/Chambre","FERME FRANCOIS - Etable/Cour"],"sequences":["48","36 H"],"roles":[{"num":"1","role":"FRANÇOIS","comedien":"Lucas HECTOR"},{"num":"2","role":"LISA","comedien":"Nina FILBRANDT"},{"num":"4","role":"MARCELINE","comedien":"Leslie MEDINA"},{"num":"5","role":"JULES (16 ans)","comedien":"Gaspard LACORNE"},{"num":"12","role":"LE MAIRE","comedien":"Pierre DELADONCHAMPS"},{"num":"13","role":"MAÎTRE BONNEFOY","comedien":"Franz LANG"}]},{"jdt":36,"journee":"J36","date":"Mardi 21 juillet 2026","pat":"09:","debut":"09:","fin":"18:","lieu":"SAINTS EN PUISAYE","decors":["FERME FRANCOIS - Cour/Basse cour","FERME FRANÇOIS - Ruisseau/Tunnel","FERME FRANCOIS - Champ","FERME FRANÇOIS - Arrière cour","CHAMP - Etang","FERME FRANCOIS - Cuisine"],"sequences":["12 BIS A","36 F","134","36 E","12 BIS B","104","97 BIS (EX100)"],"roles":[{"num":"1","role":"FRANÇOIS","comedien":"Lucas HECTOR"},{"num":"2","role":"LISA","comedien":"Nina FILBRANDT"},{"num":"3","role":"EUSÈBE","comedien":"Octave GERBI"},{"num":"4","role":"MARCELINE","comedien":"Leslie MEDINA"},{"num":"5","role":"JULES (16 ans)","comedien":"Gaspard LACORNE"}]},{"jdt":37,"journee":"J37","date":"Mercredi 22 juillet 2026","pat":"09:","debut":"09:","fin":"18:","lieu":"SAINTS EN PUISAYE","decors":["FERME FRANCOIS - Cuisine","FERME FRANÇOIS - Cour","FERME FRANÇOIS - Chemin ruisseau"],"sequences":["110","109","132","113"],"roles":[{"num":"1","role":"FRANÇOIS","comedien":"Lucas HECTOR"},{"num":"2","role":"LISA","comedien":"Nina FILBRANDT"},{"num":"4","role":"MARCELINE","comedien":"Leslie MEDINA"},{"num":"5","role":"JULES (16 ans)","comedien":"Gaspard LACORNE"},{"num":"7","role":"ANDRÉ (ONCLE)","comedien":"François Xavier DEMAISON"}]},{"jdt":38,"journee":"J38","date":"Jeudi 23 juillet 2026","pat":"07:","debut":"07:","fin":"16:","lieu":"SAINTS EN PUISAYE / / CRAIN","decors":["FERME FRANÇOIS - Cour","FERME FRANÇOIS","FERME FRANÇOIS - Arrière cour","FERME FRANÇOIS - Remise/Cuisine","USINE EN ALLEMAGNE","USINE -  \"La Générale De Métaux\""],"sequences":["97 TER (EX101)","128","37","92","117","82","80 BIS B"],"roles":[{"num":"1","role":"FRANÇOIS","comedien":"Lucas HECTOR"},{"num":"2","role":"LISA","comedien":"Nina FILBRANDT"},{"num":"5","role":"JULES (16 ans)","comedien":"Gaspard LACORNE"},{"num":"7","role":"ANDRÉ (ONCLE)","comedien":"François Xavier DEMAISON"}]},{"jdt":39,"journee":"J39","date":"Vendredi 24 juillet 2026","pat":"10:","debut":"10:","fin":"19:","lieu":"SURGY / CRAIN","decors":["CHAPELLE ABANDONNÉE","USINE -  \"La Générale De Métaux\"","USINE \"La générale de Métaux\" - Champ devant"],"sequences":["121","80","124 P2  (EQ. B)","59 B P1 PoV","59 B P3 PoV","59 B P4 PoV"],"roles":[{"num":"1","role":"FRANÇOIS","comedien":"Lucas HECTOR"},{"num":"2","role":"LISA","comedien":"Nina FILBRANDT"},{"num":"3","role":"EUSÈBE","comedien":"Octave GERBI"},{"num":"9","role":"PÉGASE","comedien":"Axel AURIANT"}]},{"jdt":40,"journee":"J40","date":"Lundi 27 juillet 2026","pat":"09:","debut":"09:","fin":"18:","lieu":"SURGY / CRAIN","decors":["PROMENADE - Chemin","CHAPELLE ABANDONNÉE","USINE -  \"La Générale De Métaux\""],"sequences":["57","83","80 PT","121 PT","124 P3 (EQ.B)"],"roles":[{"num":"1","role":"FRANÇOIS","comedien":"Lucas HECTOR"},{"num":"2","role":"LISA","comedien":"Nina FILBRANDT"},{"num":"3","role":"EUSÈBE","comedien":"Octave GERBI"},{"num":"9","role":"PÉGASE","comedien":"Axel AURIANT"}]},{"jdt":41,"journee":"J41","date":"Mardi 28 juillet 2026","pat":"07:","debut":"07:","fin":"16:","lieu":"CRAIN","decors":["USINE -  \"La Générale De Métaux\"","USINE \"La générale de Métaux\" - Champ devant","USINE - Devant","USINE - Alentours","CANAL - Berges"],"sequences":["27","59 B P1","59 B P2","59 B P3","59 B P4","59 B P5","59 B P6","59 C P2"],"roles":[{"num":"1","role":"FRANÇOIS","comedien":"Lucas HECTOR"},{"num":"2","role":"LISA","comedien":"Nina FILBRANDT"},{"num":"3","role":"EUSÈBE","comedien":"Octave GERBI"},{"num":"14","role":"FREDO","comedien":"Olivier BARTHÉLÉMY"},{"num":"39","role":"SOLDAT BALLON USINE","comedien":"François GOESKE"}]},{"jdt":42,"journee":"J42","date":"Mercredi 29 juillet 2026","pat":"07:","debut":"07:","fin":"16:","lieu":"CRAIN","decors":["USINE -  \"La Générale De Métaux\""],"sequences":["124 P1","124 P 3 PT","124 P2"],"roles":[{"num":"1","role":"FRANÇOIS","comedien":"Lucas HECTOR"},{"num":"2","role":"LISA","comedien":"Nina FILBRANDT"},{"num":"3","role":"EUSÈBE","comedien":"Octave GERBI"},{"num":"39","role":"SOLDAT BALLON USINE","comedien":"François GOESKE"}]},{"jdt":43,"journee":"J43","date":"Jeudi 30 juillet 2026","pat":"07:","debut":"07:","fin":"16:","lieu":"CRAIN","decors":["USINE -  \"La Générale De Métaux\""],"sequences":["124 P4 - 1","124 P1 à P2"],"roles":[{"num":"1","role":"FRANÇOIS","comedien":"Lucas HECTOR"},{"num":"2","role":"LISA","comedien":"Nina FILBRANDT"},{"num":"3","role":"EUSÈBE","comedien":"Octave GERBI"}]},{"jdt":44,"journee":"J44","date":"Vendredi 31 juillet 2026","pat":"07:","debut":"07:","fin":"16:","lieu":"CRAIN","decors":["USINE -  \"La Générale De Métaux\""],"sequences":["124 P4 - 2","126","124 P3 à P4"],"roles":[{"num":"1","role":"FRANÇOIS","comedien":"Lucas HECTOR"},{"num":"2","role":"LISA","comedien":"Nina FILBRANDT"},{"num":"3","role":"EUSÈBE","comedien":"Octave GERBI"}]}];
+
+function ouvrirModalImportPDT() {
+  if (!activeFilmId) { toast('Sélectionnez d\'abord un film'); return; }
+  const existingJdt = new Set((state.fds||[]).filter(f=>f.filmId===activeFilmId).map(f=>f.jdt));
+  const el = document.getElementById('pdt-journees-select');
+  el.innerHTML = PDT_DATA.map(j => {
+    const dejà = existingJdt.has(j.jdt);
+    return `<label style="display:flex;align-items:center;gap:8px;padding:6px 4px;border-bottom:1px solid var(--border);cursor:pointer">
+      <input type="checkbox" value="${j.jdt}" ${dejà?'disabled title="Déjà importée"':''} ${!dejà?'checked':''}>
+      <span style="flex:1;font-size:13px"><b>${j.journee}</b> — ${j.date}</span>
+      <span style="font-size:11px;color:var(--text-muted)">${j.lieu}</span>
+      ${dejà?'<span style="font-size:10px;font-weight:700;color:var(--green)">✓ déjà importée</span>':''}
+    </label>`;
+  }).join('');
+  openModal('modal-import-pdt');
+}
+
+function pdtSelectAll() {
+  document.querySelectorAll('#pdt-journees-select input[type=checkbox]:not([disabled])').forEach(cb => cb.checked=true);
+}
+function pdtSelectNone() {
+  document.querySelectorAll('#pdt-journees-select input[type=checkbox]:not([disabled])').forEach(cb => cb.checked=false);
+}
+
+function importerPDT() {
+  if (!activeFilmId) return;
+  const selected = [...document.querySelectorAll('#pdt-journees-select input[type=checkbox]:checked')].map(cb=>parseInt(cb.value));
+  if (!selected.length) { toast('Sélectionnez au moins une journée'); return; }
+  
+  let count = 0;
+  for (const jdt_num of selected) {
+    const pdt = PDT_DATA.find(j => j.jdt === jdt_num);
+    if (!pdt) continue;
+    
+    // Construire les lieux
+    const lieux = [{label:'Lieu principal', valeur:pdt.lieu}];
+    pdt.decors.forEach((d,i) => lieux.push({label:`Décor ${i+1}`, valeur:d}));
+    lieux.push({label:'HMC', valeur:''},{label:'Cantine', valeur:''},{label:'Accès', valeur:''},{label:'Production', valeur:''});
+    
+    // Construire les comédiens depuis le PDT
+    const comediens = pdt.roles.map(r => ({
+      type:'comedien', num:r.num, role:r.role, nom:r.comedien,
+      seqs: pdt.sequences.join(', '), hmc:'', loges:'', pat:''
+    }));
+    
+    // Construire les séquences (sans détail, juste les numéros)
+    const sequences = pdt.sequences.map(s => ({
+      num:s, effet:'', decor:pdt.decors[0]||'', resume:'', roles: pdt.roles.map(r=>r.num).join(', '), duree:''
+    }));
+    
+    const fds = {
+      id: 'fds_' + Date.now() + '_' + jdt_num,
+      filmId: activeFilmId,
+      jdt: jdt_num,
+      infos: {
+        journee: pdt.journee,
+        date: pdt.date,
+        pat: pdt.pat || '',
+        debut: pdt.debut || '',
+        fin: pdt.fin || '',
+        repas: '',
+        meteo: '',
+        lever: '',
+        coucher: '',
+        crep_m: '',
+        crep_s: '',
+        note: ''
+      },
+      lieux,
+      sequences,
+      comediens,
+      deptNotes: {},
+      equipe: JSON.parse(JSON.stringify(EQUIPE_FIXE)),
+      transports: [],
+      previsions: []
+    };
+    
+    if (!state.fds) state.fds = [];
+    state.fds.push(fds);
+    count++;
+  }
+  
+  // Trier les FDS par numéro de journée
+  state.fds.sort((a,b) => (a.jdt||0) - (b.jdt||0));
+  
+  save();
+  closeModal('modal-import-pdt');
+  renderJournees();
+  toast(`${count} journée${count>1?'s':''} importée${count>1?'s':''} !`);
+}
+
+// ═══════════════════════ INIT ═══════════════════════
+autoLogin();
+</script>
+</body>
+</html>
