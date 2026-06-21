@@ -1195,135 +1195,197 @@ function renderApercu() {
   var i = f.infos || {}; var film = activeFilm();
   var eq = f.equipe || {};
 
-  function tr(poste, nom) {
-    return '<tr><td style="padding:1px 6px;font-size:9.5px;color:#8B6914;width:180px">' + poste + '</td><td style="padding:1px 6px;font-size:9.5px">' + nom + '</td></tr>';
-  }
-  function trBold(poste, nom) {
-    return '<tr><td style="padding:1px 6px;font-size:9.5px;color:#8B6914;width:180px">' + poste + '</td><td style="padding:1px 6px;font-size:9.5px;font-weight:600">' + nom + '</td></tr>';
-  }
   function membresEq(dept) {
-    return (eq[dept]||[]).map(function(m){ return tr(m.poste, m.nom); }).join('');
+    return (eq[dept]||[]).map(function(m){
+      return '<tr><td style="padding:1px 6px;font-size:9px;color:#8B6914;width:200px">' + m.poste + '</td>' +
+             '<td style="padding:1px 6px;font-size:9px">' + m.nom + '</td></tr>';
+    }).join('');
   }
 
-  var h = '<div style="font-family:Arial,sans-serif;font-size:10px;line-height:1.5;max-width:760px;margin:0 auto;background:#fff;padding:10px">';
+  function tdC(v,w,bold,center) {
+    return '<td style="padding:2px 5px;font-size:9px;border:1px solid #999;' +
+      (w?'width:'+w+';':'') + (bold?'font-weight:700;':'') + (center?'text-align:center;':'') + '">' + (v||'') + '</td>';
+  }
+  function thC(v,w) {
+    return '<th style="padding:3px 5px;font-size:8.5px;border:1px solid #999;background:#ddd;text-align:center;' + (w?'width:'+w+';':'') + '">' + v + '</th>';
+  }
+  function sectionHead(titre) {
+    return '<tr><td colspan="20" style="background:#e8e8e8;padding:3px 6px;font-size:9.5px;font-weight:700;font-style:italic;border:1px solid #999">' + titre + '</td></tr>';
+  }
+
+  var h = '<div style="font-family:Arial,sans-serif;font-size:10px;line-height:1.5;max-width:780px;margin:0 auto;background:#fff;padding:10px">';
+
+  // ── PAGE 1 ──────────────────────────────────────────────────────
 
   // LOGO + TITRE FILM
-  h += '<div style="margin-bottom:8px">';
-  h += '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 280 65" width="140" style="display:block;margin-bottom:6px">';
-  h += '<line x1="0" y1="6" x2="280" y2="6" stroke="black" stroke-width="1.5"/>';
-  h += '<text x="4" y="50" font-family="Georgia,serif" font-size="46" font-weight="bold" fill="black">AXEL FILMS</text>';
-  h += '<line x1="0" y1="62" x2="280" y2="62" stroke="black" stroke-width="1.5"/>';
+  h += '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 60" width="130" style="display:block;margin-bottom:4px">';
+  h += '<line x1="0" y1="5" x2="260" y2="5" stroke="black" stroke-width="1.5"/>';
+  h += '<text x="2" y="46" font-family="Georgia,serif" font-size="42" font-weight="bold" fill="black">AXEL FILMS</text>';
+  h += '<line x1="0" y1="58" x2="260" y2="58" stroke="black" stroke-width="1.5"/>';
   h += '</svg>';
-  h += '<div style="text-align:center;font-size:16px;font-weight:700;font-style:italic;margin:6px 0 2px">';
+  h += '<div style="text-align:center;font-size:15px;font-weight:700;font-style:italic;margin:6px 0 2px">';
   h += '&laquo;&nbsp;' + (film ? film.nom.toUpperCase() : 'TITRE DU FILM') + '&nbsp;&raquo;</div>';
-  h += '<div style="text-align:center;font-size:11px;margin-bottom:6px">Un film r\u00e9alis\u00e9 par <b>' + (film ? film.real || '' : '') + '</b></div>';
-  h += '</div>';
+  h += '<div style="text-align:center;font-size:11px;margin-bottom:6px">Un film r\u00e9alis\u00e9 par <b>' + (film ? (film.real||'') : '') + '</b></div>';
 
-  // TABLEAU PRINCIPAL : equipe | horaires/meteo
-  h += '<table style="width:100%;border-collapse:collapse;border:1px solid #999;margin-bottom:6px"><tr>';
-
-  // Colonne equipe
+  // TABLEAU EQUIPE + HORAIRES
+  h += '<table style="width:100%;border-collapse:collapse;border:1px solid #999;margin-bottom:5px"><tr>';
   h += '<td style="vertical-align:top;border-right:1px solid #999;padding:0">';
   h += '<table style="width:100%;border-collapse:collapse">';
   h += membresEq('realisateur');
-  h += '<tr><td colspan="2" style="padding:3px 0"></td></tr>';
+  h += '<tr><td colspan="2" style="padding:2px 0"></td></tr>';
   h += membresEq('production');
-  h += '<tr><td colspan="2" style="padding:3px 0"></td></tr>';
+  h += '<tr><td colspan="2" style="padding:2px 0"></td></tr>';
   h += membresEq('mise_en_scene');
-  h += '<tr><td colspan="2" style="padding:3px 0"></td></tr>';
+  h += '<tr><td colspan="2" style="padding:2px 0"></td></tr>';
   h += membresEq('regie');
-  h += '<tr><td colspan="2" style="padding:2px 6px;font-size:9px;font-style:italic"><u>D\u00e9l\u00e9gu\u00e9s de plateau :</u> Emilie JUSTIN \u2013 Christophe BOISSY</td></tr>';
+  h += '<tr><td colspan="2" style="padding:2px 6px;font-size:8.5px;font-style:italic"><u>D\u00e9l\u00e9gu\u00e9s de plateau :</u> Emilie JUSTIN \u2013 Christophe BOISSY</td></tr>';
   h += '</table></td>';
-
-  // Colonne horaires + meteo
-  h += '<td style="vertical-align:top;width:240px;padding:0">';
-  h += '<div style="padding:10px;text-align:center;border-bottom:1px solid #999">';
-  h += '<div style="font-size:18px;font-weight:600">Horaires\u00a0: ' + fmtTime(i.debut) + '\u00a0\u2013\u00a0' + fmtTime(i.fin) + '</div>';
-  h += '<div style="font-size:24px;font-weight:800;margin:4px 0">PAT\u00a0: ' + fmtTime(i.pat) + '</div>';
+  h += '<td style="vertical-align:top;width:230px;padding:0">';
+  h += '<div style="padding:8px;text-align:center;border-bottom:1px solid #999">';
+  h += '<div style="font-size:17px;font-weight:600">Horaires\u00a0: ' + fmtTime(i.debut) + ' \u2013 ' + fmtTime(i.fin) + '</div>';
+  h += '<div style="font-size:22px;font-weight:900;margin:3px 0">PAT\u00a0: ' + fmtTime(i.pat) + '</div>';
   h += '</div>';
-  h += '<div style="padding:8px;text-align:left;border-bottom:1px solid #999;font-size:11px;font-weight:600">Repas \u00e0 partir de\u00a0: ' + fmtTime(i.repas) + '</div>';
-  h += '<div style="padding:6px;font-size:8.5px;display:grid;grid-template-columns:1fr 1fr;gap:2px">';
-  h += '<div>M\u00e9t\u00e9o\u00a0: ' + (i.meteo||'\u2014') + '</div>';
-  h += '<div>Temp\u00e9rature\u00a0: ' + (i.meteo||'\u2014') + '</div>';
-  h += '<div>Cr\u00e9puscule matin\u00a0: ' + (fmtTime(i.crep_m)||'\u2014') + '</div>';
-  h += '<div>Lever\u00a0: ' + (fmtTime(i.lever)||'\u2014') + '</div>';
-  h += '<div>Cr\u00e9puscule soir\u00a0: ' + (fmtTime(i.crep_s)||'\u2014') + '</div>';
-  h += '<div>Coucher\u00a0: ' + (fmtTime(i.coucher)||'\u2014') + '</div>';
-  h += '</div></td>';
-  h += '</tr></table>';
+  h += '<div style="padding:6px 8px;border-bottom:1px solid #999;font-size:10px;font-weight:600">Repas \u00e0 partir de\u00a0: ' + fmtTime(i.repas) + '</div>';
+  h += '<div style="padding:5px 8px;font-size:8.5px;display:grid;grid-template-columns:1fr 1fr;gap:1px">';
+  h += '<div>M\u00e9t\u00e9o\u00a0: ' + (i.meteo||'\u2014') + '</div><div>Temp\u00e9rature\u00a0: ' + (i.meteo||'\u2014') + '</div>';
+  h += '<div>Cr\u00e9p. matin\u00a0: ' + (fmtTime(i.crep_m)||'\u2014') + '</div><div>Lever\u00a0: ' + (fmtTime(i.lever)||'\u2014') + '</div>';
+  h += '<div>Cr\u00e9p. soir\u00a0: ' + (fmtTime(i.crep_s)||'\u2014') + '</div><div>Coucher\u00a0: ' + (fmtTime(i.coucher)||'\u2014') + '</div>';
+  h += '</div></td></tr></table>';
 
   // TITRE JOURNEE
-  h += '<div style="background:#d0d0d0;display:flex;justify-content:space-between;align-items:center;padding:7px 14px;margin-bottom:6px;border:1px solid #999">';
-  h += '<span style="font-size:15px;font-weight:800;letter-spacing:0.5px">FEUILLE DE SERVICE DU ' + (i.date||'').toUpperCase() + '</span>';
-  h += '<span style="font-size:18px;font-weight:900;border-left:2px solid #999;padding-left:14px">' + (i.journee||'') + '</span>';
+  h += '<div style="background:#ccc;display:flex;justify-content:space-between;align-items:center;padding:6px 12px;margin-bottom:6px;border:1px solid #999">';
+  h += '<span style="font-size:14px;font-weight:800">FEUILLE DE SERVICE DU ' + (i.date||'').toUpperCase() + '</span>';
+  h += '<span style="font-size:17px;font-weight:900;border-left:2px solid #999;padding-left:12px">' + (i.journee||'') + '</span>';
   h += '</div>';
 
   // NOTE EQUIPE
   if (i.note) {
-    h += '<div style="border:1px solid #ccc;padding:8px;margin-bottom:6px;text-align:center">';
+    h += '<div style="border:1px solid #ccc;padding:8px;margin-bottom:5px;text-align:center">';
     h += '<u><b>Note \u00e0 l\u2019\u00e9quipe</b></u><br>';
     h += '<span style="color:#cc0000;font-style:italic;font-size:9px">' + i.note.replace(/\n/g,'<br>') + '</span></div>';
   }
 
   // ECOPROD
-  h += '<div style="border:1px solid #ccc;padding:6px;text-align:center;font-size:9px;margin-bottom:6px">';
+  h += '<div style="border:1px solid #ccc;padding:5px;text-align:center;font-size:9px;margin-bottom:5px">';
   h += '<b>ECOPROD</b><br>Chaque geste compte !<br>N\u2019h\u00e9sitez pas \u00e0 ramener votre gourde ou votre ecocup<br>Restons responsable !</div>';
 
-  // PREVENTION HARCELEMENT
-  h += '<div style="border:2px solid #d4a000;background:#fff8e1;padding:8px;font-size:8.5px;margin-bottom:8px;text-align:center">';
+  // PREVENTION HARCELEMENT (fond orange comme l'original)
+  h += '<div style="border:1px solid #c07000;background:#e8850a;color:#fff;padding:8px;font-size:8.5px;margin-bottom:8px;text-align:center">';
   h += '<div style="font-weight:700;text-decoration:underline;font-size:10px;margin-bottom:3px">PR\u00c9VENTION HARC\u00c8LEMENT</div>';
   h += 'Toute personne s\u2019estimant victime de harc\u00e8lement peut s\u2019adresser aux r\u00e9f\u00e9rents de notre film<br>';
   h += '<b>Louise Jacquet \u2013 Nina Allimann</b><br>';
-  h += '(cf. convocation pour les num\u00e9ros de t\u00e9l\u00e9phone) et/ou envoyer un mail \u00e0 l\u2019adresse <b>axelfilmsproduction@gmail.com</b><br>';
+  h += '<i>(cf. convocation pour les num\u00e9ros de t\u00e9l\u00e9phone) et/ou<br>';
+  h += 'envoyer un mail \u00e0 l\u2019adresse axelfilmsproduction@gmail.com</i><br>';
   h += 'Au m\u00e9decin du travail \u2013 Centre Thalie Sant\u00e9 : (+33)1 49 27 60 00 / Au CCHSCT : (+33)1 53 89 01 30 /<br>';
-  h += 'Au N\u00b0 vert AP-HP St Antoine : +33 800 00 46 41 / Au N\u00b0 d\u2019urgence du Minist\u00e8re de la Justice : +33 884 284 63</div>';
+  h += 'Au N\u00b0 vert AP-HP St Antoine : +33 800 00 46 41 / Au N\u00b0 d\u2019urgence du Minist\u00e8re de la Justice destin\u00e9 aux victimes ou t\u00e9moins de harc\u00e8lement : + 33 884 284 63</div>';
 
   // LIEUX
   if (f.lieux && f.lieux.length) {
-    h += '<table style="width:100%;border-collapse:collapse;border:1px solid #999;margin-bottom:6px">';
+    h += '<table style="width:100%;border-collapse:collapse;margin-bottom:5px">';
+    h += '<tr><td colspan="2" style="background:#e0e0e0;padding:3px 8px;font-size:9px;font-weight:700;border:1px solid #999">LIEUX DE RDV ET DE TOURNAGE</td></tr>';
     f.lieux.forEach(function(l) {
-      if (l.valeur) h += '<tr><td style="border:1px solid #999;padding:3px 10px;font-size:9.5px;font-weight:700;text-align:right;width:220px;white-space:nowrap">' + l.label.toUpperCase() + ' :</td><td style="border:1px solid #999;padding:3px 10px;font-size:9.5px">' + l.valeur + '</td></tr>';
+      if (l.valeur) h += '<tr>' + tdC(l.label.toUpperCase()+' :','220px',true,true) + tdC(l.valeur,'','',false) + '</tr>';
     });
     h += '</table>';
   }
 
+  // ── PAGE 2 ──────────────────────────────────────────────────────
+  h += '<div style="margin-top:12px;border-top:2px solid #999;padding-top:8px"></div>';
+
   // SEQUENCES
   if (f.sequences && f.sequences.length) {
-    h += '<table style="width:100%;border-collapse:collapse;border:1px solid #999;margin-bottom:6px">';
-    h += '<tr style="background:#eee"><th style="padding:3px 6px;font-size:9px;border:1px solid #999;text-align:left">SEQ</th><th style="padding:3px 6px;font-size:9px;border:1px solid #999;text-align:left">EFFET</th><th style="padding:3px 6px;font-size:9px;border:1px solid #999;text-align:left">D\u00c9COR</th><th style="padding:3px 6px;font-size:9px;border:1px solid #999;text-align:left">R\u00c9SUM\u00c9</th><th style="padding:3px 6px;font-size:9px;border:1px solid #999;text-align:left">R\u00d4LES</th><th style="padding:3px 6px;font-size:9px;border:1px solid #999;text-align:left">MIN</th></tr>';
+    h += '<table style="width:100%;border-collapse:collapse;margin-bottom:8px">';
+    h += '<tr>' + thC('SEQ','50px') + thC('EFFET','50px') + thC('D\u00c9COR') + thC('R\u00c9SUM\u00c9') + thC('R\u00d4LES','60px') + thC('CONT.','80px') + thC('MIN','50px') + '</tr>';
     f.sequences.forEach(function(s) {
-      h += '<tr><td style="padding:2px 6px;font-size:9.5px;border:1px solid #999;font-weight:700">' + (s.num||'') + '</td><td style="padding:2px 6px;font-size:9.5px;border:1px solid #999">' + (s.effet||'') + '</td><td style="padding:2px 6px;font-size:9.5px;border:1px solid #999">' + (s.decor||'') + '</td><td style="padding:2px 6px;font-size:9.5px;border:1px solid #999">' + (s.resume||'') + '</td><td style="padding:2px 6px;font-size:9.5px;border:1px solid #999">' + (s.roles||'') + '</td><td style="padding:2px 6px;font-size:9.5px;border:1px solid #999">' + (s.duree||'') + '</td></tr>';
+      h += '<tr>' + tdC(s.num,'',true,true) + tdC(s.effet,'',false,true) + tdC(s.decor,'',true,true) +
+           '<td style="padding:2px 5px;font-size:9px;border:1px solid #999;font-style:italic;text-align:center">' + (s.resume||'') + '</td>' +
+           tdC(s.roles,'',false,true) + tdC(s.cont||'','',false,true) + tdC(s.duree,'',false,true) + '</tr>';
     });
+    h += '<tr><td colspan="6" style="text-align:right;padding:2px 6px;font-size:9px;font-weight:700;border:1px solid #999">TOTAL</td>' +
+         '<td style="padding:2px 5px;font-size:9px;font-weight:700;border:1px solid #999;text-align:center">' + (f.total_min||'') + '</td></tr>';
     h += '</table>';
   }
 
   // COMEDIENS
   if (f.comediens && f.comediens.length) {
-    h += '<table style="width:100%;border-collapse:collapse;border:1px solid #999;margin-bottom:6px">';
-    h += '<tr style="background:#eee"><th style="padding:3px 6px;font-size:9px;border:1px solid #999">N\u00b0</th><th style="padding:3px 6px;font-size:9px;border:1px solid #999">R\u00d4LES</th><th style="padding:3px 6px;font-size:9px;border:1px solid #999">COM\u00c9DIENS</th><th style="padding:3px 6px;font-size:9px;border:1px solid #999">S\u00c9QUENCES</th><th style="padding:3px 6px;font-size:9px;border:1px solid #999">HMC</th><th style="padding:3px 6px;font-size:9px;border:1px solid #999">D\u00e9part Loges</th><th style="padding:3px 6px;font-size:9px;border:1px solid #999">PAT</th></tr>';
-    f.comediens.forEach(function(c) {
-      h += '<tr><td style="padding:2px 6px;font-size:9.5px;border:1px solid #999">' + (c.num||'') + '</td><td style="padding:2px 6px;font-size:9.5px;border:1px solid #999;font-weight:700">' + (c.role||'') + '</td><td style="padding:2px 6px;font-size:9.5px;border:1px solid #999">' + (c.nom||'') + '</td><td style="padding:2px 6px;font-size:9.5px;border:1px solid #999">' + (c.seqs||'') + '</td><td style="padding:2px 6px;font-size:9.5px;border:1px solid #999">' + fmtTime(c.hmc) + '</td><td style="padding:2px 6px;font-size:9.5px;border:1px solid #999">' + fmtTime(c.loges) + '</td><td style="padding:2px 6px;font-size:9.5px;border:1px solid #999;font-weight:700">' + fmtTime(c.pat) + '</td></tr>';
-    });
-    h += '</table>';
+    var roles = f.comediens.filter(function(c){ return c.type === 'comedien' || !c.type; });
+    var doublures = f.comediens.filter(function(c){ return c.type === 'doublure'; });
+    var silhouettes = f.comediens.filter(function(c){ return c.type === 'silhouette'; });
+    var figurants = f.comediens.filter(function(c){ return c.type === 'figurant'; });
+
+    if (roles.length) {
+      h += '<table style="width:100%;border-collapse:collapse;margin-bottom:5px">';
+      h += '<tr>' + thC('N\u00b0','35px') + thC('R\u00d4LES ('+roles.length+')') + thC('COM\u00c9DIENS') +
+           thC('S\u00c9QUENCES') + thC('HMC','60px') + thC('D\u00e9part Loges','70px') + thC('PAT','55px') + '</tr>';
+      roles.forEach(function(c) {
+        h += '<tr>' + tdC(c.num,'',false,true) + tdC(c.role,'',true,false) + tdC(c.nom,'',false,false) +
+             tdC(c.seqs,'',false,true) + tdC(fmtTime(c.hmc),'',false,true) +
+             tdC(fmtTime(c.loges),'',false,true) + tdC(fmtTime(c.pat),'',true,true) + '</tr>';
+      });
+      h += '</table>';
+    }
+
+    if (doublures.length) {
+      h += '<table style="width:100%;border-collapse:collapse;margin-bottom:2px">';
+      h += '<tr>' + thC('N\u00b0','35px') + thC('DOUBLURES* ('+doublures.length+')') + thC('NOMS') +
+           thC('S\u00c9QUENCES') + thC('HMC','60px') + thC('MeP','60px') + thC('PAT','55px') + '</tr>';
+      doublures.forEach(function(c) {
+        h += '<tr>' + tdC(c.num,'',false,true) + tdC(c.role,'',false,false) + tdC(c.nom,'',false,false) +
+             tdC(c.seqs,'',false,true) + tdC(fmtTime(c.hmc),'',false,true) +
+             tdC(fmtTime(c.loges),'',false,true) + tdC(fmtTime(c.pat),'',true,true) + '</tr>';
+      });
+      h += '</table>';
+      h += '<div style="font-size:8px;font-style:italic;color:#c00;margin-bottom:5px">*Pr\u00e9paration des doublures \u00e0 la loge r\u00f4les</div>';
+    }
+
+    if (silhouettes.length) {
+      h += '<table style="width:100%;border-collapse:collapse;margin-bottom:2px">';
+      h += '<tr>' + thC('N\u00b0','35px') + thC('SILHOUETTES* ('+silhouettes.length+')') + thC('NOMS') +
+           thC('S\u00c9QUENCES') + thC('HMC','60px') + thC('PAT','55px') + '</tr>';
+      silhouettes.forEach(function(c) {
+        h += '<tr>' + tdC(c.num,'',false,true) + tdC(c.role,'',false,false) + tdC(c.nom,'',false,false) +
+             tdC(c.seqs,'',false,true) + tdC(fmtTime(c.hmc),'',false,true) + tdC(fmtTime(c.pat),'',true,true) + '</tr>';
+      });
+      h += '</table>';
+      h += '<div style="font-size:8px;font-style:italic;color:#c00;margin-bottom:5px">*Pr\u00e9paration des silhouettes \u00e0 la loge figuration</div>';
+    }
+
+    if (figurants.length) {
+      h += '<div style="font-size:9px;font-weight:700;margin:3px 0">FIGURATION : ' + figurants.length + ' figurant(s)</div>';
+      h += '<table style="width:100%;border-collapse:collapse;margin-bottom:5px">';
+      h += '<tr>' + thC('Nbre','40px') + thC('FIGURATION') + thC('S\u00c9QUENCES') + thC('HMC','60px') + thC('PAT','55px') + '</tr>';
+      figurants.forEach(function(c) {
+        h += '<tr>' + tdC('1','',false,true) + tdC(c.role+' '+c.nom,'',false,false) +
+             tdC(c.seqs,'',false,true) + tdC(fmtTime(c.hmc),'',false,true) + tdC(fmtTime(c.pat),'',true,true) + '</tr>';
+      });
+      h += '</table>';
+    }
   }
 
-  // DEPARTEMENTS
-  Object.keys(DEPT_LABELS).forEach(function(d) {
-    var note = f.deptNotes && f.deptNotes[d];
-    if (note && note.trim()) {
-      h += '<div style="margin-bottom:6px"><div style="font-weight:800;font-size:10px;text-decoration:underline;margin-bottom:2px">' + DEPT_LABELS[d].toUpperCase() + '</div>';
-      h += '<div style="font-size:9.5px;white-space:pre-wrap">' + note + '</div></div>';
-    }
+  // DEPARTEMENTS - tous affichés même vides
+  var DEPT_ORDER = ['decoration','accessoires','armes','costumes','maquillage','coiffure','son','machinerie','cascade','vfx','vehicules','regie'];
+  DEPT_ORDER.forEach(function(d) {
+    var note = (f.deptNotes && f.deptNotes[d]) || '';
+    h += '<table style="width:100%;border-collapse:collapse;margin-bottom:3px">';
+    h += sectionHead(DEPT_LABELS[d].toUpperCase());
+    h += '<tr><td style="padding:3px 6px;font-size:9px;min-height:18px;border:1px solid #999;white-space:pre-wrap">' + (note || '&nbsp;') + '</td></tr>';
+    h += '</table>';
   });
+
+  // ── PAGE 3 ──────────────────────────────────────────────────────
+  h += '<div style="margin-top:12px;border-top:2px solid #999;padding-top:8px"></div>';
 
   // TRANSPORTS
   if (f.transports && f.transports.length) {
-    h += '<div style="font-weight:800;font-size:10px;text-decoration:underline;margin:6px 0 3px">TRANSPORTS COM\u00c9DIENS \u2013 ' + (i.date||'').toUpperCase() + '</div>';
-    h += '<table style="width:100%;border-collapse:collapse;border:1px solid #999;margin-bottom:6px">';
-    h += '<tr style="background:#eee"><th style="padding:3px 6px;font-size:9px;border:1px solid #999">NOMS</th><th style="padding:3px 6px;font-size:9px;border:1px solid #999">CHAUFFEUR</th><th style="padding:3px 6px;font-size:9px;border:1px solid #999">PICK-UP</th><th style="padding:3px 6px;font-size:9px;border:1px solid #999">LIEUX</th><th style="padding:3px 6px;font-size:9px;border:1px solid #999">PAT</th></tr>';
+    h += '<div style="font-weight:800;font-size:10px;text-align:center;background:#ddd;padding:4px;border:1px solid #999;margin-bottom:3px">';
+    h += 'TRANSPORTS COM\u00c9DIENS \u2013 ' + (i.date||'').toUpperCase() + '</div>';
+    h += '<table style="width:100%;border-collapse:collapse;margin-bottom:8px">';
+    h += '<tr>' + thC('NOMS') + thC('CHAUFFEUR') + thC('PICK-UP','65px') + thC('LIEUX') + thC('SUR PLACE','65px') + thC('PAT','55px') + '</tr>';
     f.transports.forEach(function(t) {
       var pickup = t.pat ? calcPickup(t.pat, estimerTrajet(t.depart, t.arrivee)) : 'Sur tel';
-      h += '<tr><td style="padding:2px 6px;font-size:9.5px;border:1px solid #999;font-weight:700">' + t.comedien + '</td><td style="padding:2px 6px;font-size:9.5px;border:1px solid #999">' + t.chauffeur + '</td><td style="padding:2px 6px;font-size:9.5px;border:1px solid #999;font-weight:700">' + pickup + '</td><td style="padding:2px 6px;font-size:9.5px;border:1px solid #999">' + t.depart + '</td><td style="padding:2px 6px;font-size:9.5px;border:1px solid #999">' + fmtTime(t.pat) + '</td></tr>';
+      h += '<tr>' + tdC(t.comedien,'',true,true) + tdC(t.chauffeur,'',false,true) +
+           tdC(pickup,'',true,true) + tdC(t.depart,'',false,true) +
+           tdC(fmtTime(t.sur_place)||'','',false,true) + tdC(fmtTime(t.pat),'',true,true) + '</tr>';
     });
     h += '</table>';
   }
@@ -1331,13 +1393,14 @@ function renderApercu() {
   // PREVISIONS
   if (f.previsions && f.previsions.length) {
     f.previsions.forEach(function(p) {
-      h += '<div style="border:1px solid #999;padding:6px;margin-bottom:6px;font-size:9.5px">';
-      h += '<div style="font-weight:800;font-size:10px">PR\u00c9VISIONS DU ' + (p.journee||'').toUpperCase() + ' \u2013 HORAIRES\u00a0: ' + (p.horaires||'') + '</div>';
-      if (p.decors) h += '<div><b>D\u00c9CORS / LIEU\u00a0:</b> ' + p.decors + '</div>';
-      if (p.seqs)   h += '<div><b>S\u00c9QUENCES\u00a0:</b> ' + p.seqs + '</div>';
-      if (p.roles)  h += '<div><b>R\u00d4LES / COM\u00c9DIENS\u00a0:</b> ' + p.roles + '</div>';
-      if (p.notes)  h += '<div style="color:#555;margin-top:3px">' + p.notes + '</div>';
-      h += '</div>';
+      h += '<table style="width:100%;border-collapse:collapse;margin-bottom:6px">';
+      h += '<tr><td style="background:#ddd;padding:4px 8px;font-size:9.5px;font-weight:800;border:1px solid #999;width:60%">PR\u00c9VISIONS DU ' + (p.journee||'').toUpperCase() + '</td>';
+      h += '<td style="background:#ddd;padding:4px 8px;font-size:9.5px;font-weight:800;border:1px solid #999;text-align:right">HORAIRES\u00a0: ' + (p.horaires||'') + '</td></tr>';
+      if (p.decors) h += '<tr><td style="padding:2px 8px;font-size:8.5px;font-weight:700;border:1px solid #999;white-space:nowrap;width:120px">D\u00c9CORS / LIEU\u00a0:</td><td style="padding:2px 8px;font-size:8.5px;border:1px solid #999">' + p.decors + '</td></tr>';
+      if (p.seqs) h += '<tr><td style="padding:2px 8px;font-size:8.5px;font-weight:700;border:1px solid #999">S\u00c9QUENCES / EFFETS\u00a0:</td><td style="padding:2px 8px;font-size:8.5px;border:1px solid #999">' + p.seqs + '</td></tr>';
+      if (p.roles) h += '<tr><td style="padding:2px 8px;font-size:8.5px;font-weight:700;border:1px solid #999">R\u00d4LES\u00a0:</td><td style="padding:2px 8px;font-size:8.5px;border:1px solid #999">' + p.roles + '</td></tr>';
+      if (p.notes) h += '<tr><td colspan="2" style="padding:2px 8px;font-size:8.5px;border:1px solid #999;color:#444">' + p.notes + '</td></tr>';
+      h += '</table>';
     });
   }
 
