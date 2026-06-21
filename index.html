@@ -1234,8 +1234,8 @@ function renderApercu() {
 
   function membresEq(dept) {
     return (eq[dept]||[]).map(function(m){
-      return '<tr><td style="padding:1px 6px;font-size:9px;color:#8B6914;width:200px">' + m.poste + '</td>' +
-             '<td style="padding:1px 6px;font-size:9px">' + m.nom + '</td></tr>';
+      return '<tr><td style="padding:0px 5px;font-size:8px;color:#8B6914;width:180px">' + m.poste + '</td>' +
+             '<td style="padding:0px 5px;font-size:8px">' + m.nom + '</td></tr>';
     }).join('');
   }
   function td(v,w,bold,center,extra) {
@@ -1273,13 +1273,13 @@ function renderApercu() {
   h += '<td style="vertical-align:top;border-right:1px solid #999;padding:0;height:1px">';
   h += '<table style="width:100%;border-collapse:collapse">';
   h += membresEq('realisateur');
-  h += '<tr><td colspan="2" style="padding:1px 0;border-bottom:1px dotted #ddd"></td></tr>';
+  h += '<tr><td colspan="2" style="padding:0"></td></tr>';
   h += membresEq('production');
-  h += '<tr><td colspan="2" style="padding:1px 0;border-bottom:1px dotted #ddd"></td></tr>';
+  h += '<tr><td colspan="2" style="padding:0"></td></tr>';
   h += membresEq('mise_en_scene');
-  h += '<tr><td colspan="2" style="padding:1px 0;border-bottom:1px dotted #ddd"></td></tr>';
+  h += '<tr><td colspan="2" style="padding:0"></td></tr>';
   h += membresEq('regie');
-  h += '<tr><td colspan="2" style="padding:2px 6px;font-size:8.5px;font-style:italic"><u>D\u00e9l\u00e9gu\u00e9s de plateau :</u> Emilie JUSTIN \u2013 Christophe BOISSY</td></tr>';
+  h += '<tr><td colspan="2" style="padding:0px 5px;font-size:7.5px;font-style:italic"><u>D\u00e9l\u00e9gu\u00e9s de plateau :</u> Emilie JUSTIN \u2013 Christophe BOISSY</td></tr>';
   h += '</table></td>';
   h += '<td style="vertical-align:top;width:230px;padding:0">';
   h += '<div style="padding:5px 8px;text-align:center;border-bottom:1px solid #999">';
@@ -1413,7 +1413,7 @@ function renderApercu() {
     h += '<table style="width:100%;border-collapse:collapse;margin-bottom:6px">';
     h += secHead('TRANSPORTS COM\u00c9DIENS \u2013 ' + (i.date||'').toUpperCase(), 6);
     h += '<tr>'+th('NOMS')+th('CHAUFFEUR')+th('PICK-UP','65px')+th('LIEUX')+th('SUR PLACE','65px')+th('PAT','55px')+'</tr>';
-    (f.transports||[]).filter(function(t){ return !t.type || t.type==='jour'; }).forEach(function(t) {
+    (f.transports||[]).filter(function(t){ return !t.type || t.type==='jour' || t.type===''; }).forEach(function(t) {
       var pickup = t.pat ? calcPickup(t.pat, estimerTrajet(t.depart, t.arrivee)) : 'Sur tel';
       h += '<tr>'+td(t.comedien,'',true,true)+td(t.chauffeur+(t.tel?'<br><span style="font-size:8px">'+t.tel+'</span>':''),'',false,true)+
            td(pickup,'',true,true)+td(t.depart,'',false,true)+td(t.sur_place||'\u2014','',false,true)+td(fmtTime(t.pat)||'\u2014','',true,true)+'</tr>';
