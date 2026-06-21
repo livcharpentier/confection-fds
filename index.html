@@ -262,10 +262,24 @@ textarea.form-input{resize:vertical;min-height:72px;}
       <!-- COMEDIENS -->
       <div class="spanel" id="sp-comediens">
         <div class="card">
-          <div class="card-title">Comédiens / Doublures / Figuration
-            <button class="btn btn-sm btn-primary" onclick="openModal('modal-comedien')">+ Ajouter</button>
+          <div class="card-title" id="com-count-title">Comédiens
+            <button class="btn btn-sm btn-primary" onclick="openComModalType('comedien')">+ Ajouter</button>
           </div>
-          <div id="comediens-list"><div class="empty">Aucun comédien</div></div>
+          <div style="overflow-x:auto">
+            <table style="width:100%;border-collapse:collapse;font-size:11px;min-width:600px">
+              <tr style="background:#f0f0f0">
+                <th style="padding:5px 6px;border:1px solid #ccc;text-align:center;width:35px">N°</th>
+                <th style="padding:5px 6px;border:1px solid #ccc;text-align:left">RÔLES</th>
+                <th style="padding:5px 6px;border:1px solid #ccc;text-align:left">COMÉDIENS</th>
+                <th style="padding:5px 6px;border:1px solid #ccc;text-align:center;width:120px">SÉQUENCES</th>
+                <th style="padding:5px 6px;border:1px solid #ccc;text-align:center;width:55px">HMC</th>
+                <th style="padding:5px 6px;border:1px solid #ccc;text-align:center;width:65px">Départ Loges</th>
+                <th style="padding:5px 6px;border:1px solid #ccc;text-align:center;width:55px">PAT</th>
+                <th style="padding:5px 6px;border:1px solid #ccc;width:28px"></th>
+              </tr>
+              <tbody id="tbody-comediens"></tbody>
+            </table>
+          </div>
         </div>
       </div>
 
@@ -984,8 +998,8 @@ function addComedien() {
 }
 
 function removeComedien(i) {
-  const f = activeFDS(); if (!f) return;
-  f.comediens.splice(i, 1); renderComediensList(); save();
+  var f = activeFDS(); if (!f) return;
+  f.comediens.splice(i, 1); renderComediensList(); renderFigurationTab(); save();
 }
 
 // ═══════════════════════ DEPARTEMENTS ═══════════════════════
