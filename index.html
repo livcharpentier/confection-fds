@@ -1151,26 +1151,43 @@ function updateTopbar() {
 
 // ═══════════════════════ JOURNEES ═══════════════════════
 function renderJournees() {
-  const f = activeFilm();
+  var f = activeFilm();
   document.getElementById('fds-page-title').textContent = f ? f.nom : 'Journées';
-  document.getElementById('fds-page-sub').textContent = f ? 'Feuilles de service' : 'Sélectionnez un film';
-  document.getElementById('fds-list-titre').childNodes[0].textContent = f ? 'Journées — ' + f.nom : 'Journées ';
-  const el = document.getElementById('fds-journees-list');
-  const liste = state.fds.filter(f2 => f2.filmId === activeFilmId);
-  if (!liste.length) { el.innerHTML = '<div class="empty">Aucune FDS — créez la première journée</div>'; return; }
-  el.innerHTML = liste.map(fds => {
-    const i = fds.infos || {};
-    return `<div class="j-card" onclick="openFDS('${fds.id}')">
-      <div class="j-num">${i.journee || 'J?'}</div>
-      <div class="row-main">
-        <div class="row-title">${i.date || 'Date non définie'}</div>
-        <div class="row-sub">${i.debut ? i.debut.replace(':','H')+' – '+(i.fin||'').replace(':','H') : '—'} · PAT ${i.pat ? i.pat.replace(':','H') : '—'}</div>
-      </div>
-      <button class="icon-btn" onclick="event.stopPropagation();removeFDS('${fds.id}')">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/></svg>
-      </button>
-      <div class="j-arrow">›</div>
-    </div>`;
+  document.getElementById('fds-page-sub').textContent = f ? 'Feuilles de service — ' + (typeof PDT_DATA !== 'undefined' ? PDT_DATA.length : 0) + ' journées' : 'Sélectionnez un film';
+  var titreEl = document.getElementById('fds-list-titre');
+  if (titreEl) titreEl.childNodes[0].textContent = f ? 'Toutes les journées — ' + f.nom + ' ' : 'Journées ';
+  var el = document.getElementById('fds-journees-list');
+  if (!f || !activeFilmId) { el.innerHTML = '<div class="empty">S\u00e9lectionnez un film</div>'; return; }
+  if (typeof PDT_DATA === 'undefined' || !PDT_DATA.length) { el.innerHTML = '<div class="empty">PDT non charg\u00e9</div>'; return; }
+
+  var fdsMap = {};
+  (state.fds||[]).filter(function(fds){ return fds.filmId === activeFilmId; }).forEach(function(fds){
+    fdsMap[fds.jdt] = fds;
+  });
+
+  el.innerHTML = PDT_DATA.map(function(pdt) {
+    var fds = fdsMap[pdt.jdt];
+    var i = fds ? (fds.infos||{}) : {};
+    var horaire = i.debut ? fmtTime(i.debut)+' \u2013 '+fmtTime(i.fin) : (pdt.debut ? pdt.debut.replace(':','H')+(pdt.fin?' \u2013 '+pdt.fin.replace(':','H'):'') : pdt.horaire_raw||'');
+    var lieu = fds ? (fds.lieux&&fds.lieux[0]?fds.lieux[0].valeur:pdt.lieu) : pdt.lieu;
+    var nbCom = fds ? (fds.comediens||[]).filter(function(c){return !c.type||c.type==='comedien';}).length : (pdt.roles||[]).length;
+    var nbOk = fds ? (fds.comediens||[]).filter(function(c){return (!c.type||c.type==='comedien')&&c.hmc&&c.pat;}).length : 0;
+    var statut = !fds ? 'vierge' : (nbOk===nbCom&&nbCom>0 ? 'complete' : 'en-cours');
+    var couleur = statut==='complete' ? 'var(--green)' : statut==='en-cours' ? 'var(--amber)' : 'var(--text-muted)';
+    var badge = statut==='complete' ? '\u2713 Compl\u00e8te' : statut==='en-cours' ? '\u270f En cours' : '\u25cb \u00c0 faire';
+
+    return '<div class="j-card" onclick="ouvrirOuCreerFDS('+pdt.jdt+')" style="'+(statut==='complete'?'opacity:0.75':'')+'">' +
+      '<div class="j-num" style="color:var(--purple)">'+pdt.journee+'</div>' +
+      '<div class="row-main">' +
+        '<div class="row-title">'+pdt.date+'</div>' +
+        '<div class="row-sub">'+horaire+(horaire?' \u00b7 ':'')+lieu+'</div>' +
+      '</div>' +
+      '<div style="text-align:right;flex-shrink:0">' +
+        '<div style="font-size:11px;font-weight:700;color:'+couleur+'">'+badge+'</div>' +
+        (fds?'<div style="font-size:10px;color:var(--text-muted)">'+nbOk+'/'+nbCom+' com\u00e9diens</div>':'') +
+      '</div>' +
+      '<div class="j-arrow">\u203a</div>' +
+    '</div>';
   }).join('');
 }
 
