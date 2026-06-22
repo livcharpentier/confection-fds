@@ -1012,7 +1012,7 @@ function activeFDS()  { return state.fds.find(f => f.id === activeFdsId) || null
 function save() {
   try { localStorage.setItem('fds_local', JSON.stringify({state, activeFilmId, activeFdsId})); } catch(e) {}
   clearTimeout(saveTimer);
-  saveTimer = setTimeout(() => sbSave({state, activeFilmId}), 2000);
+  saveTimer = setTimeout(() => sbSave({state, activeFilmId, activeFdsId}), 2000);
 }
 
 async function loadData() {
