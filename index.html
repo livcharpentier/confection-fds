@@ -1902,9 +1902,10 @@ function goToTab(tabName, fdsId) {
   if (tabName === 'infos') loadInfosForm();
 }
 
-function renderApercu() {
-  var f = activeFDS(); var el = document.getElementById('apercu-content');
-  if (!el) { console.log('renderApercu: pas de #apercu-content'); return; }
+function renderApercu(targetEl) {
+  var f = activeFDS();
+  var el = targetEl || document.getElementById('apercu-content');
+  if (!el) return;
   if (!f) { el.innerHTML = '<div style="padding:20px;text-align:center;color:#999">Aucune journée sélectionnée</div>'; return; }
   var i = f.infos || {}; var film = activeFilm();
   var eq = f.equipe || {};
@@ -2671,13 +2672,7 @@ function changerJourneeApercuJdt(jdtNum) {
   // Swap le conteneur, rendre, puis remettre l'id
   var navEl = document.getElementById('apercu-nav-content');
   if (!navEl) return;
-  // S'assurer qu'il n'y a pas déjà un élément apercu-content
-  var oldEl = document.getElementById('apercu-content');
-  if (oldEl && oldEl !== navEl) oldEl.id = 'apercu-content-backup';
-  navEl.id = 'apercu-content';
-  try { renderApercu(); } catch(e) { console.error('renderApercu:', e); }
-  navEl.id = 'apercu-nav-content';
-  if (oldEl && oldEl !== navEl) oldEl.id = 'apercu-content';
+  try { renderApercu(navEl); } catch(e) { console.error('renderApercu:', e); navEl.innerHTML = '<div style="padding:20px;color:red">Erreur: '+e.message+'</div>'; }
 }
 
 function changerJourneeApercu(fdsId) {
