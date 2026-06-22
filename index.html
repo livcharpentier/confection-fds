@@ -1118,8 +1118,34 @@ function toast(msg) {
 }
 
 function initUI() {
+  injecterDoubluresFixes();
   showPage('films');
   if (activeFilmId) { updateTopbar(); }
+}
+
+function injecterDoubluresFixes() {
+  if (!state.fds || !state.fds.length) return;
+  var DOUBLURES = [
+    {type:'doublure',num:'DBIFR',role:'Doublure image François',nom:'Céline LAURENTIE',role_requis:'FRANÇOIS'},
+    {type:'doublure',num:'DBILI',role:'Doublure image Lisa',nom:'Prune LEMAIRE',role_requis:'LISA'},
+    {type:'doublure',num:'DBIE',role:'Doublure image Eusèbe',nom:'Venance CASTANET PARCOT',role_requis:'EUSÈBE'},
+    {type:'doublure',num:'DBIP',role:'Doublure image Proslier',nom:'Michel BIZOT',role_requis:'PERE PROSLIER'}
+  ];
+  var modifie = false;
+  state.fds.forEach(function(fds) {
+    if (!fds.comediens) fds.comediens = [];
+    var roles = fds.comediens.filter(function(c){ return !c.type||c.type==='comedien'; }).map(function(c){ return c.role; });
+    DOUBLURES.forEach(function(d) {
+      var dejapresent = fds.comediens.find(function(c){ return c.num===d.num||c.role===d.role; });
+      var rolePresent = roles.some(function(r){ return r && r.toUpperCase().indexOf(d.role_requis) >= 0; });
+      if (!dejapresent && rolePresent) {
+        var seqs = fds.sequences ? fds.sequences.map(function(s){return s.num;}).join(', ') : '';
+        fds.comediens.push({type:'doublure',num:d.num,role:d.role,nom:d.nom,seqs:seqs,hmc:'',loges:'',pat:''});
+        modifie = true;
+      }
+    });
+  });
+  if (modifie) save();
 }
 
 // ═══════════════════════ FILMS ═══════════════════════
