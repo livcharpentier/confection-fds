@@ -1921,6 +1921,7 @@ function renderApercu(targetEl) {
   var el = targetEl || document.getElementById('apercu-content');
   if (!el) return;
   if (!f) { el.innerHTML = '<div style="padding:20px;text-align:center;color:#999">Aucune journée sélectionnée</div>'; return; }
+  var isMobile = window.innerWidth < 600;
   var i = f.infos || {}; var film = activeFilm();
   var eq = f.equipe || {};
 
@@ -1946,7 +1947,6 @@ function renderApercu(targetEl) {
   }
 
   el.innerHTML = ''; // reset
-  var isMobile = window.innerWidth < 600;
   var scale = isMobile ? 0.75 : 1;
   var fs = function(px){ return (px*scale).toFixed(1)+'px'; };
   var h = '<div style="font-family:Arial,sans-serif;font-size:'+fs(10)+';line-height:1.4;max-width:780px;margin:0 auto;background:#fff;padding:'+(isMobile?'6px':'10px')+'">';
