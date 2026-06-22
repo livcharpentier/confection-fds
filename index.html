@@ -1013,18 +1013,32 @@ function save() {
 }
 
 async function loadData() {
-  const remote = await sbLoad();
-  if (remote) {
-    state = remote.state || state;
-    activeFilmId = remote.activeFilmId || null;
-    activeFdsId = remote.activeFdsId || null;
-    try { localStorage.setItem('fds_local', JSON.stringify(remote)); } catch(e) {}
-  } else {
-    try {
-      const raw = localStorage.getItem('fds_local');
-      if (raw) { const d = JSON.parse(raw); state = d.state || state; activeFilmId = d.activeFilmId || null; activeFdsId = d.activeFdsId || null; }
-    } catch(e) {}
-  }
+  // Essayer d'abord le localStorage (plus rapide)
+  try {
+    const raw = localStorage.getItem('fds_local');
+    if (raw) { 
+      const d = JSON.parse(raw); 
+      if (d.state && d.state.films && d.state.films.length) {
+        state = d.state || state; 
+        activeFilmId = d.activeFilmId || null; 
+        activeFdsId = d.activeFdsId || null;
+        renderFilms();
+        updateTopbar();
+      }
+    }
+  } catch(e) {}
+  // Puis charger depuis Supabase pour avoir la version la plus récente
+  try {
+    const remote = await sbLoad();
+    if (remote && remote.state && remote.state.films) {
+      state = remote.state || state;
+      activeFilmId = remote.activeFilmId || null;
+      activeFdsId = remote.activeFdsId || null;
+      try { localStorage.setItem('fds_local', JSON.stringify(remote)); } catch(e) {}
+      renderFilms();
+      updateTopbar();
+    }
+  } catch(e) {}
 }
 
 // ═══════════════════════ AUTH ═══════════════════════
