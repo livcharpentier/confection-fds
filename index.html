@@ -2263,16 +2263,18 @@ function renderApercu(targetEl) {
       var numJourCourant = getNumJour(jdtCourant.date);
       var joursRestants = 4 - numJourCourant; // nb de jours jusqu'au vendredi inclus
 
-      for (var k = f.jdt + 1; k <= f.jdt + 5; k++) {
-        var kk = k; // closure
-        var jNext = PDT_DATA.find(function(j){ return j.jdt === kk; });
-        if (!jNext) break;
-        var numJourNext = getNumJour(jNext.date);
-        // Lundi (0) = nouvelle semaine = on arrête
-        if (numJourNext === 0) break;
-        // Samedi(5) ou Dimanche(6) = on arrête
-        if (numJourNext >= 5) break;
-        prevAuto.push(jNext);
+      if (joursRestants > 0) {
+        for (var k = f.jdt + 1; k <= f.jdt + joursRestants; k++) {
+          var kk = k; // closure
+          var jNext = PDT_DATA.find(function(j){ return j.jdt === kk; });
+          if (!jNext) break;
+          var numJourNext = getNumJour(jNext.date);
+          // Lundi (0) = nouvelle semaine = on arrete
+          if (numJourNext === 0) break;
+          // Samedi(5) ou Dimanche(6) = on arrete
+          if (numJourNext >= 5) break;
+          prevAuto.push(jNext);
+        }
       }
     }
   }
@@ -3287,7 +3289,7 @@ function pgRenderDept() {
   var el = document.getElementById('pg-dept-pills'); if (!el) return;
   el.innerHTML = Object.keys(DEPT_LABELS).map(function(d){
     var filled = f&&f.deptNotes&&f.deptNotes[d]&&f.deptNotes[d].trim();
-    return '<button class="pill '+(d===pgCurrentDept?'active':'')+' '+(filled?'done':'')+'" onclick="pgSelectDept(this,\'" + d + "\')">'+DEPT_LABELS[d]+'</button>';
+    return '<button class="pill '+(d===pgCurrentDept?'active':'')+' '+(filled?'done':'')+'" onclick="pgSelectDept(this,this.dataset.dept)" data-dept="'+d+'">'+DEPT_LABELS[d]+'</button>';
   }).join('');
   var area = document.getElementById('pg-dept-note');
   var label = document.getElementById('pg-dept-label');
@@ -3418,27 +3420,14 @@ function exportBilanCSV() {
 
 function renderResumeConvoc() {
   if (!activeFilmId && state.films && state.films.length) activeFilmId = state.films[0].id;
-  // Forcer activeFdsId sur la journée active ou la première disponible
+  // Forcer activeFdsId sur la journée active ou la première disponible (sans créer de nouvelle FDS)
   if (!activeFdsId) {
     var fdsList = (state.fds||[]).filter(function(f){ return f.filmId===activeFilmId; });
-    if (fdsList.length) {
-      activeFdsId = fdsList[0].id;
-    } else if (typeof PDT_DATA !== 'undefined' && PDT_DATA.length) {
-      ouvrirOuCreerFDSSilent(PDT_DATA[0].jdt);
-      var fdsList2 = (state.fds||[]).filter(function(f){ return f.filmId===activeFilmId; });
-      if (fdsList2.length) activeFdsId = fdsList2[0].id;
-    }
+    if (fdsList.length) activeFdsId = fdsList[0].id;
   }
   var titleEl = document.getElementById('resume-convoc-title');
   var subEl = document.getElementById('resume-convoc-sub');
   var f = activeFDS(); var film = activeFilm();
-  if (!f && typeof PDT_DATA !== 'undefined' && PDT_DATA.length) {
-    // Prendre J15 par défaut (journée courante)
-    var jdtCible = PDT_DATA[14] ? PDT_DATA[14].jdt : PDT_DATA[0].jdt;
-    ouvrirOuCreerFDSSilent(jdtCible);
-    var fdsList3 = (state.fds||[]).filter(function(x){ return x.filmId===activeFilmId; });
-    if (fdsList3.length) { activeFdsId = fdsList3[fdsList3.length-1].id; f = activeFDS(); }
-  }
   if (titleEl) titleEl.textContent = 'Résumé convocations '+(f&&f.infos&&f.infos.journee?f.infos.journee:'');
   if (subEl) subEl.textContent = f&&f.infos ? (f.infos.date||'') : 'Sélectionnez une journée';
   var elc = document.getElementById('apercu-convoc-content');
