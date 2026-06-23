@@ -2080,32 +2080,42 @@ function renderApercu(targetEl) {
   var figurants = allCom.filter(function(c){ return c.type==='figurant'; });
 
   if (roles.length) {
-    // Séquences du PDT pour ce jour
     var pdtJdt = typeof PDT_DATA !== 'undefined' ? PDT_DATA.find(function(j){ return j.jdt===f.jdt; }) : null;
     var allSeqs = pdtJdt ? pdtJdt.sequences : [];
-    if (!allSeqs.length) {
-      var seqSet = {};
-      roles.forEach(function(c){ (c.seqs||'').split(',').forEach(function(s){ var t=s.trim(); if(t) seqSet[t]=1; }); });
-      allSeqs = Object.keys(seqSet);
-    }
+    // Séquences par rôle depuis archives
+    var seqsRole = (typeof SEQS_PAR_ROLE !== 'undefined' && SEQS_PAR_ROLE[String(f.jdt)]) ? SEQS_PAR_ROLE[String(f.jdt)] : {};
     var hasLoges = roles.some(function(c){ return c.loges; });
     var csz = isMobile ? '6px' : '8px';
+    var nbSeqs = allSeqs.length;
     h += '<table style="width:100%;border-collapse:collapse;margin-bottom:3px">';
     h += '<caption style="caption-side:top;text-align:left;font-size:9px;font-weight:700;padding:3px 0">COMÉDIENS ' + pencilInline("goToTab(\'comediens\')", "les comédiens") + '</caption>';
+    // Ligne 1 en-tête avec SÉQUENCES fusionnée
     h += '<tr style="background:#f0f0f0">';
-    h += th('N°','28px') + th('RÔLES ('+roles.length+')') + th('COMÉDIENS');
+    h += '<th style="padding:2px 4px;border:1px solid #999;font-size:'+csz+'" rowspan="2">N°</th>';
+    h += '<th style="padding:2px 4px;border:1px solid #999;font-size:'+csz+'" rowspan="2">RÔLES ('+roles.length+')</th>';
+    h += '<th style="padding:2px 4px;border:1px solid #999;font-size:'+csz+'" rowspan="2">COMÉDIENS</th>';
+    if (nbSeqs) h += '<th style="padding:2px 4px;border:1px solid #999;font-size:'+csz+';text-align:center" colspan="'+nbSeqs+'">SÉQUENCES</th>';
+    h += '<th style="padding:2px;border:1px solid #999;font-size:'+csz+'" rowspan="2">-</th>';
+    h += '<th style="padding:2px 4px;border:1px solid #999;font-size:'+csz+'" rowspan="2">HMC</th>';
+    if (hasLoges) h += '<th style="padding:2px 4px;border:1px solid #999;font-size:'+csz+'" rowspan="2">Dép. Loges</th>';
+    h += '<th style="padding:2px 4px;border:1px solid #999;font-size:'+csz+'" rowspan="2">PAT</th>';
+    h += '<th style="border:1px solid #999" rowspan="2"></th>';
+    h += '</tr>';
+    // Ligne 2 : numéros de séquences
+    h += '<tr style="background:#f0f0f0">';
     allSeqs.forEach(function(s){ h += '<th style="padding:2px 3px;border:1px solid #999;font-size:'+csz+';text-align:center;white-space:nowrap">'+s+'</th>'; });
-    h += '<th style="padding:2px;border:1px solid #999;font-size:'+csz+'">-</th>';
-    h += th('HMC','50px');
-    if (hasLoges) h += th('Dép. Loges','60px');
-    h += th('PAT','48px') + '</tr>';
+    h += '</tr>';
+    // Lignes comédiens
     roles.forEach(function(c) {
       var cidx = (f.comediens||[]).indexOf(c);
-      var comSeqs = (c.seqs||'').split(',').map(function(s){return s.trim();}).filter(Boolean);
+      // Priorité : séquences depuis archives, sinon depuis c.seqs
+      var roleSeqsStr = seqsRole[c.num] || c.seqs || '';
+      var comSeqs = roleSeqsStr.split(/[\s,]+/).map(function(s){return s.trim();}).filter(Boolean);
       h += '<tr>';
       h += td(c.num,'',false,true) + td(c.role,'',true,false) + td(c.nom,'',false,false);
       allSeqs.forEach(function(s){
-        var present = comSeqs.some(function(cs){ return cs===s || cs.replace(/\s/g,'')===s.replace(/\s/g,''); });
+        var sClean = s.replace(/\s/g,'').toUpperCase();
+        var present = comSeqs.some(function(cs){ return cs.replace(/\s/g,'').toUpperCase()===sClean; });
         h += '<td style="padding:2px;border:1px solid #999;font-size:'+csz+';text-align:center;font-weight:700">'+(present?s:'')+'</td>';
       });
       h += '<td style="padding:2px;border:1px solid #999;font-size:'+csz+';text-align:center">-</td>';
