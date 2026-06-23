@@ -947,6 +947,22 @@ textarea.form-input{resize:vertical;min-height:72px;}
         <div id="import-depo-preview" style="margin-top:10px"></div>
       </div>
 
+      <!-- IMPORT SCÉNARIO PDF -->
+      <div class="card" style="margin-top:8px;border:2px solid #e65100">
+        <div class="card-title" style="color:#e65100">📖 Import Scénario PDF
+          <span style="font-size:11px;font-weight:400;color:var(--text-muted)">(.pdf)</span>
+        </div>
+        <div style="font-size:12px;color:var(--text-muted);margin-bottom:8px">
+          Extrait automatiquement chaque séquence avec son texte. Lié au film actif, utilisé pour le Jour à Jour.
+        </div>
+        <div id="import-scenario-status" style="margin-bottom:8px;font-size:12px"></div>
+        <label class="btn btn-block" style="cursor:pointer;text-align:center;background:#fff8f0;border:2px solid #e65100;color:#e65100">
+          📂 Choisir le PDF du scénario
+          <input type="file" accept=".pdf" id="import-scenario-file" style="display:none" onchange="importScenarioFile(this)"/>
+        </label>
+        <div id="import-scenario-preview" style="margin-top:10px"></div>
+      </div>
+
     </div>
   </div>
 
@@ -4582,6 +4598,23 @@ function jajSelectJournee(jdt) {
     sequences = pdtJ.sequences.map(function(s){ return {num:s, effet:'', decor:'', resume:'', roles:'', texte:''}; });
   }
 
+  // Pré-remplir depuis le scénario importé si champ texte vide
+  var scenarioData = getScenarioForFilm();
+  if (scenarioData.length) {
+    sequences.forEach(function(s) {
+      if (!s.texte || !s.texte.trim()) {
+        var sc = getSceneTexte(s.num);
+        if (sc) {
+          s.texte = sc.texte || '';
+          if (!s.decor && sc.decor) s.decor = sc.decor;
+          if (!s.effet && sc.effet) s.effet = sc.effet;
+        }
+      }
+    });
+    // Sauvegarder si FDS existe
+    if (fds && fds.sequences) { save(); }
+  }
+
   var listEl = document.getElementById('jaj-sequences-list');
   if (!sequences.length) {
     listEl.innerHTML = '<div style="color:#999;text-align:center;padding:12px">Aucune séquence pour cette journée</div>';
@@ -4722,11 +4755,164 @@ function escHtml(str) {
   return String(str||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
 
+// ═══════════════════════ IMPORT SCÉNARIO ═══════════════════════
+
+function renderImportPageScenario() {
+  if (!activeFilmId) return;
+  var statusEl = document.getElementById('import-scenario-status');
+  if (!statusEl) return;
+  // Vérifier si un scénario est déjà importé pour ce film
+  try {
+    var stored = localStorage.getItem('scenario_' + activeFilmId);
+    if (stored) {
+      var sc = JSON.parse(stored);
+      statusEl.innerHTML = '<div style="background:#d1fae5;padding:8px 10px;border-radius:6px;color:#065f46">'+
+        '✓ Scénario importé : <b>'+sc.length+' séquences</b></div>';
+    } else {
+      statusEl.innerHTML = '<div style="color:#888;font-style:italic">Aucun scénario importé pour ce film.</div>';
+    }
+  } catch(e) {}
+}
+
+function importScenarioFile(input) {
+  if (!activeFilmId) { toast('Sélectionnez un film d\'abord'); return; }
+  if (!input.files || !input.files[0]) return;
+  var file = input.files[0];
+  var preview = document.getElementById('import-scenario-preview');
+  preview.innerHTML = '<div style="color:#888;padding:12px;text-align:center">⏳ Extraction du texte en cours...</div>';
+
+  // Charger PDF.js si pas encore chargé
+  function loadPdfJs(cb) {
+    if (window.pdfjsLib) { cb(); return; }
+    var s = document.createElement('script');
+    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+    s.onload = function() {
+      pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+      cb();
+    };
+    s.onerror = function() { preview.innerHTML = '<div style="color:#c00">Erreur chargement PDF.js</div>'; };
+    document.head.appendChild(s);
+  }
+
+  loadPdfJs(function() {
+    var reader = new FileReader();
+    reader.onload = function(e) {
+      pdfjsLib.getDocument({data: e.target.result}).promise.then(function(pdf) {
+        var totalPages = pdf.numPages;
+        var allText = '';
+        var pagePromises = [];
+        for (var p = 1; p <= totalPages; p++) {
+          pagePromises.push(pdf.getPage(p).then(function(page) {
+            return page.getTextContent().then(function(tc) {
+              // Reconstruire le texte en préservant la mise en page (positions)
+              var items = tc.items;
+              var lines = {};
+              items.forEach(function(item) {
+                var y = Math.round(item.transform[5]);
+                if (!lines[y]) lines[y] = [];
+                lines[y].push({x: item.transform[4], str: item.str});
+              });
+              var sortedYs = Object.keys(lines).map(Number).sort(function(a,b){return b-a;});
+              var pageText = sortedYs.map(function(y) {
+                var lineItems = lines[y].sort(function(a,b){return a.x-b.x;});
+                return lineItems.map(function(i){return i.str;}).join(' ');
+              }).join('\n');
+              return pageText + '\f';
+            });
+          }));
+        }
+        Promise.all(pagePromises).then(function(pages) {
+          allText = pages.join('\n');
+          var scenes = parseScenarioPdfText(allText);
+          preview.innerHTML = '<div style="background:#d1fae5;padding:10px;border-radius:6px;color:#065f46;font-weight:600">'+
+            '✓ '+scenes.length+' séquences extraites !</div>';
+          // Stocker dans localStorage lié au film
+          try {
+            localStorage.setItem('scenario_' + activeFilmId, JSON.stringify(scenes));
+          } catch(e) {
+            // Si trop lourd, stocker sans les textes longs
+            var light = scenes.map(function(s){return Object.assign({},s,{texte:s.texte.slice(0,2000)});});
+            localStorage.setItem('scenario_' + activeFilmId, JSON.stringify(light));
+          }
+          toast(scenes.length + ' séquences importées ✓');
+          renderImportPageScenario();
+          input.value = '';
+        });
+      }).catch(function(err) {
+        preview.innerHTML = '<div style="color:#c00">Erreur PDF : ' + err.message + '</div>';
+      });
+    };
+    reader.readAsArrayBuffer(file);
+  });
+}
+
+function parseScenarioPdfText(text) {
+  var lines = text.split('\n');
+  var scenes = [];
+  var current = null;
+  var sceneHeaderRe = /^(\d+(?:\s*(?:BIS\s*[A-D]?|TER\s*[A-D]?|P\d+|[A-D]))?)\s{3,}(.*(?:INT\b|EXT\b|I\.E\b|I\/E\b|I-E\b|JOUR|NUIT|SOIR|MATIN|CR.P).*)/i;
+
+  for (var i = 0; i < lines.length; i++) {
+    var line = lines[i];
+    var m = sceneHeaderRe.exec(line);
+    if (m) {
+      var num = m[1].trim();
+      var titre = m[2].trim();
+      // Supprimer le numéro répété en fin de titre
+      titre = titre.replace(new RegExp('\\s+' + num.replace(/\s+/g,'\\s+') + '\\s*$'), '').trim();
+      if (current) scenes.push(current);
+      // Parser effet et décor depuis le titre
+      var effet = '', decor = titre;
+      var effM = /^(INT\.|EXT\.|I\.E\.|I\/E|I-E\.?)\s*/i.exec(titre);
+      if (effM) {
+        var rest = titre.slice(effM[0].length);
+        var momM = /\b(JOUR|NUIT|SOIR|MATIN|CR.P\.?|AM\.?)\s*$/i.exec(rest);
+        if (momM) {
+          effet = effM[1].replace('.','') + '/' + momM[1][0].toUpperCase();
+          decor = rest.slice(0, momM.index).trim().replace(/\s*[-–]\s*$/, '');
+        }
+      }
+      current = {num: num, titre: titre, decor: decor, effet: effet, texte: ''};
+    } else if (current !== null) {
+      var clean = line.trim();
+      // Ignorer sauts de page, numéros de page seuls
+      if (clean && !/^\f/.test(clean) && !/^\d+\.$/.test(clean) && !/^\d+\s*$/.test(clean)) {
+        current.texte += line + '\n';
+      }
+    }
+  }
+  if (current) scenes.push(current);
+
+  // Nettoyer les textes
+  scenes.forEach(function(s) {
+    s.texte = s.texte.replace(/\n{3,}/g, '\n\n').trim();
+  });
+  return scenes;
+}
+
+function getScenarioForFilm(filmId) {
+  try {
+    var stored = localStorage.getItem('scenario_' + (filmId || activeFilmId));
+    return stored ? JSON.parse(stored) : [];
+  } catch(e) { return []; }
+}
+
+function getSceneTexte(num) {
+  var sc = getScenarioForFilm();
+  var numClean = String(num||'').trim().toUpperCase();
+  var found = sc.find(function(s){
+    return s.num.trim().toUpperCase() === numClean ||
+           s.num.trim().toUpperCase().replace(/\s+/g,'') === numClean.replace(/\s+/g,'');
+  });
+  return found || null;
+}
+
 // ═══════════════════════ IMPORT PDT / DÉPOUILLEMENT ═══════════════════════
 
 function renderImportPage() {
   var sub = document.getElementById('import-sub');
   if (sub) sub.textContent = activeFilm() ? ('Film actif : ' + activeFilm().nom) : 'Sélectionnez un film d\'abord';
+  renderImportPageScenario();
 }
 
 // Charge SheetJS à la demande
