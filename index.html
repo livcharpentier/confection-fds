@@ -697,6 +697,61 @@ textarea.form-input{resize:vertical;min-height:72px;}
     </div>
   </div>
 
+  <!-- PAGE VÉHICULES -->
+  <div class="page" id="page-pg-vehicules">
+    <div class="page-header">
+      <div class="page-title">Véhicules</div>
+      <div class="page-sub" id="pg-vehicules-sub"></div>
+    </div>
+    <div class="scroll">
+      <div class="card" style="margin-bottom:8px">
+        <div class="card-title">Véhicules de tournage
+          <button class="btn btn-sm btn-primary" onclick="ouvrirModalVehicule(-1)">+ Ajouter</button>
+        </div>
+        <div style="font-size:11px;color:#555;margin-bottom:6px">
+          <input class="form-input" id="pg-vehicules-coord" placeholder="cf Éric Grimaldi — Présence Benjamin Decrucq (06 65 54 79 41)..." style="font-style:italic;font-size:11px" onblur="saveVehiculesCoord()"/>
+        </div>
+        <div style="overflow-x:auto">
+          <table style="width:100%;border-collapse:collapse;font-size:11px;min-width:450px">
+            <thead><tr style="background:#f5f0ff">
+              <th style="padding:5px 4px;border:1px solid #ccc;width:45px" rowspan="2">Nbre</th>
+              <th style="padding:5px 4px;border:1px solid #ccc;text-align:left" rowspan="2">VÉHICULE</th>
+              <th style="padding:3px 4px;border:1px solid #ccc;text-align:center;font-size:10px" id="veh-seq-header" colspan="3">SÉQUENCES</th>
+              <th style="padding:5px 4px;border:1px solid #ccc;width:50px" rowspan="2">S/P</th>
+              <th style="padding:5px 4px;border:1px solid #ccc;width:50px" rowspan="2">PAT</th>
+              <th style="border:1px solid #ccc;width:26px" rowspan="2"></th>
+            </tr><tr style="background:#f5f0ff" id="veh-seq-header-row2"></tr></thead>
+            <tbody id="pg-tbody-vehicules"></tbody>
+          </table>
+          <div style="font-size:10px;font-weight:700;padding:4px 6px;border:1px solid #ddd;border-top:none;background:#f9f9f9" id="pg-vehicules-total"></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Charrettes / Attelages
+          <button class="btn btn-sm btn-primary" onclick="ouvrirModalVehicule(-1,'charrette')">+ Ajouter</button>
+        </div>
+        <div style="font-size:11px;color:#555;margin-bottom:6px">
+          <input class="form-input" id="pg-charrettes-coord" placeholder="cf Attelages du Val d'Amour — Présence Julien Dugois..." style="font-style:italic;font-size:11px"/>
+        </div>
+        <div style="overflow-x:auto">
+          <table style="width:100%;border-collapse:collapse;font-size:11px;min-width:450px">
+            <thead><tr style="background:#f0f5ff">
+              <th style="padding:5px 4px;border:1px solid #ccc;width:45px" rowspan="2">Nbre</th>
+              <th style="padding:5px 4px;border:1px solid #ccc;text-align:left" rowspan="2">CHARRETTE / ATTELAGE</th>
+              <th style="padding:3px 4px;border:1px solid #ccc;text-align:center;font-size:10px" colspan="3">SÉQUENCES</th>
+              <th style="padding:5px 4px;border:1px solid #ccc;width:50px" rowspan="2">S/P</th>
+              <th style="padding:5px 4px;border:1px solid #ccc;width:50px" rowspan="2">PAT</th>
+              <th style="border:1px solid #ccc;width:26px" rowspan="2"></th>
+            </tr><tr style="background:#f0f5ff" id="char-seq-header-row2"></tr></thead>
+            <tbody id="pg-tbody-charrettes"></tbody>
+          </table>
+          <div style="font-size:10px;font-weight:700;padding:4px 6px;border:1px solid #ddd;border-top:none;background:#f9f9f9" id="pg-charrettes-total"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- PAGE TECHNICIEN(NE)S -->
   <div class="page" id="page-pg-equipe">
     <div class="page-header">
@@ -904,6 +959,7 @@ textarea.form-input{resize:vertical;min-height:72px;}
     <button class="nav-btn" id="nav-comediens" onclick="navTo('pg-comediens',this)">Comédiens</button>
     <button class="nav-btn" id="nav-complements" onclick="navTo('pg-complements',this)">Acteurs<br>compl.</button>
     <button class="nav-btn" id="nav-cascadeurs" onclick="navTo('pg-cascadeurs',this)">Casca<br>deurs</button>
+    <button class="nav-btn" id="nav-vehicules" onclick="navTo('pg-vehicules',this)">Véhi<br>cules</button>
     <button class="nav-btn" id="nav-dept" onclick="navTo('pg-dept',this)">Détails<br>par poste</button>
     <button class="nav-btn" id="nav-equipe" onclick="navTo('pg-equipe',this)">Horaires<br>équipe</button>
     <button class="nav-btn" id="nav-transport" onclick="navTo('transport-nav',this)">Trans<br>ports</button>
@@ -1012,7 +1068,75 @@ textarea.form-input{resize:vertical;min-height:72px;}
     <div class="form-row"><label class="form-label">HMC</label><input class="form-input" id="edit-com-hmc" type="time"/></div>
     <div class="form-row"><label class="form-label">Départ Loges</label><input class="form-input" id="edit-com-loges" type="time"/></div>
     <div class="form-row"><label class="form-label">PAT</label><input class="form-input" id="edit-com-pat" type="time"/></div>
-    <button class="btn btn-primary btn-block" onclick="saveEditComedien()">Enregistrer</button>
+    <div class="form-row"><label class="form-label">Nbre (figurants)</label><input class="form-input" id="edit-com-nbre" type="number" min="1" value="1" style="max-width:80px"/></div>
+    <div class="form-row"><label class="form-label">Note / Loge</label><input class="form-input" id="edit-com-note" placeholder="loge rôles, loge fig..."/></div>
+    <div style="display:flex;gap:8px;margin-top:4px">
+      <button class="btn btn-primary" style="flex:1" onclick="saveEditComedien()">Enregistrer</button>
+      <button class="btn btn-secondary" style="color:#c00;border-color:#c00" onclick="deleteEditComedien()">Supprimer</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-edit-seq">
+  <div class="modal">
+    <div class="modal-head"><h2>Séquence</h2><button class="modal-close" onclick="closeModal('modal-edit-seq')">×</button></div>
+    <input type="hidden" id="edit-seq-idx"/>
+    <div class="form-row"><label class="form-label">N° Séquence</label><input class="form-input" id="edit-seq-num" placeholder="91P1, 139..."/></div>
+    <div class="form-row"><label class="form-label">Effet</label>
+      <select class="form-input" id="edit-seq-effet">
+        <option value="">—</option>
+        <option value="I/J">I/J — Intérieur Jour</option>
+        <option value="I/N">I/N — Intérieur Nuit</option>
+        <option value="E/J">E/J — Extérieur Jour</option>
+        <option value="E/N">E/N — Extérieur Nuit</option>
+        <option value="I-E/J">I-E/J — Int-Ext Jour</option>
+        <option value="I-E/N">I-E/N — Int-Ext Nuit</option>
+        <option value="E/Crép.">E/Crép. — Extérieur Crépuscule</option>
+        <option value="E/Am.">E/Am. — Extérieur Aube</option>
+      </select>
+    </div>
+    <div class="form-row"><label class="form-label">Décor</label><input class="form-input" id="edit-seq-decor" placeholder="Route de campagne – sous-bois"/></div>
+    <div class="form-row"><label class="form-label">Résumé</label><textarea class="form-input" id="edit-seq-resume" rows="2" placeholder="Pégase sur le bas côté..."></textarea></div>
+    <div class="form-row"><label class="form-label">Rôles</label><input class="form-input" id="edit-seq-roles" placeholder="9, 19, 20, S23"/></div>
+    <div class="form-row"><label class="form-label">Continuité</label><input class="form-input" id="edit-seq-cont" placeholder="J19 – Sam. 16 août 1941"/></div>
+    <div class="form-row"><label class="form-label">Durée</label>
+      <div style="display:flex;gap:6px;align-items:center">
+        <select class="form-input" id="edit-seq-min" style="max-width:80px">
+          <option value="0">0 min</option><option value="1">1 min</option><option value="2">2 min</option><option value="3">3 min</option><option value="4">4 min</option><option value="5">5 min</option>
+        </select>
+        <select class="form-input" id="edit-seq-sec" style="max-width:90px">
+          <option value="00">00 sec</option><option value="05">05 sec</option><option value="10">10 sec</option><option value="15">15 sec</option><option value="20">20 sec</option><option value="25">25 sec</option><option value="30">30 sec</option><option value="35">35 sec</option><option value="40">40 sec</option><option value="45">45 sec</option><option value="50">50 sec</option><option value="55">55 sec</option>
+        </select>
+        <span id="edit-seq-duree-preview" style="font-size:12px;color:var(--purple);font-weight:700"></span>
+      </div>
+    </div>
+    <div class="form-row"><label class="form-label">EqB ?</label>
+      <label style="display:flex;align-items:center;gap:6px;font-size:13px">
+        <input type="checkbox" id="edit-seq-eqb"/> Séquence Équipe B
+      </label>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:4px">
+      <button class="btn btn-primary" style="flex:1" onclick="saveEditSeq()">Enregistrer</button>
+      <button class="btn btn-secondary" style="color:#c00;border-color:#c00" onclick="deleteEditSeq()">Supprimer</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-edit-vehicule">
+  <div class="modal">
+    <div class="modal-head"><h2>Véhicule</h2><button class="modal-close" onclick="closeModal('modal-edit-vehicule')">×</button></div>
+    <input type="hidden" id="veh-modal-idx"/>
+    <input type="hidden" id="veh-modal-type"/>
+    <div class="form-row"><label class="form-label">Nbre</label><input class="form-input" id="veh-modal-nbre" type="number" min="1" value="1" style="max-width:70px"/></div>
+    <div class="form-row"><label class="form-label">Nom / Description</label><textarea class="form-input" id="veh-modal-nom" rows="2" placeholder="Voiture Gestapo (Traction Noire)"></textarea></div>
+    <div class="form-row"><label class="form-label">Séquences</label><input class="form-input" id="veh-modal-seqs" placeholder="91P1, 93 (EQ.B)..."/></div>
+    <div class="form-row"><label class="form-label">S/P (sur place)</label><input class="form-input" id="veh-modal-sp" type="time"/></div>
+    <div class="form-row"><label class="form-label">PAT</label><input class="form-input" id="veh-modal-pat" type="time"/></div>
+    <div class="form-row"><label class="form-label">Note</label><input class="form-input" id="veh-modal-note" placeholder="Attelée à la ferme abandonnée..."/></div>
+    <div style="display:flex;gap:8px;margin-top:4px">
+      <button class="btn btn-primary" style="flex:1" onclick="saveVehicule()">Enregistrer</button>
+      <button class="btn btn-secondary" style="color:#c00;border-color:#c00" onclick="deleteVehicule()">Supprimer</button>
+    </div>
   </div>
 </div>
 
@@ -1653,9 +1777,22 @@ function removeComedien(i) {
 
 // ═══════════════════════ DEPARTEMENTS ═══════════════════════
 const DEPT_LABELS = {
-  decoration:'Décoration', accessoires:'Accessoires', armes:'Armes', costumes:'Costumes',
-  maquillage:'Maquillage', coiffure:'Coiffure', son:'Son', machinerie:'Machinerie',
-  vfx:'VFX', regie:'Régie / Production'
+  mise_en_scene:'Mise en scène',
+  coach_enfants:'Coach / Référent enfants',
+  decoration:'Décoration',
+  accessoires:'Accessoires',
+  armes:'Armes',
+  costumes:'Costumes',
+  maquillage:'Maquillage',
+  coiffure:'Coiffure',
+  image:'Image',
+  electricite:'Électricité',
+  machinerie:'Machinerie',
+  son:'Son',
+  vehicules:'Véhicules',
+  drone:'Drone',
+  vfx:'VFX',
+  regie:'Régie / Production'
 };
 
 function renderDeptPills() {
@@ -2371,7 +2508,7 @@ function renderApercu(targetEl) {
   }
 
   // DEPARTEMENTS — tous affichés même vides
-  var DEPT_ORDER = ['decoration','accessoires','armes','costumes','maquillage','coiffure','son','machinerie','vfx','regie'];
+  var DEPT_ORDER = ['mise_en_scene','coach_enfants','decoration','accessoires','armes','costumes','maquillage','coiffure','image','electricite','machinerie','son','vehicules','drone','vfx','regie'];
   DEPT_ORDER.forEach(function(d) {
     var note = (f.deptNotes && f.deptNotes[d]) || '';
     h += '<table style="width:100%;border-collapse:collapse;margin-bottom:2px">';
@@ -2664,7 +2801,7 @@ function renderApercu(targetEl) {
   }
 
   // DEPARTEMENTS — tous affichés même vides
-  var DEPT_ORDER = ['decoration','accessoires','armes','costumes','maquillage','coiffure','son','machinerie','vfx','regie'];
+  var DEPT_ORDER = ['mise_en_scene','coach_enfants','decoration','accessoires','armes','costumes','maquillage','coiffure','image','electricite','machinerie','son','vehicules','drone','vfx','regie'];
   DEPT_ORDER.forEach(function(d) {
     var note = (f.deptNotes && f.deptNotes[d]) || '';
     h += '<table style="width:100%;border-collapse:collapse;margin-bottom:2px">';
@@ -2865,6 +3002,7 @@ function openEditComedien(idx) {
   document.getElementById('edit-com-loges').value = c.loges||'';
   document.getElementById('edit-com-pat').value = c.pat||'';
   document.getElementById('edit-com-nbre').value = c.nbre||1;
+  var noteEl2 = document.getElementById('edit-com-note'); if (noteEl2) noteEl2.value = c.note||'';
   openModal('modal-edit-comedien');
 }
 
@@ -2882,11 +3020,25 @@ function saveEditComedien() {
   c.loges = document.getElementById('edit-com-loges').value;
   c.pat   = document.getElementById('edit-com-pat').value;
   c.nbre  = parseInt(document.getElementById('edit-com-nbre').value)||1;
+  var noteEl = document.getElementById('edit-com-note'); if (noteEl) c.note = noteEl.value;
   closeModal('modal-edit-comedien');
-  renderFigurationTab();
-  renderComediensList();
   save();
   toast('Modifié ✓');
+  // Rafraîchir l'onglet actif
+  if (document.getElementById('page-pg-comediens') && document.getElementById('page-pg-comediens').classList.contains('active')) pgRenderComediens();
+  else if (document.getElementById('page-pg-complements') && document.getElementById('page-pg-complements').classList.contains('active')) pgRenderComplements();
+  else if (document.getElementById('page-pg-cascadeurs') && document.getElementById('page-pg-cascadeurs').classList.contains('active')) pgRenderCascadeurs();
+  else { pgRenderComediens(); }
+}
+
+function deleteEditComedien() {
+  var f = activeFDS(); if (!f) return;
+  var idx = parseInt(document.getElementById('edit-com-idx').value);
+  if (!confirm('Supprimer cet élément ?')) return;
+  f.comediens.splice(idx, 1);
+  closeModal('modal-edit-comedien');
+  save(); toast('Supprimé');
+  pgRenderComediens(); pgRenderComplements(); pgRenderCascadeurs();
 }
 
 function removeComedienIdx(idx) {
@@ -3301,6 +3453,7 @@ function navTo(name, btn) {
   if (name === 'pg-comediens') pgRenderComediens();
   if (name === 'pg-complements') pgRenderComplements();
   if (name === 'pg-cascadeurs') pgRenderCascadeurs();
+  if (name === 'pg-vehicules') pgRenderVehicules();
   if (name === 'pg-equipe') pgRenderEquipeTableau();
   if (name === 'pg-convoc') pgRenderConvocations();
   if (name === 'pg-dept') pgRenderDept();
@@ -3417,27 +3570,92 @@ function pgSaveTotalMin() {
   save(); toast('Total enregistré ✓');
 }
 
+function parseDuree(dureeStr) {
+  // Accepte "1'30''" ou "1:30" ou "00'40''" → {min, sec}
+  if (!dureeStr) return {min:0, sec:0};
+  var m;
+  m = dureeStr.match(/(\d+)['\u2019](\d+)/);
+  if (m) return {min:parseInt(m[1]), sec:parseInt(m[2])};
+  m = dureeStr.match(/(\d+):(\d+)/);
+  if (m) return {min:parseInt(m[1]), sec:parseInt(m[2])};
+  m = dureeStr.match(/(\d+)/);
+  if (m) return {min:0, sec:parseInt(m[1])};
+  return {min:0, sec:0};
+}
+
+function formatDuree(min, sec) {
+  return min + "'" + String(sec).padStart(2,'0') + "''";
+}
+
 function ouvrirModalAjoutSeq() {
   var f = activeFDS(); if (!f) return;
-  // Réutiliser le modal existant de séquence ou créer simple prompt
-  var num = prompt('Numéro de séquence :');
-  if (!num) return;
-  if (!f.sequences) f.sequences = [];
-  f.sequences.push({num:num.trim(), effet:'', decor:'', resume:'', roles:'', duree:'', cont:''});
-  save(); pgRenderSequences();
+  document.getElementById('edit-seq-idx').value = '-1';
+  document.getElementById('edit-seq-num').value = '';
+  document.getElementById('edit-seq-effet').value = '';
+  document.getElementById('edit-seq-decor').value = '';
+  document.getElementById('edit-seq-resume').value = '';
+  document.getElementById('edit-seq-roles').value = '';
+  document.getElementById('edit-seq-cont').value = '';
+  document.getElementById('edit-seq-min').value = '0';
+  document.getElementById('edit-seq-sec').value = '00';
+  document.getElementById('edit-seq-eqb').checked = false;
+  document.getElementById('edit-seq-duree-preview').textContent = '';
+  openModal('modal-edit-seq');
 }
 
 function ouvrirEditSeq(idx) {
   var f = activeFDS(); if (!f) return;
   var s = (f.sequences||[])[idx]; if (!s) return;
-  // Pré-remplir le modal de séquence existant
-  var fields = ['num','effet','decor','resume','roles','duree','cont'];
-  fields.forEach(function(k) {
-    var el = document.getElementById('sq-' + (k==='num'?'num':k==='duree'?'duree':k==='cont'?'continuite':k));
-    if (el) el.value = s[k]||'';
-  });
-  document.getElementById('sq-edit-idx') && (document.getElementById('sq-edit-idx').value = idx);
-  openModal('modal-seq');
+  document.getElementById('edit-seq-idx').value = idx;
+  document.getElementById('edit-seq-num').value = s.num||'';
+  document.getElementById('edit-seq-effet').value = s.effet||'';
+  document.getElementById('edit-seq-decor').value = s.decor||'';
+  document.getElementById('edit-seq-resume').value = s.resume||'';
+  document.getElementById('edit-seq-roles').value = s.roles||'';
+  document.getElementById('edit-seq-cont').value = s.cont||'';
+  document.getElementById('edit-seq-eqb').checked = s.eqb||false;
+  var d = parseDuree(s.duree||'');
+  document.getElementById('edit-seq-min').value = String(d.min);
+  document.getElementById('edit-seq-sec').value = String(d.sec).padStart(2,'0');
+  document.getElementById('edit-seq-duree-preview').textContent = s.duree||'';
+  openModal('modal-edit-seq');
+}
+
+function saveEditSeq() {
+  var f = activeFDS(); if (!f) return;
+  var idx = parseInt(document.getElementById('edit-seq-idx').value);
+  var min = parseInt(document.getElementById('edit-seq-min').value)||0;
+  var sec = parseInt(document.getElementById('edit-seq-sec').value)||0;
+  var duree = (min||sec) ? formatDuree(min,sec) : '';
+  var data = {
+    num:    document.getElementById('edit-seq-num').value.trim(),
+    effet:  document.getElementById('edit-seq-effet').value,
+    decor:  document.getElementById('edit-seq-decor').value.trim(),
+    resume: document.getElementById('edit-seq-resume').value.trim(),
+    roles:  document.getElementById('edit-seq-roles').value.trim(),
+    cont:   document.getElementById('edit-seq-cont').value.trim(),
+    duree:  duree,
+    eqb:    document.getElementById('edit-seq-eqb').checked
+  };
+  if (!data.num) { toast('Numéro de séquence requis'); return; }
+  if (!f.sequences) f.sequences = [];
+  if (idx === -1) {
+    f.sequences.push(data);
+  } else {
+    f.sequences[idx] = data;
+  }
+  closeModal('modal-edit-seq');
+  save(); toast('Séquence enregistrée ✓');
+  pgRenderSequences();
+}
+
+function deleteEditSeq() {
+  var f = activeFDS(); if (!f) return;
+  var idx = parseInt(document.getElementById('edit-seq-idx').value);
+  if (idx < 0 || !confirm('Supprimer cette séquence ?')) return;
+  f.sequences.splice(idx,1);
+  closeModal('modal-edit-seq');
+  save(); pgRenderSequences();
 }
 
 // ── PAGE COMEDIENS ────────────────────────────────────────────
@@ -4078,6 +4296,134 @@ function saveCascadeNote(dept) {
   toast('Note enregistrée ✓');
 }
 
+
+// ── PAGE VÉHICULES ─────────────────────────────────────────────
+function pgRenderVehicules() {
+  pgSetSub('pg-vehicules-sub');
+  var f = activeFDS(); if (!f) return;
+  if (!f.vehicules) f.vehicules = [];
+  if (!f.charrettes) f.charrettes = [];
+
+  // Charger les coordonnées
+  var coordEl = document.getElementById('pg-vehicules-coord');
+  var charCoordEl = document.getElementById('pg-charrettes-coord');
+  if (coordEl) coordEl.value = f.vehicules_coord||'';
+  if (charCoordEl) charCoordEl.value = f.charrettes_coord||'';
+
+  var pdtJdt = typeof PDT_DATA!=='undefined' ? PDT_DATA.find(function(j){return j.jdt===f.jdt;}) : null;
+  var allSeqs = pdtJdt ? pdtJdt.sequences : [];
+
+  function seqHeader(rowId, bg) {
+    var h = '';
+    if (!allSeqs.length) return;
+    allSeqs.forEach(function(s) {
+      var isEqB = s.toUpperCase().replace(/[\s.]/g,'').indexOf('EQB')!==-1;
+      h += '<th style="padding:2px 3px;border:1px solid #ccc;font-size:9px;text-align:center;white-space:nowrap;background:'+bg+';'+(isEqB?'color:#1565c0;font-style:italic':'')+'">'+(isEqB?'EqB':s)+'</th>';
+    });
+    document.getElementById(rowId).innerHTML = h;
+  }
+  seqHeader('veh-seq-header-row2','#f5f0ff');
+  seqHeader('char-seq-header-row2','#f0f5ff');
+
+  // MAJ colspan du header séquences
+  var vehSeqHdr = document.getElementById('veh-seq-header');
+  if (vehSeqHdr && allSeqs.length) vehSeqHdr.setAttribute('colspan', allSeqs.length);
+
+  function seqCols(v) {
+    if (!allSeqs.length) return '<td style="padding:4px;border:1px solid #ddd;text-align:center;font-size:10px">'+(v.seqs||'')+'</td>';
+    var vSeqs = (v.seqs||'').split(/[\s,]+/).map(function(s){return s.trim().replace(/[\s.]/g,'').toUpperCase();}).filter(Boolean);
+    var cells = '';
+    allSeqs.forEach(function(s) {
+      var sKey = s.trim().replace(/[\s.]/g,'').toUpperCase();
+      var isEqB = sKey.indexOf('EQB')!==-1;
+      var present = vSeqs.some(function(vs){return vs===sKey||vs.replace(/[^A-Z0-9]/g,'')===sKey.replace(/[^A-Z0-9]/g,'');});
+      cells += '<td style="padding:2px;border:1px solid #ddd;text-align:center;font-size:9px;font-weight:700;'+(isEqB&&present?'color:#1565c0':'')+'">'+(present?(isEqB?'EqB':s):' ')+'</td>';
+    });
+    return cells;
+  }
+
+  function renderTable(list, tbId, totalId, type) {
+    var tb = document.getElementById(tbId); if (!tb) return;
+    var total = list.reduce(function(s,v){return s+(parseInt(v.nbre)||1);},0);
+    var totalEl = document.getElementById(totalId);
+    if (totalEl) totalEl.textContent = total + ' TOTAL';
+    if (!list.length) {
+      var cols = 6 + allSeqs.length;
+      tb.innerHTML = '<tr><td colspan="'+cols+'" style="padding:10px;text-align:center;color:#999;font-size:12px">Aucun véhicule — cliquez +</td></tr>';
+      return;
+    }
+    tb.innerHTML = list.map(function(v, i) {
+      return '<tr>'+
+        '<td style="padding:4px;border:1px solid #ddd;text-align:center;font-weight:700;color:var(--purple)">'+(v.nbre||1)+'</td>'+
+        '<td style="padding:4px;border:1px solid #ddd;font-size:11px">'+(v.nom||'')+'</td>'+
+        seqCols(v)+
+        '<td style="padding:4px;border:1px solid #ddd;text-align:center;font-size:11px">'+(fmtTime(v.sp)||'—')+'</td>'+
+        '<td style="padding:4px;border:1px solid #ddd;text-align:center;font-size:11px;font-weight:700">'+(fmtTime(v.pat)||'—')+'</td>'+
+        '<td style="padding:2px;border:1px solid #ddd;text-align:center">'+
+          '<button onclick="ouvrirModalVehicule('+i+',\''+type+'\')" style="background:none;border:none;cursor:pointer;padding:2px">'+
+          '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px">'+
+          '<path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>'+
+          '<path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>'+
+        '</td>'+
+      '</tr>';
+    }).join('');
+  }
+
+  renderTable(f.vehicules, 'pg-tbody-vehicules', 'pg-vehicules-total', 'vehicule');
+  renderTable(f.charrettes, 'pg-tbody-charrettes', 'pg-charrettes-total', 'charrette');
+}
+
+function saveVehiculesCoord() {
+  var f = activeFDS(); if (!f) return;
+  var c1 = document.getElementById('pg-vehicules-coord'); if(c1) f.vehicules_coord = c1.value;
+  var c2 = document.getElementById('pg-charrettes-coord'); if(c2) f.charrettes_coord = c2.value;
+  save(); toast('Coordonnées enregistrées ✓');
+}
+
+function ouvrirModalVehicule(idx, type) {
+  var f = activeFDS(); if (!f) return;
+  var list = (type==='charrette') ? (f.charrettes||[]) : (f.vehicules||[]);
+  var v = idx >= 0 ? list[idx] : null;
+  document.getElementById('veh-modal-idx').value = idx;
+  document.getElementById('veh-modal-type').value = type||'vehicule';
+  document.getElementById('veh-modal-nbre').value = v ? (v.nbre||1) : 1;
+  document.getElementById('veh-modal-nom').value = v ? (v.nom||'') : '';
+  document.getElementById('veh-modal-seqs').value = v ? (v.seqs||'') : '';
+  document.getElementById('veh-modal-sp').value = v ? (v.sp||'') : '';
+  document.getElementById('veh-modal-pat').value = v ? (v.pat||'') : '';
+  document.getElementById('veh-modal-note').value = v ? (v.note||'') : '';
+  openModal('modal-edit-vehicule');
+}
+
+function saveVehicule() {
+  var f = activeFDS(); if (!f) return;
+  var idx = parseInt(document.getElementById('veh-modal-idx').value);
+  var type = document.getElementById('veh-modal-type').value;
+  var list = type==='charrette' ? f.charrettes : f.vehicules;
+  if (!list) { if(type==='charrette') f.charrettes=[]; else f.vehicules=[]; list=type==='charrette'?f.charrettes:f.vehicules; }
+  var data = {
+    nbre: parseInt(document.getElementById('veh-modal-nbre').value)||1,
+    nom:  document.getElementById('veh-modal-nom').value.trim(),
+    seqs: document.getElementById('veh-modal-seqs').value.trim(),
+    sp:   document.getElementById('veh-modal-sp').value,
+    pat:  document.getElementById('veh-modal-pat').value,
+    note: document.getElementById('veh-modal-note').value.trim()
+  };
+  if (!data.nom) { toast('Nom du véhicule requis'); return; }
+  if (idx < 0) list.push(data); else list[idx] = data;
+  closeModal('modal-edit-vehicule');
+  save(); toast('Véhicule enregistré ✓'); pgRenderVehicules();
+}
+
+function deleteVehicule() {
+  var f = activeFDS(); if (!f) return;
+  var idx = parseInt(document.getElementById('veh-modal-idx').value);
+  var type = document.getElementById('veh-modal-type').value;
+  if (idx < 0 || !confirm('Supprimer ?')) return;
+  var list = type==='charrette' ? f.charrettes : f.vehicules;
+  list.splice(idx,1);
+  closeModal('modal-edit-vehicule'); save(); pgRenderVehicules();
+}
 
 // ═══════════════════════ IMPORT PDT / DÉPOUILLEMENT ═══════════════════════
 
