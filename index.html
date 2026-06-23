@@ -2080,41 +2080,65 @@ function renderApercu(targetEl) {
   var figurants = allCom.filter(function(c){ return c.type==='figurant'; });
 
   if (roles.length) {
-    h += '<table style="width:100%;border-collapse:collapse;margin-bottom:3px">';
+    // Séquences du PDT pour ce jour
+    var pdtJdt = typeof PDT_DATA !== 'undefined' ? PDT_DATA.find(function(j){ return j.jdt===f.jdt; }) : null;
+    var allSeqs = pdtJdt ? pdtJdt.sequences : [];
+    if (!allSeqs.length) {
+      var seqSet = {};
+      roles.forEach(function(c){ (c.seqs||'').split(',').forEach(function(s){ var t=s.trim(); if(t) seqSet[t]=1; }); });
+      allSeqs = Object.keys(seqSet);
+    }
     var hasLoges = roles.some(function(c){ return c.loges; });
-    h += '<caption style="caption-side:top;text-align:left;font-size:9px;font-weight:700;padding:3px 0">COM\u00c9DIENS ' + pencilInline("goToTab(\'comediens\')","les com\u00e9diens") + '</caption>';
-    h += '<tr>'+th('N\u00b0','35px')+th('R\u00d4LES ('+roles.length+')')+th('COM\u00c9DIENS')+
-         th('S\u00c9QUENCES')+th('HMC','60px')+(hasLoges?th('D\u00e9part Loges','70px'):'')+th('PAT','55px')+'</tr>';
+    var csz = isMobile ? '6px' : '8px';
+    h += '<table style="width:100%;border-collapse:collapse;margin-bottom:3px">';
+    h += '<caption style="caption-side:top;text-align:left;font-size:9px;font-weight:700;padding:3px 0">COMÉDIENS ' + pencilInline("goToTab(\'comediens\')", "les comédiens") + '</caption>';
+    h += '<tr style="background:#f0f0f0">';
+    h += th('N°','28px') + th('RÔLES ('+roles.length+')') + th('COMÉDIENS');
+    allSeqs.forEach(function(s){ h += '<th style="padding:2px 3px;border:1px solid #999;font-size:'+csz+';text-align:center;white-space:nowrap">'+s+'</th>'; });
+    h += '<th style="padding:2px;border:1px solid #999;font-size:'+csz+'">-</th>';
+    h += th('HMC','50px');
+    if (hasLoges) h += th('Dép. Loges','60px');
+    h += th('PAT','48px') + '</tr>';
     roles.forEach(function(c) {
       var cidx = (f.comediens||[]).indexOf(c);
-      h += '<tr>'+td(c.num,'',false,true)+td(c.role,'',true,false)+td(c.nom,'',false,false)+
-           td(c.seqs,'',false,true)+td(fmtTime(c.hmc),'',false,true)+(hasLoges?td(fmtTime(c.loges),'',false,true):'')+td(fmtTime(c.pat),'',true,true)+
-           '<td style="padding:2px;border:1px solid #999;text-align:center">' + pencilInline('openEditComedien('+cidx+')',c.role) + '</td>'+'</tr>';
+      var comSeqs = (c.seqs||'').split(',').map(function(s){return s.trim();}).filter(Boolean);
+      h += '<tr>';
+      h += td(c.num,'',false,true) + td(c.role,'',true,false) + td(c.nom,'',false,false);
+      allSeqs.forEach(function(s){
+        var present = comSeqs.some(function(cs){ return cs===s || cs.replace(/\s/g,'')===s.replace(/\s/g,''); });
+        h += '<td style="padding:2px;border:1px solid #999;font-size:'+csz+';text-align:center;font-weight:700">'+(present?s:'')+'</td>';
+      });
+      h += '<td style="padding:2px;border:1px solid #999;font-size:'+csz+';text-align:center">-</td>';
+      h += td(fmtTime(c.hmc)||'-','',false,true);
+      if (hasLoges) h += td(fmtTime(c.loges)||'-','',false,true);
+      h += td(fmtTime(c.pat)||'-','',true,true);
+      h += '<td style="padding:2px;border:1px solid #999;text-align:center">'+pencilInline('openEditComedien('+cidx+')',c.role)+'</td>';
+      h += '</tr>';
     });
     h += '</table>';
   }
   if (doublures.length) {
     var pdtD = typeof PDT_DATA !== 'undefined' ? PDT_DATA.find(function(j){ return j.jdt===f.jdt; }) : null;
     var seqsD = pdtD ? pdtD.sequences : (allSeqs||[]);
-    var csD = isMobile ? '6px' : '8px';
+    var csd = isMobile ? '6px' : '8px';
     h += '<table style="width:100%;border-collapse:collapse;margin-bottom:2px">';
-    h += '<caption style="caption-side:top;text-align:left;font-size:8px;font-style:italic;padding:2px 0">*Préparation des doublures à la loge rôles</caption>';
-    h += '<tr style="background:#e8e8e8">'+th('N°','28px')+th('DOUBLURES* ('+doublures.length+')')+th('NOMS');
-    seqsD.forEach(function(s){ h += '<th style="padding:2px 3px;border:1px solid #999;font-size:'+csD+';text-align:center">'+s+'</th>'; });
-    h += th('MeP','50px')+th('HMC','55px')+th('PAT','50px')+'</tr>';
+    h += '<caption style="caption-side:top;text-align:left;font-size:8px;font-style:italic;color:#c00;padding:2px 0">*Préparation des doublures à la loge rôles</caption>';
+    h += '<tr style="background:#e8e8e8">';
+    h += th('N°','28px') + th('DOUBLURES* ('+doublures.length+')') + th('NOMS');
+    seqsD.forEach(function(s){ h += '<th style="padding:2px 3px;border:1px solid #999;font-size:'+csd+';text-align:center">'+s+'</th>'; });
+    h += th('MeP','48px') + th('HMC','50px') + th('PAT','48px') + '</tr>';
     doublures.forEach(function(c) {
-      var dSeqs = (c.seqs||'').split(/[,\s]+/).map(function(s){return s.trim();}).filter(Boolean);
+      var dSeqs = (c.seqs||'').split(',').map(function(s){return s.trim();}).filter(Boolean);
       h += '<tr>';
-      h += td(c.num,'',false,true)+td(c.role,'',false,false)+td(c.nom,'',false,false);
+      h += td(c.num,'',false,true) + td(c.role,'',false,false) + td(c.nom,'',false,false);
       seqsD.forEach(function(s){
-        var present = dSeqs.some(function(ds){ return ds===s||ds.indexOf(s)>=0||s.indexOf(ds)>=0; });
-        h += '<td style="padding:2px;border:1px solid #999;font-size:'+csD+';text-align:center;font-weight:700">'+(present?s:'')+'</td>';
+        var present = dSeqs.some(function(ds){ return ds===s || ds.replace(/\s/g,'')===s.replace(/\s/g,''); });
+        h += '<td style="padding:2px;border:1px solid #999;font-size:'+csd+';text-align:center;font-weight:700">'+(present?s:'')+'</td>';
       });
-      h += td(fmtTime(c.mep)||'-','',false,true)+td(fmtTime(c.hmc)||'-','',false,true)+td(fmtTime(c.pat)||'-','',true,true);
+      h += td(fmtTime(c.mep)||'-','',false,true) + td(fmtTime(c.hmc)||'-','',false,true) + td(fmtTime(c.pat)||'-','',true,true);
       h += '</tr>';
     });
     h += '</table>';
-    h += '<div style="font-size:8px;font-style:italic;color:#c00;margin-bottom:4px">*Pr\u00e9paration des doublures \u00e0 la loge r\u00f4les</div>';
   }
   if (silhouettes.length) {
     h += '<table style="width:100%;border-collapse:collapse;margin-bottom:2px">';
