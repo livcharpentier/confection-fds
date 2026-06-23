@@ -2101,12 +2101,24 @@ function renderApercu(targetEl) {
     h += '</table>';
   }
   if (doublures.length) {
+    var pdtD = typeof PDT_DATA !== 'undefined' ? PDT_DATA.find(function(j){ return j.jdt===f.jdt; }) : null;
+    var seqsD = pdtD ? pdtD.sequences : (allSeqs||[]);
+    var csD = isMobile ? '6px' : '8px';
     h += '<table style="width:100%;border-collapse:collapse;margin-bottom:2px">';
-    h += '<tr>'+th('N\u00b0','35px')+th('DOUBLURES* ('+doublures.length+')')+th('NOMS')+
-         th('S\u00c9QUENCES')+th('HMC','60px')+th('Départ Loges','60px')+th('PAT','55px')+'</tr>';
+    h += '<caption style="caption-side:top;text-align:left;font-size:8px;font-style:italic;padding:2px 0">*Préparation des doublures à la loge rôles</caption>';
+    h += '<tr style="background:#e8e8e8">'+th('N°','28px')+th('DOUBLURES* ('+doublures.length+')')+th('NOMS');
+    seqsD.forEach(function(s){ h += '<th style="padding:2px 3px;border:1px solid #999;font-size:'+csD+';text-align:center">'+s+'</th>'; });
+    h += th('MeP','50px')+th('HMC','55px')+th('PAT','50px')+'</tr>';
     doublures.forEach(function(c) {
-      h += '<tr>'+td(c.num,'',false,true)+td(c.role,'',false,false)+td(c.nom,'',false,false)+
-           td(c.seqs,'',false,true)+td(fmtTime(c.hmc),'',false,true)+td(fmtTime(c.loges),'',false,true)+td(fmtTime(c.pat),'',true,true)+'</tr>';
+      var dSeqs = (c.seqs||'').split(/[,\s]+/).map(function(s){return s.trim();}).filter(Boolean);
+      h += '<tr>';
+      h += td(c.num,'',false,true)+td(c.role,'',false,false)+td(c.nom,'',false,false);
+      seqsD.forEach(function(s){
+        var present = dSeqs.some(function(ds){ return ds===s||ds.indexOf(s)>=0||s.indexOf(ds)>=0; });
+        h += '<td style="padding:2px;border:1px solid #999;font-size:'+csD+';text-align:center;font-weight:700">'+(present?s:'')+'</td>';
+      });
+      h += td(fmtTime(c.mep)||'-','',false,true)+td(fmtTime(c.hmc)||'-','',false,true)+td(fmtTime(c.pat)||'-','',true,true);
+      h += '</tr>';
     });
     h += '</table>';
     h += '<div style="font-size:8px;font-style:italic;color:#c00;margin-bottom:4px">*Pr\u00e9paration des doublures \u00e0 la loge r\u00f4les</div>';
@@ -2377,12 +2389,24 @@ function renderApercu(targetEl) {
     h += '</table>';
   }
   if (doublures.length) {
+    var pdtD = typeof PDT_DATA !== 'undefined' ? PDT_DATA.find(function(j){ return j.jdt===f.jdt; }) : null;
+    var seqsD = pdtD ? pdtD.sequences : (allSeqs||[]);
+    var csD = isMobile ? '6px' : '8px';
     h += '<table style="width:100%;border-collapse:collapse;margin-bottom:2px">';
-    h += '<tr>'+th('N\u00b0','35px')+th('DOUBLURES* ('+doublures.length+')')+th('NOMS')+
-         th('S\u00c9QUENCES')+th('HMC','60px')+th('Départ Loges','60px')+th('PAT','55px')+'</tr>';
+    h += '<caption style="caption-side:top;text-align:left;font-size:8px;font-style:italic;padding:2px 0">*Préparation des doublures à la loge rôles</caption>';
+    h += '<tr style="background:#e8e8e8">'+th('N°','28px')+th('DOUBLURES* ('+doublures.length+')')+th('NOMS');
+    seqsD.forEach(function(s){ h += '<th style="padding:2px 3px;border:1px solid #999;font-size:'+csD+';text-align:center">'+s+'</th>'; });
+    h += th('MeP','50px')+th('HMC','55px')+th('PAT','50px')+'</tr>';
     doublures.forEach(function(c) {
-      h += '<tr>'+td(c.num,'',false,true)+td(c.role,'',false,false)+td(c.nom,'',false,false)+
-           td(c.seqs,'',false,true)+td(fmtTime(c.hmc),'',false,true)+td(fmtTime(c.loges),'',false,true)+td(fmtTime(c.pat),'',true,true)+'</tr>';
+      var dSeqs = (c.seqs||'').split(/[,\s]+/).map(function(s){return s.trim();}).filter(Boolean);
+      h += '<tr>';
+      h += td(c.num,'',false,true)+td(c.role,'',false,false)+td(c.nom,'',false,false);
+      seqsD.forEach(function(s){
+        var present = dSeqs.some(function(ds){ return ds===s||ds.indexOf(s)>=0||s.indexOf(ds)>=0; });
+        h += '<td style="padding:2px;border:1px solid #999;font-size:'+csD+';text-align:center;font-weight:700">'+(present?s:'')+'</td>';
+      });
+      h += td(fmtTime(c.mep)||'-','',false,true)+td(fmtTime(c.hmc)||'-','',false,true)+td(fmtTime(c.pat)||'-','',true,true);
+      h += '</tr>';
     });
     h += '</table>';
     h += '<div style="font-size:8px;font-style:italic;color:#c00;margin-bottom:4px">*Pr\u00e9paration des doublures \u00e0 la loge r\u00f4les</div>';
