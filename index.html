@@ -475,6 +475,15 @@ textarea.form-input{resize:vertical;min-height:72px;}
         <div class="card-title">Note à l'équipe</div>
         <textarea class="form-input" id="pg-note" rows="4" placeholder="Message pour l'équipe..."></textarea>
       </div>
+      <div class="card" style="border:2px solid #1565c0;margin-bottom:8px">
+        <div class="card-title" style="color:#1565c0">🎬 Équipe B</div>
+        <div class="form-row-inline"><span class="form-label" style="color:#1565c0">PAT EqB</span><input class="form-input" id="pg-eqb-pat" type="time" style="max-width:110px"/></div>
+        <div class="form-row-inline"><span class="form-label" style="color:#1565c0">Horaires</span><input class="form-input" id="pg-eqb-debut" type="time" style="max-width:100px"/><span style="padding:0 4px;color:#1565c0">→</span><input class="form-input" id="pg-eqb-fin" type="time" style="max-width:100px"/></div>
+        <div class="form-row" style="margin-top:6px"><label class="form-label" style="color:#1565c0">Séquences EqB</label><input class="form-input" id="pg-eqb-seqs" placeholder="91P1 (EQ.B), 93..."/></div>
+        <div class="form-row"><label class="form-label" style="color:#1565c0">Lieu / Décor EqB</label><input class="form-input" id="pg-eqb-lieu" placeholder="Route de campagne – sous-bois"/></div>
+        <div class="form-row"><label class="form-label" style="color:#1565c0">Intervenants EqB</label><textarea class="form-input" id="pg-eqb-intervenants" rows="2" placeholder="Coordinateur cascades : David Julienne&#10;Dronistes : Robin Collin..."></textarea></div>
+        <div class="form-row"><label class="form-label" style="color:#1565c0">Note EqB</label><textarea class="form-input" id="pg-eqb-note" rows="2" placeholder="Plans séquence poursuite, drone séq. 4B..."></textarea></div>
+      </div>
       <button class="btn btn-primary btn-block" onclick="pgSaveInfos()" style="margin-top:4px">Enregistrer</button>
     </div>
   </div>
@@ -2129,6 +2138,37 @@ function renderApercu(targetEl) {
     h += '</table>';
   }
 
+  // BLOC ÉQUIPE B (si renseigné dans les infos)
+  var eqb = (i && i.eqb) ? i.eqb : {};
+  var hasEqB = eqb.pat || eqb.seqs || eqb.lieu || eqb.intervenants || eqb.note;
+  // Détecter aussi les séquences EqB depuis le PDT
+  var pdtEqBseqs = [];
+  if (typeof PDT_DATA !== 'undefined') {
+    var pdtCurr = PDT_DATA.find(function(j){ return j.jdt===f.jdt; });
+    if (pdtCurr) {
+      pdtEqBseqs = pdtCurr.sequences.filter(function(s){ return s.toUpperCase().replace(/[\s.]/g,'').indexOf('EQB')!==-1||s.toUpperCase().indexOf('DRONISTE')!==-1; });
+    }
+  }
+  if (hasEqB || pdtEqBseqs.length) {
+    h += '<div style="border:2px solid #1565c0;border-radius:4px;margin-bottom:8px;overflow:hidden">';
+    h += '<div style="background:#1565c0;color:#fff;padding:4px 10px;font-size:9px;font-weight:800;display:flex;justify-content:space-between;align-items:center">';
+    h += '<span>🎬 ÉQUIPE B</span>';
+    if (eqb.pat) h += '<span>PAT : '+fmtTime(eqb.pat)+'</span>';
+    if (eqb.debut && eqb.fin) h += '<span>'+fmtTime(eqb.debut)+' – '+fmtTime(eqb.fin)+'</span>';
+    h += '</div>';
+    h += '<div style="padding:5px 8px;font-size:8.5px">';
+    if (eqb.seqs || pdtEqBseqs.length) {
+      var seqsList = eqb.seqs || pdtEqBseqs.join(', ');
+      h += '<div style="margin-bottom:3px"><b style="color:#1565c0">Séquences :</b> <span style="color:#1565c0;font-weight:700">'+seqsList+'</span></div>';
+    }
+    if (eqb.lieu) h += '<div style="margin-bottom:3px"><b>Lieu :</b> '+eqb.lieu+'</div>';
+    if (eqb.intervenants) {
+      h += '<div style="margin-bottom:3px"><b>Intervenants :</b><br><span style="white-space:pre-line;color:#333">'+eqb.intervenants+'</span></div>';
+    }
+    if (eqb.note) h += '<div style="font-style:italic;color:#555">'+eqb.note+'</div>';
+    h += '</div></div>';
+  }
+
   // COMEDIENS par type
   var allCom = f.comediens || [];
   var roles = allCom.filter(function(c){ return !c.type || c.type==='comedien'; });
@@ -3183,6 +3223,13 @@ function pgLoadInfos() {
   var cm = document.getElementById('pg-crep-m'); if(cm) cm.value = i.crep_m||'';
   var cs = document.getElementById('pg-crep-s'); if(cs) cs.value = i.crep_s||'';
   var note = document.getElementById('pg-note'); if(note) note.value = i.note||'';
+  // Équipe B
+  var eqb = i.eqb || {};
+  var eqbFields = ['pat','debut','fin','seqs','lieu','intervenants','note'];
+  eqbFields.forEach(function(k){
+    var el = document.getElementById('pg-eqb-'+k);
+    if (el) el.value = eqb[k]||'';
+  });
   pgRenderLieux();
   var titleEl = document.getElementById('pg-infos-title');
   if (titleEl) titleEl.textContent = 'Infos ' + (i.journee||'');
@@ -3198,6 +3245,13 @@ function pgSaveInfos() {
   var cm = document.getElementById('pg-crep-m'); if(cm) f.infos.crep_m = cm.value;
   var cs = document.getElementById('pg-crep-s'); if(cs) f.infos.crep_s = cs.value;
   var note = document.getElementById('pg-note'); if(note) f.infos.note = note.value;
+  // Équipe B
+  if (!f.infos.eqb) f.infos.eqb = {};
+  var eqbFields = ['pat','debut','fin','seqs','lieu','intervenants','note'];
+  eqbFields.forEach(function(k){
+    var el = document.getElementById('pg-eqb-'+k);
+    if (el) f.infos.eqb[k] = el.value;
+  });
   document.querySelectorAll('.pg-lieu-val').forEach(function(inp,idx){ if(f.lieux[idx]) f.lieux[idx].valeur=inp.value; });
   document.querySelectorAll('.pg-lieu-label').forEach(function(inp,idx){ if(f.lieux[idx]) f.lieux[idx].label=inp.value; });
   save(); toast('Enregistré ✓');
