@@ -4850,7 +4850,7 @@ function parseScenarioPdfText(text) {
   var lines = text.split('\n');
   var scenes = [];
   var current = null;
-  var sceneHeaderRe = /^(\d+(?:\s*(?:BIS\s*[A-D]?|TER\s*[A-D]?|P\d+|[A-D]))?)\s{3,}(.*(?:INT\b|EXT\b|I\.E\b|I\/E\b|I-E\b|JOUR|NUIT|SOIR|MATIN|CR.P).*)/i;
+  var sceneHeaderRe = /^(\d+(?:\s*(?:BIS\s*[A-D]?|TER\s*[A-D]?|P\d+|ET\s+\d+|[A-D]))?(?:\s+(?:BIS|TER))?)\ {3,}(.*(?:INT\b|EXT\b|I\.E\b|I\/E\b|I-E\b|JOUR|NUIT|SOIR|MATIN|CR.P|SUPPRIM|D.PLAC).*)/i;
 
   for (var i = 0; i < lines.length; i++) {
     var line = lines[i];
