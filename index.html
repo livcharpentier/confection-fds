@@ -4155,31 +4155,64 @@ function switchApercuTab(tab) {
 function renderConvocationsApercu(targetEl) {
   var el = targetEl || document.getElementById('apercu-convoc-content');
   if (!el) return;
+
+  // Assurer film actif
   if (!activeFilmId && state.films && state.films.length) activeFilmId = state.films[0].id;
-  var f = activeFDS(); var film = activeFilm();
-  if (!f) { el.innerHTML = '<div class="empty">Sélectionnez une journée</div>'; return; }
+
+  // Assurer FDS active — prendre la dernière du film si aucune
+  if (!activeFdsId || !activeFDS()) {
+    var allFds = (state.fds||[]).filter(function(x){ return x.filmId===activeFilmId; });
+    if (allFds.length) activeFdsId = allFds[allFds.length-1].id;
+  }
+
+  var f = activeFDS();
+  var film = activeFilm();
+
+  if (!f) {
+    el.innerHTML = '<div style="padding:20px;text-align:center;color:#999">Aucune journée disponible.<br>Importez ou créez une journée d\'abord.</div>';
+    return;
+  }
+
   var i = f.infos||{};
-  var h = '<div style="text-align:center;font-weight:700;font-size:14px;margin-bottom:4px">'+(film?film.nom:'')+'</div>';
+  var h = '';
+  h += '<div style="text-align:center;font-weight:700;font-size:14px;margin-bottom:4px">'+(film?film.nom:'LES ENFANTS DE LA RÉSISTANCE')+'</div>';
   h += '<div style="text-align:center;font-size:12px;color:var(--text-muted);margin-bottom:6px">CONVOCATIONS – '+(i.date||'').toUpperCase()+' – '+(i.journee||'')+'</div>';
-  h += '<div style="text-align:center;font-size:13px;font-weight:700;margin-bottom:14px">PAT : '+(fmtTime(i.pat)||'—')+'</div>';
-  // Utiliser EQUIPE_FIXE si pas d'équipe dans la FDS
-  var equipe = (f.equipe && Object.values(f.equipe).some(function(v){return v&&v.length;})) ? f.equipe : EQUIPE_FIXE;
+  h += '<div style="text-align:center;font-size:13px;font-weight:700;margin-bottom:14px">PAT : '+(fmtTime(i.pat)||'—')+'</div>';
+
+  // Équipe : EQUIPE_FIXE comme base + surcharges de la FDS (heures modifiées, renforts)
+  var equipeBase = (typeof EQUIPE_FIXE !== 'undefined') ? EQUIPE_FIXE : {};
+  var equipeFds  = f.equipe || {};
+  var equipeFinale = {};
+  Object.keys(EQUIPE_DEPT_LABELS).forEach(function(dept) {
+    var base = (equipeBase[dept]||[]).map(function(m){ return Object.assign({},m); });
+    var fdsM = equipeFds[dept]||[];
+    fdsM.forEach(function(fm) {
+      var found = base.find(function(b){ return b.nom===fm.nom; });
+      if (found) { if (fm.heure) found.heure = fm.heure; }
+      else base.push(fm);
+    });
+    equipeFinale[dept] = base;
+  });
+
+  var hasRows = false;
   Object.keys(EQUIPE_DEPT_LABELS).forEach(function(dept){
-    var membres = (equipe[dept])||[];
+    var membres = equipeFinale[dept]||[];
     if (!membres.length) return;
+    hasRows = true;
     h += '<div style="margin-bottom:10px">';
     h += '<div style="background:var(--purple);color:#fff;padding:5px 10px;font-size:11px;font-weight:700;border-radius:var(--radius-sm) var(--radius-sm) 0 0">'+(EQUIPE_DEPT_LABELS[dept]||dept).toUpperCase()+'</div>';
     h += '<table style="width:100%;border-collapse:collapse;font-size:11px">';
     membres.forEach(function(m){
       h += '<tr>'+
-        '<td style="padding:5px 8px;border:1px solid #ddd;border-top:none">'+m.poste+'</td>'+
-        '<td style="padding:5px 8px;border:1px solid #ddd;border-top:none;font-weight:600">'+m.nom+'</td>'+
+        '<td style="padding:5px 8px;border:1px solid #ddd;border-top:none">'+(m.poste||'')+'</td>'+
+        '<td style="padding:5px 8px;border:1px solid #ddd;border-top:none;font-weight:600">'+(m.nom||'')+'</td>'+
         '<td style="padding:5px 8px;border:1px solid #ddd;border-top:none;color:#666;font-size:10px">'+(m.tel||'')+'</td>'+
         '<td style="padding:5px 8px;border:1px solid #ddd;border-top:none;font-weight:700;color:var(--purple);text-align:center;white-space:nowrap">'+(m.heure||'Own Call')+'</td>'+
       '</tr>';
     });
     h += '</table></div>';
   });
+  if (!hasRows) h += '<div style="padding:16px;text-align:center;color:#999;font-size:12px">Équipe non renseignée.</div>';
   el.innerHTML = h;
 }
 
