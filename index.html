@@ -4520,130 +4520,144 @@ function renderJourAJour() {
   document.getElementById('jaj-sequences-panel').style.display = 'none';
   document.getElementById('jaj-apercu-panel').style.display = 'none';
 
+  var hasScenario = getScenarioForFilm().length > 0;
+  var subEl = document.getElementById('jaj-sub');
+  if (subEl) subEl.textContent = hasScenario
+    ? 'Scénario chargé — ' + getScenarioForFilm().length + ' séquences'
+    : '⚠ Importez le scénario PDF d\'abord (onglet Import)';
+
   var listEl = document.getElementById('jaj-journees-list');
   if (!listEl) return;
 
-  // Construire la liste des journées depuis PDT + FDS créées
+  // Toutes les journées PDT
   var journees = [];
   if (typeof PDT_DATA !== 'undefined') {
     PDT_DATA.forEach(function(pdt) {
       var fds = (state.fds||[]).find(function(f){ return f.filmId===activeFilmId && f.jdt===pdt.jdt; });
-      var seqs = fds ? (fds.sequences||[]) : [];
+      // Compter combien de séquences ont un texte
+      var seqsAvecTexte = 0;
+      var pdtSeqs = pdt.sequences || [];
+      var sc = getScenarioForFilm();
+      pdtSeqs.forEach(function(num) {
+        var found = sc.find(function(s){ return jajNumMatch(s.num, num); });
+        if (found && found.texte && found.texte.trim()) seqsAvecTexte++;
+      });
       journees.push({
         jdt: pdt.jdt,
         journee: pdt.journee || ('J'+pdt.jdt),
         date: pdt.date || '',
-        sequences: seqs,
-        pdtSeqs: pdt.sequences || [],
-        hasFds: !!fds
+        sequences: pdtSeqs,
+        total: pdtSeqs.length,
+        avecTexte: seqsAvecTexte,
+        fds: fds
       });
     });
   }
-  // Ajouter les FDS sans JDT PDT
-  (state.fds||[]).filter(function(f){ return f.filmId===activeFilmId && !f.jdt; }).forEach(function(f) {
-    journees.push({
-      jdt: f.id,
-      journee: f.infos&&f.infos.journee || '?',
-      date: f.infos&&f.infos.date || '',
-      sequences: f.sequences||[],
-      pdtSeqs: [],
-      hasFds: true
-    });
-  });
 
   if (!journees.length) {
-    listEl.innerHTML = '<div style="color:#999;font-size:12px">Aucune journée dans le PDT.</div>';
+    listEl.innerHTML = '<div style="color:#999;font-size:12px;padding:10px">Aucune journée dans le PDT.</div>';
     return;
   }
 
   listEl.innerHTML = journees.map(function(j) {
-    var nbSeqs = j.sequences.length || j.pdtSeqs.length;
     var active = jajCurrentJdt === j.jdt;
-    var hasContent = j.sequences.some(function(s){ return s.texte && s.texte.trim(); });
-    return '<button onclick="jajSelectJournee(\''+j.jdt+'\')" style="'+
-      'padding:6px 10px;border-radius:8px;border:2px solid '+(active?'var(--purple)':'#ddd')+';'+
+    var pct = j.total ? Math.round(j.avecTexte / j.total * 100) : 0;
+    var color = pct === 100 ? 'var(--green)' : pct > 0 ? 'var(--amber)' : '#ddd';
+    return '<button onclick="jajSelectJournee('+j.jdt+')" style="'+
+      'padding:6px 10px;border-radius:8px;border:2px solid '+(active?'var(--purple)':color)+';'+
       'background:'+(active?'var(--purple-light)':'#fff')+';'+
-      'cursor:pointer;font-size:11px;text-align:center;min-width:60px;position:relative">'+
+      'cursor:pointer;font-size:11px;text-align:center;min-width:58px">'+
       '<div style="font-weight:700;color:'+(active?'var(--purple)':'#333')+'">'+j.journee+'</div>'+
-      '<div style="font-size:9px;color:#888">'+j.date+'</div>'+
-      '<div style="font-size:9px;color:'+(hasContent?'var(--green)':'#aaa')+'">'+(nbSeqs?nbSeqs+' seq':'—')+'</div>'+
-      (hasContent?'<div style="position:absolute;top:-4px;right:-4px;background:var(--green);color:#fff;border-radius:99px;width:12px;height:12px;font-size:8px;display:flex;align-items:center;justify-content:center">✓</div>':'')+
+      '<div style="font-size:9px;color:#888;margin:1px 0">'+j.date+'</div>'+
+      '<div style="font-size:9px;color:'+color+';font-weight:600">'+
+        (j.total ? j.avecTexte+'/'+j.total+' seq' : '—')+
+      '</div>'+
     '</button>';
   }).join('');
 }
 
-function jajSelectJournee(jdt) {
-  jajCurrentJdt = jdt;
-  renderJourAJour(); // rafraîchir les boutons
+function jajNumMatch(scNum, pdtNum) {
+  var a = String(scNum||'').trim().toUpperCase().replace(/\s+/g,'');
+  var b = String(pdtNum||'').trim().toUpperCase().replace(/\s+/g,'');
+  return a === b || a.replace(/[^A-Z0-9]/g,'') === b.replace(/[^A-Z0-9]/g,'');
+}
 
-  var panel = document.getElementById('jaj-sequences-panel');
-  var apercuPanel = document.getElementById('jaj-apercu-panel');
-  panel.style.display = 'block';
-  apercuPanel.style.display = 'none';
-
-  // Trouver la journée
+function jajGetSequencesForJournee(jdt) {
+  // Croiser PDT + scénario, retourner les séquences enrichies
   var pdtJ = typeof PDT_DATA !== 'undefined' ? PDT_DATA.find(function(p){return p.jdt===jdt;}) : null;
   var fds = (state.fds||[]).find(function(f){ return f.filmId===activeFilmId && (f.jdt===jdt||f.id===jdt); });
+  var sc = getScenarioForFilm();
 
-  var journee = (pdtJ&&pdtJ.journee) || (fds&&fds.infos&&fds.infos.journee) || 'Journée';
-  var date = (pdtJ&&pdtJ.date) || (fds&&fds.infos&&fds.infos.date) || '';
-  var titreEl = document.getElementById('jaj-journee-titre');
-  if (titreEl) titreEl.textContent = journee + (date?' — '+date:'');
-
-  // Séquences : depuis FDS si dispo, sinon depuis PDT
-  var sequences = [];
-  if (fds && fds.sequences && fds.sequences.length) {
-    sequences = fds.sequences;
-  } else if (pdtJ && pdtJ.sequences) {
-    sequences = pdtJ.sequences.map(function(s){ return {num:s, effet:'', decor:'', resume:'', roles:'', texte:''}; });
+  var pdtSeqs = pdtJ ? (pdtJ.sequences||[]) : [];
+  // Si la FDS a des séquences enrichies (decor, roles modifiés), on les prend
+  var fdsSeqMap = {};
+  if (fds && fds.sequences) {
+    fds.sequences.forEach(function(s){ fdsSeqMap[String(s.num||'').trim().toUpperCase()] = s; });
   }
 
-  // Pré-remplir depuis le scénario importé si champ texte vide
-  var scenarioData = getScenarioForFilm();
-  if (scenarioData.length) {
-    sequences.forEach(function(s) {
-      if (!s.texte || !s.texte.trim()) {
-        var sc = getSceneTexte(s.num);
-        if (sc) {
-          s.texte = sc.texte || '';
-          if (!s.decor && sc.decor) s.decor = sc.decor;
-          if (!s.effet && sc.effet) s.effet = sc.effet;
-        }
-      }
-    });
-    // Sauvegarder si FDS existe
-    if (fds && fds.sequences) { save(); }
-  }
+  return pdtSeqs.map(function(numRaw) {
+    var numKey = String(numRaw||'').trim().toUpperCase();
+    var fdsSeq = fdsSeqMap[numKey] || fdsSeqMap[numKey.replace(/\s+/g,'')] || null;
+    var scSeq = sc.find(function(s){ return jajNumMatch(s.num, numRaw); }) || null;
 
+    return {
+      num:    numRaw,
+      effet:  (fdsSeq&&fdsSeq.effet) || (scSeq&&scSeq.effet) || '',
+      decor:  (fdsSeq&&fdsSeq.decor) || (scSeq&&scSeq.decor) || '',
+      resume: (fdsSeq&&fdsSeq.resume) || (scSeq&&scSeq.resume) || '',
+      roles:  (fdsSeq&&fdsSeq.roles) || '',
+      texte:  (fdsSeq&&fdsSeq.texte) || (scSeq&&scSeq.texte) || '',
+      titre:  scSeq ? scSeq.titre : ''
+    };
+  });
+}
+
+function jajSelectJournee(jdt) {
+  jajCurrentJdt = jdt;
+  renderJourAJour();
+
+  var pdtJ = typeof PDT_DATA !== 'undefined' ? PDT_DATA.find(function(p){return p.jdt===jdt;}) : null;
+  var fds = (state.fds||[]).find(function(f){ return f.filmId===activeFilmId && (f.jdt===jdt||f.id===jdt); });
+  var journee = (pdtJ&&pdtJ.journee)||(fds&&fds.infos&&fds.infos.journee)||'Journée';
+  var date = (pdtJ&&pdtJ.date)||(fds&&fds.infos&&fds.infos.date)||'';
+
+  document.getElementById('jaj-journee-titre').textContent = journee + (date?' — '+date:'');
+  document.getElementById('jaj-sequences-panel').style.display = 'block';
+  document.getElementById('jaj-apercu-panel').style.display = 'none';
+
+  var sequences = jajGetSequencesForJournee(jdt);
   var listEl = document.getElementById('jaj-sequences-list');
+
   if (!sequences.length) {
-    listEl.innerHTML = '<div style="color:#999;text-align:center;padding:12px">Aucune séquence pour cette journée</div>';
+    listEl.innerHTML = '<div style="color:#999;text-align:center;padding:16px">Aucune séquence pour cette journée dans le PDT.</div>';
     return;
   }
 
+  var hasScenario = getScenarioForFilm().length > 0;
+
   listEl.innerHTML = sequences.map(function(s, i) {
-    var sid = 'jaj-texte-'+i;
     var hasTexte = s.texte && s.texte.trim();
-    return '<div style="border:1px solid '+(hasTexte?'var(--green)':'#e5e7eb')+';border-radius:8px;margin-bottom:8px;overflow:hidden">'+
-      '<div style="background:'+(hasTexte?'var(--green-light)':'#f9fafb')+';padding:8px 12px;display:flex;align-items:center;gap:8px;cursor:pointer" onclick="jajToggleSeq(this)">'+
-        '<span style="font-weight:800;font-size:14px;color:var(--purple);min-width:40px">'+(s.num||'?')+'</span>'+
-        '<span style="font-size:11px;color:#555;flex:1">'+(s.effet||'')+(s.decor?' — '+s.decor:'')+(s.resume?' — <i>'+s.resume+'</i>':'')+'</span>'+
-        '<span style="font-size:10px;color:'+(hasTexte?'var(--green)':'#aaa')+'">'+(hasTexte?'✓ Texte':'Vide')+'</span>'+
-        '<span style="font-size:12px;transition:transform 0.2s">▼</span>'+
-      '</div>'+
-      '<div class="jaj-seq-body" style="display:none;padding:8px 10px;background:#fff">'+
-        '<div style="display:flex;gap:6px;margin-bottom:6px;flex-wrap:wrap">'+
-          '<span style="font-size:10px;color:#888">Effet:</span>'+
-          '<select onchange="jajSaveField('+i+',\'effet\',this.value)" style="font-size:10px;border:1px solid #ddd;border-radius:4px;padding:2px 4px">'+
-            ['','I/J','I/N','E/J','E/N','I-E/J','I-E/N','E/Crép.','E/Am.'].map(function(e){
-              return '<option value="'+e+'"'+(s.effet===e?' selected':'')+'>'+( e||'—Effet—')+'</option>';
-            }).join('')+
-          '</select>'+
-          '<input placeholder="Décor" value="'+(s.decor||'')+'" onchange="jajSaveField('+i+',\'decor\',this.value)" style="font-size:10px;border:1px solid #ddd;border-radius:4px;padding:2px 6px;flex:1;min-width:100px"/>'+
-          '<input placeholder="Rôles (1,2,3…)" value="'+(s.roles||'')+'" onchange="jajSaveField('+i+',\'roles\',this.value)" style="font-size:10px;border:1px solid #ddd;border-radius:4px;padding:2px 6px;width:120px"/>'+
-        '</div>'+
-        '<textarea id="'+sid+'" placeholder="Coller le texte du scénario ici..." rows="6" style="width:100%;font-size:11px;font-family:Georgia,serif;border:1px solid #ddd;border-radius:4px;padding:8px;resize:vertical" onchange="jajSaveField('+i+',\'texte\',this.value)">'+(s.texte||'')+'</textarea>'+
-      '</div>'+
+    var headerLine = [s.num, s.effet, s.decor].filter(Boolean).join(' — ');
+    return '<div style="border:1px solid '+(hasTexte?'var(--green)':'#e5e7eb')+';border-radius:8px;margin-bottom:8px;overflow:hidden">' +
+      '<div style="background:'+(hasTexte?'var(--green-light)':'#f9fafb')+';padding:8px 12px;display:flex;align-items:center;gap:8px;cursor:pointer" onclick="jajToggleSeq(this)">' +
+        '<span style="font-weight:800;font-size:15px;color:var(--purple);min-width:45px">'+escHtml(String(s.num||''))+'</span>' +
+        '<span style="font-size:11px;color:#555;flex:1;font-style:italic">'+escHtml(s.titre||s.decor||'')+'</span>' +
+        '<span style="font-size:10px;font-weight:600;color:'+(hasTexte?'var(--green)':'#bbb')+'">'+
+          (hasTexte ? '✓' : (hasScenario ? '—' : '⚠'))+
+        '</span>' +
+        '<span style="font-size:11px">▼</span>' +
+      '</div>' +
+      '<div class="jaj-seq-body" style="display:none;padding:10px;background:#fff">' +
+        '<div style="display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap;font-size:11px">' +
+          '<b>Effet :</b> '+escHtml(s.effet||'—')+' &nbsp; ' +
+          '<b>Décor :</b> '+escHtml(s.decor||'—')+' &nbsp; ' +
+          (s.roles ? '<b>Rôles :</b> '+escHtml(s.roles) : '') +
+        '</div>' +
+        (hasTexte
+          ? '<div style="font-family:Courier,monospace;font-size:11px;white-space:pre-wrap;background:#fafafa;padding:10px;border-radius:4px;border:1px solid #eee;max-height:300px;overflow-y:auto">'+escHtml(s.texte)+'</div>'
+          : '<div style="color:#aaa;font-style:italic;font-size:12px;padding:8px">'+(hasScenario?'Séquence non trouvée dans le scénario':'Importez le scénario PDF dans l\'onglet Import')+'</div>'
+        ) +
+      '</div>' +
     '</div>';
   }).join('');
 }
@@ -4656,22 +4670,14 @@ function jajToggleSeq(header) {
   if (arrow) arrow.style.transform = open ? '' : 'rotate(180deg)';
 }
 
-function jajSaveField(seqIdx, field, value) {
-  var fds = (state.fds||[]).find(function(f){ return f.filmId===activeFilmId && (f.jdt===jajCurrentJdt||f.id===jajCurrentJdt); });
-  if (!fds || !fds.sequences || !fds.sequences[seqIdx]) return;
-  fds.sequences[seqIdx][field] = value;
-  save();
-  // Rafraîchir l'indicateur ✓ si texte
-  if (field === 'texte') jajSelectJournee(jajCurrentJdt);
-}
-
 function jajApercu() {
-  var fds = (state.fds||[]).find(function(f){ return f.filmId===activeFilmId && (f.jdt===jajCurrentJdt||f.id===jajCurrentJdt); });
   var pdtJ = typeof PDT_DATA !== 'undefined' ? PDT_DATA.find(function(p){return p.jdt===jajCurrentJdt;}) : null;
-  var sequences = fds ? (fds.sequences||[]) : (pdtJ&&pdtJ.sequences||[]).map(function(s){return {num:s};});
+  var fds = (state.fds||[]).find(function(f){ return f.filmId===activeFilmId && (f.jdt===jajCurrentJdt||f.id===jajCurrentJdt); });
   var film = activeFilm();
   var journee = (pdtJ&&pdtJ.journee)||(fds&&fds.infos&&fds.infos.journee)||'';
   var date = (pdtJ&&pdtJ.date)||(fds&&fds.infos&&fds.infos.date)||'';
+
+  var sequences = jajGetSequencesForJournee(jajCurrentJdt);
 
   document.getElementById('jaj-sequences-panel').style.display = 'none';
   document.getElementById('jaj-apercu-panel').style.display = 'block';
@@ -4681,40 +4687,35 @@ function jajApercu() {
 
   sequences.forEach(function(s, i) {
     var isLast = i === sequences.length - 1;
-    // En-tête de page
-    h += '<div class="jaj-page" style="'+
-      'background:#fff;min-height:297mm;max-width:210mm;margin:0 auto 12px;padding:20mm 22mm 18mm;'+
-      'box-sizing:border-box;font-family:Courier,monospace;position:relative;'+
-      (isLast?'':'page-break-after:always;')+
+    h += '<div class="jaj-page" style="' +
+      'background:#fff;min-height:270mm;max-width:190mm;margin:0 auto 16px;padding:18mm 20mm 15mm;' +
+      'box-sizing:border-box;font-family:Courier,monospace;position:relative;border:1px solid #ccc;' +
+      (isLast?'':'page-break-after:always;') +
     '">';
 
-    // Titre séquence en haut — gras, aligné gauche comme dans le doc
-    var numStr = String(s.num||'');
-    var decor = (s.decor||'').toUpperCase();
-    var effet = (s.effet||'');
-    var header = numStr + (effet?' '+effet:'') + (decor?' '+decor:'');
+    // En-tête : numéro + titre (INT./EXT. LIEU - MOMENT)
+    var titre = s.titre || ([s.effet, s.decor].filter(Boolean).join(' '));
+    var headerLine = s.num + '   ' + titre.toUpperCase();
+    h += '<div style="font-weight:bold;font-size:13px;margin-bottom:24px;white-space:pre-wrap;font-family:Courier,monospace">'+escHtml(headerLine)+'</div>';
 
-    h += '<div style="font-weight:bold;font-size:14px;margin-bottom:28px;line-height:1.4">'+escHtml(header)+'</div>';
-
-    // Texte du scénario
+    // Texte du scénario (formatage Courier conservé)
     if (s.texte && s.texte.trim()) {
-      h += '<div style="font-size:12px;line-height:1.8;white-space:pre-wrap;font-family:Courier,monospace">'+escHtml(s.texte.trim())+'</div>';
+      h += '<div style="font-size:12px;line-height:1.9;white-space:pre-wrap;font-family:Courier,monospace">'+escHtml(s.texte.trim())+'</div>';
     } else {
-      h += '<div style="color:#aaa;font-style:italic;font-size:12px;padding:20px 0">(texte non renseigné)</div>';
+      h += '<div style="color:#bbb;font-style:italic;font-size:12px;font-family:Courier,monospace">(texte non disponible)</div>';
     }
 
-    // Numéro de page en bas à droite
-    h += '<div style="position:absolute;bottom:15mm;right:22mm;font-size:12px;font-family:Courier,monospace">'+pageNum+'.</div>';
+    // Numéro de page bas droite
+    h += '<div style="position:absolute;bottom:12mm;right:20mm;font-size:12px;font-family:Courier,monospace">'+pageNum+'.</div>';
     h += '</div>';
     pageNum++;
   });
 
-  // Styles print
-  var styleId = 'jaj-print-style';
-  if (!document.getElementById(styleId)) {
+  // Style print
+  if (!document.getElementById('jaj-print-style')) {
     var style = document.createElement('style');
-    style.id = styleId;
-    style.textContent = '@media print { body > *:not(#app) { display:none!important; } #app .page:not(#page-jourAjour) { display:none!important; } #page-jourAjour .scroll > *:not(#jaj-apercu-panel) { display:none!important; } #jaj-apercu-panel > div:first-child { display:none!important; } .jaj-page { page-break-after:always; margin:0!important; } }';
+    style.id = 'jaj-print-style';
+    style.textContent = '@media print{body>*{display:none!important}#app{display:block!important}.page{display:none!important}#page-jourAjour{display:block!important}#jaj-apercu-panel>div:first-child{display:none!important}.jaj-page{border:none!important;margin:0!important;page-break-after:always}}';
     document.head.appendChild(style);
   }
 
@@ -4727,26 +4728,34 @@ function jajRetour() {
 }
 
 function jajEnvoyer() {
-  var fds = (state.fds||[]).find(function(f){ return f.filmId===activeFilmId && (f.jdt===jajCurrentJdt||f.id===jajCurrentJdt); });
   var pdtJ = typeof PDT_DATA !== 'undefined' ? PDT_DATA.find(function(p){return p.jdt===jajCurrentJdt;}) : null;
+  var fds = (state.fds||[]).find(function(f){ return f.filmId===activeFilmId && (f.jdt===jajCurrentJdt||f.id===jajCurrentJdt); });
   var film = activeFilm();
   var journee = (pdtJ&&pdtJ.journee)||(fds&&fds.infos&&fds.infos.journee)||'?';
   var date = (pdtJ&&pdtJ.date)||(fds&&fds.infos&&fds.infos.date)||'';
-  var sequences = fds ? (fds.sequences||[]) : [];
   var mail = (film&&film.mail) || '';
 
-  var subj = encodeURIComponent('Jour à Jour — '+journee+' — '+date+' — '+(film?film.nom:'LEDR2'));
-  var body = 'Bonjour,\n\nVeuillez trouver ci-dessous le Jour à Jour pour le '+journee+(date?' — '+date:'')+' :\n\n';
+  var sequences = jajGetSequencesForJournee(jajCurrentJdt);
+  var nomFilm = film ? film.nom : 'LES ENFANTS DE LA RÉSISTANCE 2';
+
+  var subj = encodeURIComponent('Jour à Jour — '+journee+(date?' — '+date:'')+' — '+nomFilm);
+
+  var body = nomFilm+'\n';
+  body += 'JOUR À JOUR — '+journee.toUpperCase()+(date?' — '+date.toUpperCase():'')+'\n';
+  body += '═'.repeat(50)+'\n\n';
+
   sequences.forEach(function(s, i) {
-    body += '─────────────────────────────────────────\n';
-    body += (i+1)+'. SEQ '+s.num+(s.effet?' '+s.effet:'')+(s.decor?' — '+s.decor.toUpperCase():'')+'\n';
-    if (s.roles) body += 'Rôles : '+s.roles+'\n';
-    body += '\n';
-    if (s.texte) body += s.texte.trim()+'\n';
-    body += '\n';
+    var titre = s.titre || ([s.effet, s.decor].filter(Boolean).join(' '));
+    body += s.num + '   ' + titre.toUpperCase() + '\n\n';
+    if (s.texte && s.texte.trim()) {
+      body += s.texte.trim() + '\n';
+    } else {
+      body += '(texte non disponible)\n';
+    }
+    body += '\n' + '─'.repeat(40) + '\n\n';
   });
-  body += '─────────────────────────────────────────\n';
-  body += 'Bien cordialement,\nLiv Charpentier — Référent Enfants / Assistante mise en scène';
+
+  body += 'Bien cordialement,\nLiv Charpentier\nRéférent Enfants / Assistante mise en scène — '+nomFilm;
 
   window.open('mailto:'+mail+'?subject='+subj+'&body='+encodeURIComponent(body));
 }
@@ -4754,6 +4763,7 @@ function jajEnvoyer() {
 function escHtml(str) {
   return String(str||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
+
 
 // ═══════════════════════ IMPORT SCÉNARIO ═══════════════════════
 
