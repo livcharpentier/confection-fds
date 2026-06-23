@@ -641,6 +641,21 @@ textarea.form-input{resize:vertical;min-height:72px;}
           <div style="font-size:9px;font-style:italic;color:#555;margin-top:4px" id="cascade-vehicule-footnote"></div>
         </div>
       </div>
+
+      <!-- NOTES CASCADE -->
+      <div class="card" style="border:2px solid #6a0dad;margin-bottom:8px">
+        <div class="card-title" style="color:#6a0dad">📝 Notes Cascades physiques
+          <button class="btn btn-sm btn-primary" style="background:#6a0dad" onclick="saveCascadeNote('cascade')">Enregistrer</button>
+        </div>
+        <textarea class="form-input" id="cascade-note-cascade" rows="3" placeholder="Notes pour les cascades physiques : coordinateur, matériel, sécurité..." oninput=""></textarea>
+      </div>
+      <div class="card" style="border:2px solid #6a0dad">
+        <div class="card-title" style="color:#6a0dad">📝 Notes Cascades véhicules
+          <button class="btn btn-sm btn-primary" style="background:#6a0dad" onclick="saveCascadeNote('vehicules')">Enregistrer</button>
+        </div>
+        <textarea class="form-input" id="cascade-note-vehicules" rows="3" placeholder="Notes pour les cascades véhicules : coordinateur, système traction, véhicules présents..."></textarea>
+      </div>
+
     </div>
   </div>
 
@@ -1600,7 +1615,7 @@ function removeComedien(i) {
 const DEPT_LABELS = {
   decoration:'Décoration', accessoires:'Accessoires', armes:'Armes', costumes:'Costumes',
   maquillage:'Maquillage', coiffure:'Coiffure', son:'Son', machinerie:'Machinerie',
-  cascade:'Cascades', vfx:'VFX', vehicules:'Véhicules', regie:'Régie / Production'
+  vfx:'VFX', regie:'Régie / Production'
 };
 
 function renderDeptPills() {
@@ -2313,7 +2328,7 @@ function renderApercu(targetEl) {
   }
 
   // DEPARTEMENTS — tous affichés même vides
-  var DEPT_ORDER = ['decoration','accessoires','armes','costumes','maquillage','coiffure','son','machinerie','cascade','vfx','vehicules','regie'];
+  var DEPT_ORDER = ['decoration','accessoires','armes','costumes','maquillage','coiffure','son','machinerie','vfx','regie'];
   DEPT_ORDER.forEach(function(d) {
     var note = (f.deptNotes && f.deptNotes[d]) || '';
     h += '<table style="width:100%;border-collapse:collapse;margin-bottom:2px">';
@@ -2603,7 +2618,7 @@ function renderApercu(targetEl) {
   }
 
   // DEPARTEMENTS — tous affichés même vides
-  var DEPT_ORDER = ['decoration','accessoires','armes','costumes','maquillage','coiffure','son','machinerie','cascade','vfx','vehicules','regie'];
+  var DEPT_ORDER = ['decoration','accessoires','armes','costumes','maquillage','coiffure','son','machinerie','vfx','regie'];
   DEPT_ORDER.forEach(function(d) {
     var note = (f.deptNotes && f.deptNotes[d]) || '';
     h += '<table style="width:100%;border-collapse:collapse;margin-bottom:2px">';
@@ -3918,6 +3933,20 @@ function pgRenderCascadeurs() {
   // Note coordinateur si renseigné
   var noteEl = document.getElementById('cascade-vehicule-note');
   if (noteEl) noteEl.textContent = f.cascade_coord_note || '';
+  // Charger les notes
+  var noteCasc = document.getElementById('cascade-note-cascade');
+  var noteVeh = document.getElementById('cascade-note-vehicules');
+  if (noteCasc) noteCasc.value = (f.deptNotes && f.deptNotes['cascade']) || '';
+  if (noteVeh) noteVeh.value = (f.deptNotes && f.deptNotes['vehicules']) || '';
+}
+
+function saveCascadeNote(dept) {
+  var f = activeFDS(); if (!f) return;
+  if (!f.deptNotes) f.deptNotes = {};
+  var el = document.getElementById('cascade-note-' + dept);
+  if (el) f.deptNotes[dept] = el.value;
+  save();
+  toast('Note enregistrée ✓');
 }
 
 
