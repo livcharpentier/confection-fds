@@ -1273,7 +1273,9 @@ function ouvrirOuCreerFDS(jdtNum) {
   pdt.decors.forEach(function(d, i) { lieux.push({label: 'Décor ' + (i+1), valeur: d}); });
   if (!lieux.length) lieux.push({label: 'Décor 1', valeur: pdt.lieu||''});
   lieux.push(
-    {label:'HMC / LOGES', valeur: ''},
+    {label:'HMC', valeur: ''},
+    {label:'Loge comédiens', valeur: ''},
+    {label:'Loge figuration', valeur: ''},
     {label:'FIGURATION', valeur: ''},
     {label:'CANTINE', valeur: ''},
     {label:'STATIONNEMENT VÉHIC. TECHNIQUES', valeur: ''},
@@ -1311,7 +1313,7 @@ function ouvrirOuCreerFDSSilent(jdtNum) {
   var lieux = [];
   pdt.decors.forEach(function(d, i) { lieux.push({label:'Décor '+(i+1), valeur:d}); });
   if (!lieux.length) lieux.push({label:'Décor 1', valeur:pdt.lieu||''});
-  lieux.push({label:'HMC / LOGES',valeur:''},{label:'FIGURATION',valeur:''},{label:'CANTINE',valeur:''},
+  lieux.push({label:'HMC',valeur:''},{label:'Loge comédiens',valeur:''},{label:'Loge figuration',valeur:''},{label:'FIGURATION',valeur:''},{label:'CANTINE',valeur:''},
     {label:'STATIONNEMENT VÉHIC. TECHNIQUES',valeur:''},{label:'STATIONNEMENT VÉHIC. PERSONNELS',valeur:''},{label:'PRODUCTION',valeur:''});
   var comediens = pdt.roles.map(function(r){ return {type:'comedien',num:r.num,role:r.role,nom:r.comedien,seqs:pdt.sequences.join(', '),hmc:'',loges:'',pat:'',nbre:1}; });
   // Ajouter les doublures fixes du film
@@ -2944,7 +2946,7 @@ function ouvrirOuCreerFDSSilent(jdtNum) {
   var lieux = [];
   pdt.decors.forEach(function(d, i) { lieux.push({label:'Décor '+(i+1), valeur:d}); });
   if (!lieux.length) lieux.push({label:'Décor 1', valeur:pdt.lieu||''});
-  lieux.push({label:'Accès',valeur:'Camp de base'},{label:'HMC',valeur:''},{label:'LOGES',valeur:''},{label:'CANTINE',valeur:''},{label:'STATIONNEMENT VÉHIC. TECHNIQUES',valeur:''},{label:'STATIONNEMENT VÉHIC. PERSONNELS',valeur:''},{label:'PRODUCTION',valeur:''});
+  lieux.push({label:'Accès',valeur:'Camp de base'},{label:'HMC',valeur:''},{label:'Loge comédiens',valeur:''},{label:'Loge figuration',valeur:''},{label:'CANTINE',valeur:''},{label:'STATIONNEMENT VÉHIC. TECHNIQUES',valeur:''},{label:'STATIONNEMENT VÉHIC. PERSONNELS',valeur:''},{label:'PRODUCTION',valeur:''});
   var comediens = pdt.roles.map(function(r){ return {type:'comedien',num:r.num,role:r.role,nom:r.comedien,seqs:pdt.sequences.join(', '),hmc:'',loges:'',pat:'',nbre:1}; });
   // Ajouter les doublures fixes du film
   var DOUBLURES_FIXES = [
@@ -3589,7 +3591,9 @@ function importerPDT() {
     pdt.decors.forEach(function(d, i) { lieux.push({label: 'D\u00e9cor ' + (i+1), valeur: d}); });
     if (!lieux.length) lieux.push({label: 'D\u00e9cor 1', valeur: pdt.lieu||''});
     lieux.push(
-      {label:'HMC / LOGES', valeur: ''},
+      {label:'HMC', valeur: ''},
+      {label:'Loge comédiens', valeur: ''},
+      {label:'Loge figuration', valeur: ''},
       {label:'FIGURATION', valeur: ''},
       {label:'CANTINE', valeur: ''},
       {label:'STATIONNEMENT V\u00c9HIC. TECHNIQUES', valeur: ''},
