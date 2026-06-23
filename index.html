@@ -716,6 +716,7 @@ textarea.form-input{resize:vertical;min-height:72px;}
             <option value="">— Tous les films —</option>
           </select>
           <button class="btn btn-secondary btn-sm" onclick="exportBilanCSV()">⬇ Export CSV</button>
+          <button class="btn btn-secondary btn-sm" onclick="injecterDoubluresFixes()" style="background:#fff3e0;color:#e65100;border-color:#e65100">🎭 Doublures fixes</button>
         </div>
       </div>
       <div id="bilan-list"></div>
@@ -3388,6 +3389,53 @@ function renderBilan() {
       '<div style="color:var(--text-muted);font-size:18px">›</div>' +
     '</div>';
   }).join('');
+}
+
+function injecterDoubluresFixes() {
+  if (!activeFilmId && state.films && state.films.length) activeFilmId = state.films[0].id;
+  if (!activeFilmId) { toast('Aucun film actif'); return; }
+  var DOUBLURES_FIXES = [
+    {type:'doublure',num:'DBIFR',role:'Doublure image François',nom:'Céline LAURENTIE',hmc:'',loges:'',pat:''},
+    {type:'doublure',num:'DBILI',role:'Doublure image Lisa',nom:'Prune LEMAIRE',hmc:'',loges:'',pat:''},
+    {type:'doublure',num:'DBIE',role:'Doublure image Eusèbe',nom:'Venance CASTANET PARCOT',hmc:'',loges:'',pat:''},
+    {type:'doublure',num:'DBIP',role:'Doublure image Proslier',nom:'Michel BIZOT',hmc:'',loges:'',pat:''}
+  ];
+  var ROLES_DOUBLURE = {'DBIFR':'FRANCOIS','DBILI':'LISA','DBIE':'EUSEBE','DBIP':'PERE PROSLIER'};
+  var ROLES_VARIANTES = {
+    'DBIFR': ['François','FRANCOIS'],
+    'DBILI': ['LISA'],
+    'DBIE': ['EUSÈBE','EUSEBE'],
+    'DBIP': ['PERE PROSLIER','PÈRE PROSLIER','PROSLIER']
+  };
+  var fdsList = (state.fds||[]).filter(function(f){ return f.filmId===activeFilmId; });
+  var count = 0;
+  fdsList.forEach(function(fds) {
+    var comediens = fds.comediens || [];
+    // Vérifier quels rôles sont présents dans cette FDS
+    DOUBLURES_FIXES.forEach(function(doub) {
+      // Déjà présente ?
+      if (comediens.find(function(c){ return c.num===doub.num; })) return;
+      // Le rôle original est-il dans cette FDS ?
+      var variantes = ROLES_VARIANTES[doub.num] || [];
+      var rolePresent = comediens.find(function(c){
+        return variantes.some(function(v){ return c.role && c.role.toUpperCase().indexOf(v) !== -1; });
+      });
+      if (rolePresent) {
+        var seqs = fds.infos && fds.infos.sequences ? fds.infos.sequences : 
+                   (fds.sequences ? fds.sequences.map(function(s){ return s.num||s; }).join(', ') : '');
+        var d = Object.assign({}, doub, {seqs: seqs, nbre: 1});
+        comediens.push(d);
+        count++;
+      }
+    });
+    fds.comediens = comediens;
+  });
+  if (count > 0) {
+    save();
+    toast(count + ' doublure(s) injectée(s) sur ' + fdsList.length + ' FDS ✓');
+  } else {
+    toast('Aucune doublure à injecter (déjà présentes ou rôles absents)');
+  }
 }
 
 function ouvrirBilanFDS(jdtNum) {
