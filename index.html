@@ -462,7 +462,8 @@ textarea.form-input{resize:vertical;min-height:72px;}
       </div>
       <div class="card">
         <div class="card-title">Météo</div>
-        <div class="form-row-inline"><span class="form-label">Conditions</span><input class="form-input" id="pg-meteo" placeholder="Grand Soleil 29°-38°C"/></div>
+        <div class="form-row-inline"><span class="form-label">Conditions</span><input class="form-input" id="pg-meteo" placeholder="Ensoleillé"/></div>
+        <div class="form-row-inline"><span class="form-label">Température</span><input class="form-input" id="pg-temperature" placeholder="29°- 39°C" style="max-width:140px"/></div>
         <div class="form-row-inline"><span class="form-label">Lever</span><input class="form-input" id="pg-lever" type="time" style="max-width:100px"/><span style="padding:0 4px;color:var(--text-muted)">—</span><input class="form-input" id="pg-coucher" type="time" style="max-width:100px"/></div>
         <div class="form-row-inline"><span class="form-label">Crépusc.</span><input class="form-input" id="pg-crep-m" type="time" style="max-width:100px"/><span style="padding:0 4px;color:var(--text-muted)">—</span><input class="form-input" id="pg-crep-s" type="time" style="max-width:100px"/></div>
       </div>
@@ -2137,7 +2138,7 @@ function renderApercu(targetEl) {
   h += '</div>';
   h += '<div style="padding:6px 8px;border-bottom:1px solid #999;font-size:10px;font-weight:600">Repas \u00e0 partir de\u00a0: ' + fmtTime(i.repas) + '</div>';
   h += '<div style="padding:5px 8px;font-size:8.5px;display:grid;grid-template-columns:1fr 1fr;gap:2px">';
-  h += '<div>M\u00e9t\u00e9o\u00a0: ' + (i.meteo||'\u2014') + '</div><div>Temp\u00e9rature\u00a0: ' + (i.meteo||'\u2014') + '</div>';
+  h += '<div>M\u00e9t\u00e9o\u00a0: ' + (i.meteo||'\u2014') + '</div><div>Temp\u00e9rature\u00a0: ' + (i.temperature||'\u2014') + '</div>';
   h += '<div>Cr\u00e9p. matin\u00a0: ' + (fmtTime(i.crep_m)||'\u2014') + '</div><div>Lever\u00a0: ' + (fmtTime(i.lever)||'\u2014') + '</div>';
   h += '<div>Cr\u00e9p. soir\u00a0: ' + (fmtTime(i.crep_s)||'\u2014') + '</div><div>Coucher\u00a0: ' + (fmtTime(i.coucher)||'\u2014') + '</div>';
   h += '</div></td></tr></table>';
@@ -2492,7 +2493,7 @@ function renderApercu(targetEl) {
   h += '</div>';
   h += '<div style="padding:6px 8px;border-bottom:1px solid #999;font-size:10px;font-weight:600">Repas \u00e0 partir de\u00a0: ' + fmtTime(i.repas) + '</div>';
   h += '<div style="padding:5px 8px;font-size:8.5px;display:grid;grid-template-columns:1fr 1fr;gap:2px">';
-  h += '<div>M\u00e9t\u00e9o\u00a0: ' + (i.meteo||'\u2014') + '</div><div>Temp\u00e9rature\u00a0: ' + (i.meteo||'\u2014') + '</div>';
+  h += '<div>M\u00e9t\u00e9o\u00a0: ' + (i.meteo||'\u2014') + '</div><div>Temp\u00e9rature\u00a0: ' + (i.temperature||'\u2014') + '</div>';
   h += '<div>Cr\u00e9p. matin\u00a0: ' + (fmtTime(i.crep_m)||'\u2014') + '</div><div>Lever\u00a0: ' + (fmtTime(i.lever)||'\u2014') + '</div>';
   h += '<div>Cr\u00e9p. soir\u00a0: ' + (fmtTime(i.crep_s)||'\u2014') + '</div><div>Coucher\u00a0: ' + (fmtTime(i.coucher)||'\u2014') + '</div>';
   h += '</div></td></tr></table>';
@@ -3273,7 +3274,7 @@ function pgLoadInfos() {
   pgSetSub('pg-infos-sub');
   var f = activeFDS(); if (!f) return;
   var i = f.infos||{};
-  var fields = ['journee','date','pat','debut','fin','repas','meteo','lever','coucher'];
+  var fields = ['journee','date','pat','debut','fin','repas','meteo','temperature','lever','coucher'];
   fields.forEach(function(k){
     var el = document.getElementById('pg-'+k.replace('_','-'));
     if (el) el.value = i[k]||'';
@@ -3295,7 +3296,7 @@ function pgLoadInfos() {
 
 function pgSaveInfos() {
   var f = activeFDS(); if (!f) return;
-  var fields = ['journee','date','pat','debut','fin','repas','meteo','lever','coucher'];
+  var fields = ['journee','date','pat','debut','fin','repas','meteo','temperature','lever','coucher'];
   fields.forEach(function(k){
     var el = document.getElementById('pg-'+k.replace('_','-'));
     if (el) f.infos[k] = el.value;
