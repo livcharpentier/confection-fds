@@ -4517,8 +4517,11 @@ var jajCurrentJdt = null;
 
 function renderJourAJour() {
   if (!activeFilmId && state.films && state.films.length) activeFilmId = state.films[0].id;
-  document.getElementById('jaj-sequences-panel').style.display = 'none';
-  document.getElementById('jaj-apercu-panel').style.display = 'none';
+  // Ne cacher les panels que si on arrive sur la page depuis la nav (pas depuis un bouton journée)
+  if (!jajCurrentJdt) {
+    document.getElementById('jaj-sequences-panel').style.display = 'none';
+    document.getElementById('jaj-apercu-panel').style.display = 'none';
+  }
 
   var hasScenario = getScenarioForFilm().length > 0;
   var subEl = document.getElementById('jaj-sub');
@@ -4576,6 +4579,13 @@ function renderJourAJour() {
   }).join('');
 }
 
+function renderJourAJour_reset() {
+  jajCurrentJdt = null;
+  document.getElementById('jaj-sequences-panel').style.display = 'none';
+  document.getElementById('jaj-apercu-panel').style.display = 'none';
+  renderJourAJour();
+}
+
 function jajNumMatch(scNum, pdtNum) {
   var a = String(scNum||'').trim().toUpperCase().replace(/\s+/g,'');
   var b = String(pdtNum||'').trim().toUpperCase().replace(/\s+/g,'');
@@ -4614,6 +4624,7 @@ function jajGetSequencesForJournee(jdt) {
 
 function jajSelectJournee(jdt) {
   jajCurrentJdt = jdt;
+  // Rafraîchir juste les boutons sans toucher aux panels
   renderJourAJour();
 
   var pdtJ = typeof PDT_DATA !== 'undefined' ? PDT_DATA.find(function(p){return p.jdt===jdt;}) : null;
