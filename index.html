@@ -1931,30 +1931,23 @@ function pencilInline(action, label) {
 
 function goToTab(tabName, fdsId) {
   if (fdsId) activeFdsId = fdsId;
-  // Aller sur la page edit
-  showPage('edit');
-  // Activer le bon onglet
-  var tabs = document.querySelectorAll('.stab');
-  var panels = document.querySelectorAll('.spanel');
-  var names = ['infos','sequences','comediens','figuration','dept','equipe','transports','previsions','apercu'];
-  tabs.forEach(function(t){ t.classList.remove('active'); });
-  panels.forEach(function(p){ p.classList.remove('active'); });
-  var idx = names.indexOf(tabName);
-  if (idx >= 0 && tabs[idx]) {
-    tabs[idx].classList.add('active');
-    var panel = document.getElementById('sp-' + tabName);
-    if (panel) panel.classList.add('active');
-  }
-  // Appeler le bon render
-  if (tabName === 'comediens') renderComediensList();
-  if (tabName === 'figuration') renderFigurationTab();
-  if (tabName === 'dept') { currentDept = 'decoration'; renderDeptPills(); loadDeptNote(); }
-  if (tabName === 'equipe') { renderEquipePills(); renderEquipeList(); }
-  if (tabName === 'transports') renderTransportList();
-  if (tabName === 'previsions') renderPrevList();
-  if (tabName === 'sequences') renderSeqList();
-  if (tabName === 'infos') loadInfosForm();
+  // Mapper vers les nouveaux onglets de la nav principale
+  var navMap = {
+    'infos': 'pg-infos',
+    'sequences': 'pg-infos',
+    'comediens': 'pg-comediens',
+    'figuration': 'pg-complements',
+    'dept': 'pg-dept',
+    'equipe': 'pg-equipe',
+    'transports': 'transport-nav',
+    'previsions': 'apercu-nav',
+    'apercu': 'apercu-nav'
+  };
+  var target = navMap[tabName] || 'pg-infos';
+  var btn = document.getElementById('nav-' + target.replace('-nav','').replace('pg-',''));
+  navTo(target, btn);
 }
+
 
 function renderApercu(targetEl) {
   var f = activeFDS();
