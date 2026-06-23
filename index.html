@@ -950,6 +950,41 @@ textarea.form-input{resize:vertical;min-height:72px;}
     </div>
   </div>
 
+  <!-- PAGE JOUR À JOUR -->
+  <div class="page" id="page-jourAjour">
+    <div class="page-header">
+      <div class="page-title">Jour à Jour</div>
+      <div class="page-sub" id="jaj-sub">Fiches séquences par journée</div>
+    </div>
+    <div class="scroll">
+      <!-- Sélecteur journée -->
+      <div class="card" style="margin-bottom:8px">
+        <div class="card-title">Sélectionner une journée</div>
+        <div id="jaj-journees-list" style="display:flex;flex-wrap:wrap;gap:6px;padding:4px 0"></div>
+      </div>
+      <!-- Séquences de la journée sélectionnée -->
+      <div id="jaj-sequences-panel" style="display:none">
+        <div class="card" style="margin-bottom:8px">
+          <div class="card-title" id="jaj-journee-titre">Journée</div>
+          <div id="jaj-sequences-list"></div>
+          <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
+            <button class="btn btn-primary" style="flex:1" onclick="jajApercu()">👁 Aperçu</button>
+            <button class="btn btn-secondary" style="flex:1" onclick="jajEnvoyer()">✉ Envoyer à la prod</button>
+          </div>
+        </div>
+      </div>
+      <!-- Aperçu imprimable -->
+      <div id="jaj-apercu-panel" style="display:none">
+        <div style="display:flex;gap:8px;margin-bottom:8px">
+          <button class="btn btn-secondary btn-sm" onclick="jajRetour()">← Retour</button>
+          <button class="btn btn-primary btn-sm" onclick="window.print()">🖨 Imprimer</button>
+          <button class="btn btn-secondary btn-sm" onclick="jajEnvoyer()">✉ Envoyer</button>
+        </div>
+        <div id="jaj-apercu-content"></div>
+      </div>
+    </div>
+  </div>
+
   <!-- NAV -->
   <nav class="nav">
     <button class="nav-btn active" id="nav-films" onclick="navTo('films',this)">Films</button>
@@ -965,6 +1000,7 @@ textarea.form-input{resize:vertical;min-height:72px;}
     <button class="nav-btn" id="nav-transport" onclick="navTo('transport-nav',this)">Trans<br>ports</button>
     <button class="nav-btn" id="nav-apercu" onclick="navTo('apercu-nav',this)">Aperçu<br>FDS</button>
     <button class="nav-btn" id="nav-resume-convoc" onclick="navTo('resume-convoc',this)">Résumé<br>convoc.</button>
+    <button class="nav-btn" id="nav-jourAjour" onclick="navTo('jourAjour',this)">Jour<br>à Jour</button>
     <button class="nav-btn" id="nav-import" onclick="navTo('import',this)">Import</button>
     <button class="nav-btn" id="nav-bilan" onclick="navTo('bilan',this)">Bilan</button>
   </nav>
@@ -1376,6 +1412,7 @@ function showPage(name) {
   if (name === 'resume-convoc') { renderResumeConvoc(); }
   if (name === 'bilan') { renderBilan(); }
   if (name === 'import') { renderImportPage(); }
+  if (name === 'jourAjour') { renderJourAJour(); }
 }
 
 function stab(name, btn) {
@@ -4456,6 +4493,233 @@ function deleteVehicule() {
   var list = type==='charrette' ? f.charrettes : f.vehicules;
   list.splice(idx,1);
   closeModal('modal-edit-vehicule'); save(); pgRenderVehicules();
+}
+
+// ═══════════════════════ JOUR À JOUR ═══════════════════════
+
+var jajCurrentJdt = null;
+
+function renderJourAJour() {
+  if (!activeFilmId && state.films && state.films.length) activeFilmId = state.films[0].id;
+  document.getElementById('jaj-sequences-panel').style.display = 'none';
+  document.getElementById('jaj-apercu-panel').style.display = 'none';
+
+  var listEl = document.getElementById('jaj-journees-list');
+  if (!listEl) return;
+
+  // Construire la liste des journées depuis PDT + FDS créées
+  var journees = [];
+  if (typeof PDT_DATA !== 'undefined') {
+    PDT_DATA.forEach(function(pdt) {
+      var fds = (state.fds||[]).find(function(f){ return f.filmId===activeFilmId && f.jdt===pdt.jdt; });
+      var seqs = fds ? (fds.sequences||[]) : [];
+      journees.push({
+        jdt: pdt.jdt,
+        journee: pdt.journee || ('J'+pdt.jdt),
+        date: pdt.date || '',
+        sequences: seqs,
+        pdtSeqs: pdt.sequences || [],
+        hasFds: !!fds
+      });
+    });
+  }
+  // Ajouter les FDS sans JDT PDT
+  (state.fds||[]).filter(function(f){ return f.filmId===activeFilmId && !f.jdt; }).forEach(function(f) {
+    journees.push({
+      jdt: f.id,
+      journee: f.infos&&f.infos.journee || '?',
+      date: f.infos&&f.infos.date || '',
+      sequences: f.sequences||[],
+      pdtSeqs: [],
+      hasFds: true
+    });
+  });
+
+  if (!journees.length) {
+    listEl.innerHTML = '<div style="color:#999;font-size:12px">Aucune journée dans le PDT.</div>';
+    return;
+  }
+
+  listEl.innerHTML = journees.map(function(j) {
+    var nbSeqs = j.sequences.length || j.pdtSeqs.length;
+    var active = jajCurrentJdt === j.jdt;
+    var hasContent = j.sequences.some(function(s){ return s.texte && s.texte.trim(); });
+    return '<button onclick="jajSelectJournee(\''+j.jdt+'\')" style="'+
+      'padding:6px 10px;border-radius:8px;border:2px solid '+(active?'var(--purple)':'#ddd')+';'+
+      'background:'+(active?'var(--purple-light)':'#fff')+';'+
+      'cursor:pointer;font-size:11px;text-align:center;min-width:60px;position:relative">'+
+      '<div style="font-weight:700;color:'+(active?'var(--purple)':'#333')+'">'+j.journee+'</div>'+
+      '<div style="font-size:9px;color:#888">'+j.date+'</div>'+
+      '<div style="font-size:9px;color:'+(hasContent?'var(--green)':'#aaa')+'">'+(nbSeqs?nbSeqs+' seq':'—')+'</div>'+
+      (hasContent?'<div style="position:absolute;top:-4px;right:-4px;background:var(--green);color:#fff;border-radius:99px;width:12px;height:12px;font-size:8px;display:flex;align-items:center;justify-content:center">✓</div>':'')+
+    '</button>';
+  }).join('');
+}
+
+function jajSelectJournee(jdt) {
+  jajCurrentJdt = jdt;
+  renderJourAJour(); // rafraîchir les boutons
+
+  var panel = document.getElementById('jaj-sequences-panel');
+  var apercuPanel = document.getElementById('jaj-apercu-panel');
+  panel.style.display = 'block';
+  apercuPanel.style.display = 'none';
+
+  // Trouver la journée
+  var pdtJ = typeof PDT_DATA !== 'undefined' ? PDT_DATA.find(function(p){return p.jdt===jdt;}) : null;
+  var fds = (state.fds||[]).find(function(f){ return f.filmId===activeFilmId && (f.jdt===jdt||f.id===jdt); });
+
+  var journee = (pdtJ&&pdtJ.journee) || (fds&&fds.infos&&fds.infos.journee) || 'Journée';
+  var date = (pdtJ&&pdtJ.date) || (fds&&fds.infos&&fds.infos.date) || '';
+  var titreEl = document.getElementById('jaj-journee-titre');
+  if (titreEl) titreEl.textContent = journee + (date?' — '+date:'');
+
+  // Séquences : depuis FDS si dispo, sinon depuis PDT
+  var sequences = [];
+  if (fds && fds.sequences && fds.sequences.length) {
+    sequences = fds.sequences;
+  } else if (pdtJ && pdtJ.sequences) {
+    sequences = pdtJ.sequences.map(function(s){ return {num:s, effet:'', decor:'', resume:'', roles:'', texte:''}; });
+  }
+
+  var listEl = document.getElementById('jaj-sequences-list');
+  if (!sequences.length) {
+    listEl.innerHTML = '<div style="color:#999;text-align:center;padding:12px">Aucune séquence pour cette journée</div>';
+    return;
+  }
+
+  listEl.innerHTML = sequences.map(function(s, i) {
+    var sid = 'jaj-texte-'+i;
+    var hasTexte = s.texte && s.texte.trim();
+    return '<div style="border:1px solid '+(hasTexte?'var(--green)':'#e5e7eb')+';border-radius:8px;margin-bottom:8px;overflow:hidden">'+
+      '<div style="background:'+(hasTexte?'var(--green-light)':'#f9fafb')+';padding:8px 12px;display:flex;align-items:center;gap:8px;cursor:pointer" onclick="jajToggleSeq(this)">'+
+        '<span style="font-weight:800;font-size:14px;color:var(--purple);min-width:40px">'+(s.num||'?')+'</span>'+
+        '<span style="font-size:11px;color:#555;flex:1">'+(s.effet||'')+(s.decor?' — '+s.decor:'')+(s.resume?' — <i>'+s.resume+'</i>':'')+'</span>'+
+        '<span style="font-size:10px;color:'+(hasTexte?'var(--green)':'#aaa')+'">'+(hasTexte?'✓ Texte':'Vide')+'</span>'+
+        '<span style="font-size:12px;transition:transform 0.2s">▼</span>'+
+      '</div>'+
+      '<div class="jaj-seq-body" style="display:none;padding:8px 10px;background:#fff">'+
+        '<div style="display:flex;gap:6px;margin-bottom:6px;flex-wrap:wrap">'+
+          '<span style="font-size:10px;color:#888">Effet:</span>'+
+          '<select onchange="jajSaveField('+i+',\'effet\',this.value)" style="font-size:10px;border:1px solid #ddd;border-radius:4px;padding:2px 4px">'+
+            ['','I/J','I/N','E/J','E/N','I-E/J','I-E/N','E/Crép.','E/Am.'].map(function(e){
+              return '<option value="'+e+'"'+(s.effet===e?' selected':'')+'>'+( e||'—Effet—')+'</option>';
+            }).join('')+
+          '</select>'+
+          '<input placeholder="Décor" value="'+(s.decor||'')+'" onchange="jajSaveField('+i+',\'decor\',this.value)" style="font-size:10px;border:1px solid #ddd;border-radius:4px;padding:2px 6px;flex:1;min-width:100px"/>'+
+          '<input placeholder="Rôles (1,2,3…)" value="'+(s.roles||'')+'" onchange="jajSaveField('+i+',\'roles\',this.value)" style="font-size:10px;border:1px solid #ddd;border-radius:4px;padding:2px 6px;width:120px"/>'+
+        '</div>'+
+        '<textarea id="'+sid+'" placeholder="Coller le texte du scénario ici..." rows="6" style="width:100%;font-size:11px;font-family:Georgia,serif;border:1px solid #ddd;border-radius:4px;padding:8px;resize:vertical" onchange="jajSaveField('+i+',\'texte\',this.value)">'+(s.texte||'')+'</textarea>'+
+      '</div>'+
+    '</div>';
+  }).join('');
+}
+
+function jajToggleSeq(header) {
+  var body = header.nextElementSibling;
+  var arrow = header.querySelector('span:last-child');
+  var open = body.style.display !== 'none';
+  body.style.display = open ? 'none' : 'block';
+  if (arrow) arrow.style.transform = open ? '' : 'rotate(180deg)';
+}
+
+function jajSaveField(seqIdx, field, value) {
+  var fds = (state.fds||[]).find(function(f){ return f.filmId===activeFilmId && (f.jdt===jajCurrentJdt||f.id===jajCurrentJdt); });
+  if (!fds || !fds.sequences || !fds.sequences[seqIdx]) return;
+  fds.sequences[seqIdx][field] = value;
+  save();
+  // Rafraîchir l'indicateur ✓ si texte
+  if (field === 'texte') jajSelectJournee(jajCurrentJdt);
+}
+
+function jajApercu() {
+  var fds = (state.fds||[]).find(function(f){ return f.filmId===activeFilmId && (f.jdt===jajCurrentJdt||f.id===jajCurrentJdt); });
+  var pdtJ = typeof PDT_DATA !== 'undefined' ? PDT_DATA.find(function(p){return p.jdt===jajCurrentJdt;}) : null;
+  var sequences = fds ? (fds.sequences||[]) : (pdtJ&&pdtJ.sequences||[]).map(function(s){return {num:s};});
+  var film = activeFilm();
+  var journee = (pdtJ&&pdtJ.journee)||(fds&&fds.infos&&fds.infos.journee)||'';
+  var date = (pdtJ&&pdtJ.date)||(fds&&fds.infos&&fds.infos.date)||'';
+
+  document.getElementById('jaj-sequences-panel').style.display = 'none';
+  document.getElementById('jaj-apercu-panel').style.display = 'block';
+
+  var h = '';
+  var pageNum = 1;
+
+  sequences.forEach(function(s, i) {
+    var isLast = i === sequences.length - 1;
+    // En-tête de page
+    h += '<div class="jaj-page" style="'+
+      'background:#fff;min-height:297mm;max-width:210mm;margin:0 auto 12px;padding:20mm 22mm 18mm;'+
+      'box-sizing:border-box;font-family:Courier,monospace;position:relative;'+
+      (isLast?'':'page-break-after:always;')+
+    '">';
+
+    // Titre séquence en haut — gras, aligné gauche comme dans le doc
+    var numStr = String(s.num||'');
+    var decor = (s.decor||'').toUpperCase();
+    var effet = (s.effet||'');
+    var header = numStr + (effet?' '+effet:'') + (decor?' '+decor:'');
+
+    h += '<div style="font-weight:bold;font-size:14px;margin-bottom:28px;line-height:1.4">'+escHtml(header)+'</div>';
+
+    // Texte du scénario
+    if (s.texte && s.texte.trim()) {
+      h += '<div style="font-size:12px;line-height:1.8;white-space:pre-wrap;font-family:Courier,monospace">'+escHtml(s.texte.trim())+'</div>';
+    } else {
+      h += '<div style="color:#aaa;font-style:italic;font-size:12px;padding:20px 0">(texte non renseigné)</div>';
+    }
+
+    // Numéro de page en bas à droite
+    h += '<div style="position:absolute;bottom:15mm;right:22mm;font-size:12px;font-family:Courier,monospace">'+pageNum+'.</div>';
+    h += '</div>';
+    pageNum++;
+  });
+
+  // Styles print
+  var styleId = 'jaj-print-style';
+  if (!document.getElementById(styleId)) {
+    var style = document.createElement('style');
+    style.id = styleId;
+    style.textContent = '@media print { body > *:not(#app) { display:none!important; } #app .page:not(#page-jourAjour) { display:none!important; } #page-jourAjour .scroll > *:not(#jaj-apercu-panel) { display:none!important; } #jaj-apercu-panel > div:first-child { display:none!important; } .jaj-page { page-break-after:always; margin:0!important; } }';
+    document.head.appendChild(style);
+  }
+
+  document.getElementById('jaj-apercu-content').innerHTML = h;
+}
+
+function jajRetour() {
+  document.getElementById('jaj-sequences-panel').style.display = 'block';
+  document.getElementById('jaj-apercu-panel').style.display = 'none';
+}
+
+function jajEnvoyer() {
+  var fds = (state.fds||[]).find(function(f){ return f.filmId===activeFilmId && (f.jdt===jajCurrentJdt||f.id===jajCurrentJdt); });
+  var pdtJ = typeof PDT_DATA !== 'undefined' ? PDT_DATA.find(function(p){return p.jdt===jajCurrentJdt;}) : null;
+  var film = activeFilm();
+  var journee = (pdtJ&&pdtJ.journee)||(fds&&fds.infos&&fds.infos.journee)||'?';
+  var date = (pdtJ&&pdtJ.date)||(fds&&fds.infos&&fds.infos.date)||'';
+  var sequences = fds ? (fds.sequences||[]) : [];
+  var mail = (film&&film.mail) || '';
+
+  var subj = encodeURIComponent('Jour à Jour — '+journee+' — '+date+' — '+(film?film.nom:'LEDR2'));
+  var body = 'Bonjour,\n\nVeuillez trouver ci-dessous le Jour à Jour pour le '+journee+(date?' — '+date:'')+' :\n\n';
+  sequences.forEach(function(s, i) {
+    body += '─────────────────────────────────────────\n';
+    body += (i+1)+'. SEQ '+s.num+(s.effet?' '+s.effet:'')+(s.decor?' — '+s.decor.toUpperCase():'')+'\n';
+    if (s.roles) body += 'Rôles : '+s.roles+'\n';
+    body += '\n';
+    if (s.texte) body += s.texte.trim()+'\n';
+    body += '\n';
+  });
+  body += '─────────────────────────────────────────\n';
+  body += 'Bien cordialement,\nLiv Charpentier — Référent Enfants / Assistante mise en scène';
+
+  window.open('mailto:'+mail+'?subject='+subj+'&body='+encodeURIComponent(body));
+}
+
+function escHtml(str) {
+  return String(str||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
 
 // ═══════════════════════ IMPORT PDT / DÉPOUILLEMENT ═══════════════════════
