@@ -4690,6 +4690,47 @@ function jajToggleSeq(header) {
   if (arrow) arrow.style.transform = open ? '' : 'rotate(180deg)';
 }
 
+function formatScenarioTexte(texte) {
+  // Parser le texte scénario Final Draft et générer HTML avec mise en page correcte
+  if (!texte || !texte.trim()) return '<div style="color:#bbb;font-style:italic;font-size:12px">(texte non disponible)</div>';
+
+  var lines = texte.split('\n');
+  var html = '';
+
+  // Détecter le type de chaque ligne selon son indentation
+  // Final Draft Courier : action ~0 espaces, perso ~25 espaces, dialogue ~15 espaces, parenthèse ~20 espaces
+  lines.forEach(function(line) {
+    var raw = line;
+    var trimmed = line.trim();
+    if (!trimmed) { html += '<div style="height:0.9em"></div>'; return; }
+
+    var leadSpaces = raw.search(/\S/);
+    if (leadSpaces < 0) leadSpaces = 0;
+
+    // Nom de personnage : beaucoup d'espaces (>15), tout en MAJUSCULES, court
+    var isPerso = leadSpaces >= 15 && trimmed === trimmed.toUpperCase() && trimmed.length < 50
+                  && !/^[IVX]+\./.test(trimmed) && !/^\(/.test(trimmed);
+    // Parenthèse (indication de jeu) : commence par (
+    var isParenth = /^\(.*\)$/.test(trimmed) && leadSpaces >= 10;
+    // Dialogue : indentation moyenne (8-20 espaces), après un perso
+    var isDialogue = leadSpaces >= 8 && leadSpaces < 25 && !isPerso && !isParenth;
+    // Action : peu d'espaces (0-7)
+    var isAction = leadSpaces < 8 && !isPerso;
+
+    if (isPerso) {
+      html += '<div style="text-align:center;font-weight:bold;font-size:12px;font-family:Courier,monospace;margin-top:0.8em;letter-spacing:0.05em">'+escHtml(trimmed)+'</div>';
+    } else if (isParenth) {
+      html += '<div style="text-align:center;font-style:italic;font-size:11px;font-family:Courier,monospace;color:#444">'+escHtml(trimmed)+'</div>';
+    } else if (isDialogue) {
+      html += '<div style="margin:0 15% 0 15%;font-size:12px;font-family:Courier,monospace;line-height:1.6">'+escHtml(trimmed)+'</div>';
+    } else {
+      // Action
+      html += '<div style="font-size:12px;font-family:Courier,monospace;line-height:1.6;margin-top:0.4em">'+escHtml(trimmed)+'</div>';
+    }
+  });
+  return html;
+}
+
 function jajApercu() {
   var pdtJ = getPDTData().find(function(p){return p.jdt===jajCurrentJdt;}) || null;
   var fds = (state.fds||[]).find(function(f){ return f.filmId===activeFilmId && (f.jdt===jajCurrentJdt||f.id===jajCurrentJdt); });
@@ -4708,25 +4749,21 @@ function jajApercu() {
   sequences.forEach(function(s, i) {
     var isLast = i === sequences.length - 1;
     h += '<div class="jaj-page" style="' +
-      'background:#fff;min-height:270mm;max-width:190mm;margin:0 auto 16px;padding:18mm 20mm 15mm;' +
-      'box-sizing:border-box;font-family:Courier,monospace;position:relative;border:1px solid #ccc;' +
+      'background:#fff;min-height:270mm;max-width:165mm;margin:0 auto 16px;padding:20mm 22mm 18mm;' +
+      'box-sizing:border-box;font-family:Courier,monospace;position:relative;border:1px solid #ddd;' +
       (isLast?'':'page-break-after:always;') +
     '">';
 
-    // En-tête : numéro + titre (INT./EXT. LIEU - MOMENT)
+    // En-tête : numéro + titre en gras MAJUSCULES
     var titre = s.titre || ([s.effet, s.decor].filter(Boolean).join(' '));
     var headerLine = s.num + '   ' + titre.toUpperCase();
-    h += '<div style="font-weight:bold;font-size:13px;margin-bottom:24px;white-space:pre-wrap;font-family:Courier,monospace">'+escHtml(headerLine)+'</div>';
+    h += '<div style="font-weight:bold;font-size:13px;margin-bottom:20px;font-family:Courier,monospace;letter-spacing:0.02em">'+escHtml(headerLine)+'</div>';
 
-    // Texte du scénario (formatage Courier conservé)
-    if (s.texte && s.texte.trim()) {
-      h += '<div style="font-size:12px;line-height:1.9;white-space:pre-wrap;font-family:Courier,monospace">'+escHtml(s.texte.trim())+'</div>';
-    } else {
-      h += '<div style="color:#bbb;font-style:italic;font-size:12px;font-family:Courier,monospace">(texte non disponible)</div>';
-    }
+    // Texte formaté
+    h += '<div style="line-height:1.7">'+formatScenarioTexte(s.texte)+'</div>';
 
     // Numéro de page bas droite
-    h += '<div style="position:absolute;bottom:12mm;right:20mm;font-size:12px;font-family:Courier,monospace">'+pageNum+'.</div>';
+    h += '<div style="position:absolute;bottom:12mm;right:22mm;font-size:12px;font-family:Courier,monospace">'+pageNum+'.</div>';
     h += '</div>';
     pageNum++;
   });
