@@ -965,6 +965,22 @@ textarea.form-input{resize:vertical;min-height:72px;}
         <div id="import-scenario-preview" style="margin-top:10px"></div>
       </div>
 
+      <!-- IMPORT BIBLE -->
+      <div class="card" style="margin-top:8px;border:2px solid #6a0dad">
+        <div class="card-title" style="color:#6a0dad">📚 Import Bible de tournage PDF
+          <span style="font-size:11px;font-weight:400;color:var(--text-muted)">(.pdf)</span>
+        </div>
+        <div style="font-size:12px;color:var(--text-muted);margin-bottom:8px">
+          Extrait la liste technique (équipe avec postes et téléphones), la liste artistique (comédiens) et les silhouettes/doublures.
+        </div>
+        <div id="import-bible-status" style="margin-bottom:8px;font-size:12px"></div>
+        <label class="btn btn-block" style="cursor:pointer;text-align:center;background:#f5f0ff;border:2px solid #6a0dad;color:#6a0dad">
+          📂 Choisir le PDF Bible de tournage
+          <input type="file" accept=".pdf" id="import-bible-file" style="display:none" onchange="importBibleFile(this)"/>
+        </label>
+        <div id="import-bible-preview" style="margin-top:10px"></div>
+      </div>
+
     </div>
   </div>
 
@@ -4821,6 +4837,180 @@ function escHtml(str) {
   return String(str||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
 
+
+// ═══════════════════════ IMPORT BIBLE ═══════════════════════
+
+function importBibleFile(input) {
+  if (!activeFilmId) { toast('Sélectionnez un film d\'abord'); return; }
+  if (!input.files || !input.files[0]) return;
+  var preview = document.getElementById('import-bible-preview');
+  preview.innerHTML = '<div style="color:#888;padding:12px;text-align:center">⏳ Extraction en cours...</div>';
+
+  function loadPdfJs(cb) {
+    if (window.pdfjsLib) { cb(); return; }
+    var s = document.createElement('script');
+    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+    s.onload = function() {
+      pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+      cb();
+    };
+    document.head.appendChild(s);
+  }
+
+  loadPdfJs(function() {
+    var reader = new FileReader();
+    reader.onload = function(e) {
+      pdfjsLib.getDocument({data: e.target.result}).promise.then(function(pdf) {
+        var totalPages = pdf.numPages;
+        var allPages = [];
+        var promises = [];
+        for (var p = 1; p <= totalPages; p++) {
+          promises.push(pdf.getPage(p).then(function(page) {
+            return page.getTextContent().then(function(tc) {
+              return {page: page.pageNumber, text: tc.items.map(function(i){return i.str;}).join(' ')};
+            });
+          }));
+        }
+        Promise.all(promises).then(function(pages) {
+          var fullText = pages.map(function(p){return p.text;}).join('\n');
+          var result = parseBibleText(fullText);
+          afficherBiblePreview(result, preview);
+          input.value = '';
+        });
+      });
+    };
+    reader.readAsArrayBuffer(input.files[0]);
+  });
+}
+
+function parseBibleText(text) {
+  // Sections équipe technique
+  var SECTIONS = {
+    'PRODUCTION': 'production', 'PRODUCTION - ADMINISTRATION': 'production',
+    'REGIE': 'regie', 'MISE EN SCENE': 'mise_en_scene',
+    'IMAGE': 'camera', 'ELECTRICITE': 'electricite',
+    'MACHINERIE': 'machinerie', 'SON': 'son',
+    'COSTUMES': 'costumes', 'MAQUILLAGE': 'hmac', 'COIFFURE': 'hmac',
+    'DECORATION': 'decoration', 'ACCESSOIRES': 'accessoires',
+    'COACH  RÉFÉRENT ENFANTS': 'enfants', 'COACH & RÉFÉRENT ENFANTS': 'enfants',
+    'CASCADES': 'cascade', 'SFX': 'sfx',
+  };
+
+  var equipe = {};
+  var comediens = [];
+  var doublures = [];
+
+  // Regex : nom avec tel
+  var lineRe = /([A-ZÀ-Ÿ][a-zà-ÿ\u0080-\u00ff\'\-]+(?:\s+[A-ZÀ-Ÿ][A-ZÀ-Ÿa-zà-ÿ\'\-]+)+)\s+(0\d(?:\s?\d\d){4})/g;
+  var postes = [
+    'Producteur','Productrice','Directeur','Directrice','Administratrice','Administrateur',
+    'Assistant','Assistante','Régisseur','Régisseuse','Auxiliaire','Réalisateur',
+    'Scripte','Cadreur','Chef','Cheffe','Maquilleuse','Coiffeuse','Coiffeur',
+    'Accessoiriste','Coordinateur','Coordinatrice','Responsable','Coach','Stagiaire',
+    '1er','2nde','3ème','2nd','Storyboarder','Groupman','Repéreur','Créateur','Créatrice'
+  ];
+  var posteRe = new RegExp('^('+postes.join('|')+')\\b', 'i');
+
+  var lines = text.split(/[\n\r]+/).map(function(l){return l.trim();}).filter(Boolean);
+  var currentDept = null;
+  var inListeTech = false;
+
+  for (var i = 0; i < lines.length; i++) {
+    var line = lines[i];
+
+    if (line === 'LISTE TECHNIQUE') { inListeTech = true; continue; }
+    if (line === 'LISTE ARTISTIQUE' || line === 'LISTE DES DÉCORS') { inListeTech = false; continue; }
+
+    if (inListeTech && SECTIONS[line]) {
+      currentDept = SECTIONS[line];
+      if (!equipe[currentDept]) equipe[currentDept] = [];
+      continue;
+    }
+
+    if (!inListeTech || !currentDept) continue;
+
+    // Chercher tel en fin de ligne
+    var telM = line.match(/(0\d(?:\s\d\d){4})\s*(?:[\w\.@]+)?\s*$/);
+    if (!telM) continue;
+    var tel = telM[1].replace(/\s/g,'');
+    var base = line.substring(0, line.lastIndexOf(telM[1])).trim();
+
+    // Extraire poste et nom
+    var nomM = base.match(/([A-ZÀ-Ÿ][a-zà-ÿ\'\-]+\s+)?([A-ZÉÈÊËÀÂÙÛÜ][A-ZÉÈÊËÀÂÙÛÜ\'\-]+(?:\s+[A-ZÉÈÊËÀÂÙÛÜ][A-ZÉÈÊËÀÂÙÛÜ\'\-]+)*)\s*$/);
+    if (!nomM) continue;
+    var nom = nomM[0].trim();
+    var poste = base.substring(0, base.length - nom.length).trim();
+    if (!poste) poste = currentDept;
+
+    equipe[currentDept].push({poste: poste, nom: nom, tel: tel, heure: ''});
+  }
+
+  return {equipe: equipe};
+}
+
+function afficherBiblePreview(result, preview) {
+  var equipe = result.equipe;
+  var totalMembres = Object.values(equipe).reduce(function(s,v){return s+v.length;},0);
+
+  var h = '<div style="background:#d1fae5;padding:10px;border-radius:6px;color:#065f46;font-weight:600;margin-bottom:10px">';
+  h += '✓ '+totalMembres+' membres d\'équipe extraits</div>';
+
+  h += '<div style="font-size:11px;margin-bottom:10px">';
+  var deptLabels = {
+    production:'Production/Régie/Admin', regie:'Régie', mise_en_scene:'Mise en scène',
+    camera:'Image', electricite:'Électricité', machinerie:'Machinerie', son:'Son',
+    costumes:'Costumes', hmac:'Maquillage/Coiffure', decoration:'Décoration',
+    accessoires:'Accessoires', enfants:'Coach/Référent enfants', cascade:'Cascades', sfx:'SFX'
+  };
+  Object.keys(equipe).forEach(function(dept) {
+    if (equipe[dept].length) {
+      h += '<div style="padding:2px 0"><b>'+( deptLabels[dept]||dept)+'</b> — '+equipe[dept].length+' membres</div>';
+    }
+  });
+  h += '</div>';
+
+  h += '<button class="btn btn-primary btn-block" onclick="appliquerBible(window._bibleResult)">✓ Appliquer à ce film</button>';
+
+  preview.innerHTML = h;
+  window._bibleResult = result;
+}
+
+function appliquerBible(result) {
+  if (!activeFilmId) { toast('Sélectionnez un film d\'abord'); return; }
+  var equipe = result.equipe;
+
+  // Stocker l'équipe dans localStorage pour ce film
+  try {
+    localStorage.setItem('equipe_bible_'+activeFilmId, JSON.stringify(equipe));
+  } catch(e) {}
+
+  // Mettre à jour EQUIPE_FIXE si c'est LEDR2
+  // Sinon créer les FDS avec cette équipe
+  var totalMembres = Object.values(equipe).reduce(function(s,v){return s+v.length;},0);
+
+  // Appliquer aux FDS existantes du film
+  var count = 0;
+  (state.fds||[]).filter(function(f){return f.filmId===activeFilmId;}).forEach(function(fds) {
+    if (!fds.equipe || Object.keys(fds.equipe).length === 0) {
+      fds.equipe = JSON.parse(JSON.stringify(equipe));
+      count++;
+    }
+  });
+  save();
+
+  document.getElementById('import-bible-preview').innerHTML =
+    '<div style="background:#d1fae5;padding:10px;border-radius:6px;color:#065f46;font-weight:600">' +
+    '✓ '+totalMembres+' membres appliqués — '+count+' FDS mises à jour</div>';
+  toast('Bible importée ✓');
+}
+
+function getBibleEquipe() {
+  if (!activeFilmId) return null;
+  try {
+    var stored = localStorage.getItem('equipe_bible_'+activeFilmId);
+    return stored ? JSON.parse(stored) : null;
+  } catch(e) { return null; }
+}
 
 // ═══════════════════════ IMPORT SCÉNARIO ═══════════════════════
 
