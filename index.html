@@ -4516,11 +4516,12 @@ function deleteVehicule() {
 var jajCurrentJdt = null;
 
 function renderJourAJour() {
+  // Assurer film actif
   if (!activeFilmId && state.films && state.films.length) activeFilmId = state.films[0].id;
-  // Ne cacher les panels que si on arrive sur la page depuis la nav (pas depuis un bouton journée)
+  // Ne cacher les panels que si pas de journée sélectionnée
   if (!jajCurrentJdt) {
-    document.getElementById('jaj-sequences-panel').style.display = 'none';
-    document.getElementById('jaj-apercu-panel').style.display = 'none';
+    var sp = document.getElementById('jaj-sequences-panel'); if(sp) sp.style.display='none';
+    var ap = document.getElementById('jaj-apercu-panel'); if(ap) ap.style.display='none';
   }
 
   var hasScenario = getScenarioForFilm().length > 0;
@@ -4536,7 +4537,9 @@ function renderJourAJour() {
   var journees = [];
   if (typeof PDT_DATA !== 'undefined') {
     PDT_DATA.forEach(function(pdt) {
-      var fds = (state.fds||[]).find(function(f){ return f.filmId===activeFilmId && f.jdt===pdt.jdt; });
+      var fds = activeFilmId
+        ? (state.fds||[]).find(function(f){ return f.filmId===activeFilmId && f.jdt===pdt.jdt; })
+        : null;
       // Compter combien de séquences ont un texte
       var seqsAvecTexte = 0;
       var pdtSeqs = pdt.sequences || [];
@@ -4628,7 +4631,9 @@ function jajSelectJournee(jdt) {
   renderJourAJour();
 
   var pdtJ = typeof PDT_DATA !== 'undefined' ? PDT_DATA.find(function(p){return p.jdt===jdt;}) : null;
-  var fds = (state.fds||[]).find(function(f){ return f.filmId===activeFilmId && (f.jdt===jdt||f.id===jdt); });
+  var fds = activeFilmId
+    ? (state.fds||[]).find(function(f){ return f.filmId===activeFilmId && (f.jdt===jdt||f.id===jdt); })
+    : null;
   var journee = (pdtJ&&pdtJ.journee)||(fds&&fds.infos&&fds.infos.journee)||'Journée';
   var date = (pdtJ&&pdtJ.date)||(fds&&fds.infos&&fds.infos.date)||'';
 
