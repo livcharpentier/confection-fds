@@ -1899,10 +1899,21 @@ function saveDeptNote() {
 
 // ═══════════════════════ EQUIPE ═══════════════════════
 const EQUIPE_DEPT_LABELS = {
-  realisateur:'Réalisateur', mise_en_scene:'Mise en scène', enfants:'Enfants',
-  production:'Production', regie:'Régie', camera:'Caméra',
-  electricite:'Électricité', machinerie:'Machinerie', son:'Son',
-  costumes:'Costumes', hmac:'HMC', decoration:'Décoration'
+  realisateur:'Réalisateur',
+  mise_en_scene:'Mise en scène',
+  enfants:'Coach & Référent Enfants',
+  production:'Production & Administration',
+  regie:'Régie',
+  camera:'Caméra',
+  electricite:'Électricité',
+  machinerie:'Machinerie',
+  son:'Son',
+  costumes:'Costumes',
+  hmac:'Maquillage & Coiffure',
+  decoration:'Décoration',
+  accessoires:'Accessoires',
+  cascade:'Cascades',
+  sfx:'SFX'
 };
 
 const EQUIPE_FIXE = {
@@ -4228,10 +4239,7 @@ function renderConvocationsApercu(targetEl) {
   var el = targetEl || document.getElementById('apercu-convoc-content');
   if (!el) return;
 
-  // Assurer film actif
   if (!activeFilmId && state.films && state.films.length) activeFilmId = state.films[0].id;
-
-  // Assurer FDS active — prendre la dernière du film si aucune
   if (!activeFdsId || !activeFDS()) {
     var allFds = (state.fds||[]).filter(function(x){ return x.filmId===activeFilmId; });
     if (allFds.length) activeFdsId = allFds[allFds.length-1].id;
@@ -4246,15 +4254,28 @@ function renderConvocationsApercu(targetEl) {
   }
 
   var i = f.infos||{};
-  var h = '';
-  h += '<div style="text-align:center;font-weight:700;font-size:14px;margin-bottom:4px">'+(film?film.nom:'LES ENFANTS DE LA RÉSISTANCE')+'</div>';
-  h += '<div style="text-align:center;font-size:12px;color:var(--text-muted);margin-bottom:6px">CONVOCATIONS – '+(i.date||'').toUpperCase()+' – '+(i.journee||'')+'</div>';
-  h += '<div style="text-align:center;font-size:13px;font-weight:700;margin-bottom:14px">PAT : '+(fmtTime(i.pat)||'—')+'</div>';
+  var nomFilm = film ? film.nom : 'LES ENFANTS DE LA RÉSISTANCE';
 
-  // Équipe : EQUIPE_FIXE comme base + surcharges de la FDS (heures modifiées, renforts)
+  // ── En-tête style convocation réelle ──
+  var h = '<div style="font-family:Arial,sans-serif;max-width:100%">';
+
+  // Titre
+  h += '<div style="text-align:center;margin-bottom:12px">';
+  h += '<div style="font-weight:700;font-size:13px">'+ nomFilm.toUpperCase()+'</div>';
+  h += '<div style="font-size:11px;margin-top:2px">CONVOCATIONS – '+(i.journee||'')+(i.date?' – '+i.date.toUpperCase():'')+'</div>';
+  if (i.pat) h += '<div style="font-size:14px;font-weight:700;margin-top:4px">PAT : '+fmtTime(i.pat)+'</div>';
+  if (i.debut && i.fin) h += '<div style="font-size:11px">Horaires : '+fmtTime(i.debut)+' – '+fmtTime(i.fin)+'</div>';
+  h += '</div>';
+
+  // ── Équipe : EQUIPE_FIXE + surcharges FDS + Bible importée ──
   var equipeBase = (typeof EQUIPE_FIXE !== 'undefined') ? EQUIPE_FIXE : {};
-  var equipeFds  = f.equipe || {};
+  // Priorité : Bible importée > EQUIPE_FIXE
+  var bibleEquipe = getBibleEquipe ? getBibleEquipe() : null;
+  if (bibleEquipe) equipeBase = bibleEquipe;
+
+  var equipeFds = f.equipe || {};
   var equipeFinale = {};
+
   Object.keys(EQUIPE_DEPT_LABELS).forEach(function(dept) {
     var base = (equipeBase[dept]||[]).map(function(m){ return Object.assign({},m); });
     var fdsM = equipeFds[dept]||[];
@@ -4266,25 +4287,40 @@ function renderConvocationsApercu(targetEl) {
     equipeFinale[dept] = base;
   });
 
+  // ── Rendu style convocation : DEPT en titre, tableau Poste | NOM | Tel | Heure ──
   var hasRows = false;
   Object.keys(EQUIPE_DEPT_LABELS).forEach(function(dept){
     var membres = equipeFinale[dept]||[];
     if (!membres.length) return;
     hasRows = true;
-    h += '<div style="margin-bottom:10px">';
-    h += '<div style="background:var(--purple);color:#fff;padding:5px 10px;font-size:11px;font-weight:700;border-radius:var(--radius-sm) var(--radius-sm) 0 0">'+(EQUIPE_DEPT_LABELS[dept]||dept).toUpperCase()+'</div>';
-    h += '<table style="width:100%;border-collapse:collapse;font-size:11px">';
-    membres.forEach(function(m){
-      h += '<tr>'+
-        '<td style="padding:5px 8px;border:1px solid #ddd;border-top:none">'+(m.poste||'')+'</td>'+
-        '<td style="padding:5px 8px;border:1px solid #ddd;border-top:none;font-weight:600">'+(m.nom||'')+'</td>'+
-        '<td style="padding:5px 8px;border:1px solid #ddd;border-top:none;color:#666;font-size:10px">'+(m.tel||'')+'</td>'+
-        '<td style="padding:5px 8px;border:1px solid #ddd;border-top:none;font-weight:700;color:var(--purple);text-align:center;white-space:nowrap">'+(m.heure||'Own Call')+'</td>'+
-      '</tr>';
+
+    h += '<div style="margin-bottom:8px">';
+    // Titre département
+    h += '<div style="font-size:10px;font-weight:700;letter-spacing:0.05em;padding:4px 8px;'+
+         'background:#4338ca;color:#fff;text-transform:uppercase">'+
+         (EQUIPE_DEPT_LABELS[dept]||dept)+'</div>';
+
+    // Lignes membres
+    membres.forEach(function(m, idx) {
+      var bg = idx%2===0 ? '#fff' : '#f9f9ff';
+      h += '<div style="display:flex;align-items:center;padding:4px 8px;background:'+bg+';border-bottom:1px solid #eee;font-size:11px">';
+      h += '<span style="flex:2;color:#444">'+(m.poste||'')+'</span>';
+      h += '<span style="flex:2;font-weight:600">'+(m.nom||'')+'</span>';
+      h += '<span style="flex:1.5;color:#888;font-size:10px">'+(m.tel||'')+'</span>';
+      h += '<span style="flex:0.8;text-align:right;font-weight:700;color:#4338ca;white-space:nowrap">'+(m.heure||'Own Call')+'</span>';
+      h += '</div>';
     });
-    h += '</table></div>';
+    h += '</div>';
   });
-  if (!hasRows) h += '<div style="padding:16px;text-align:center;color:#999;font-size:12px">Équipe non renseignée.</div>';
+
+  if (!hasRows) {
+    h += '<div style="padding:20px;text-align:center;color:#999;font-size:12px">'+
+         'Aucun membre d\'équipe renseigné pour cette journée.<br>'+
+         '<small>Importez la Bible de tournage dans l\'onglet Import pour pré-remplir automatiquement.</small>'+
+         '</div>';
+  }
+
+  h += '</div>';
   el.innerHTML = h;
 }
 
