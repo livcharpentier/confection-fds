@@ -4538,8 +4538,9 @@ function renderJourAJour() {
 
   // Toutes les journées PDT
   var journees = [];
-  if (typeof PDT_DATA !== 'undefined') {
-    PDT_DATA.forEach(function(pdt) {
+  var _pdt = getPDTData();
+  if (_pdt && _pdt.length) {
+    _pdt.forEach(function(pdt) {
       var fds = activeFilmId
         ? (state.fds||[]).find(function(f){ return f.filmId===activeFilmId && f.jdt===pdt.jdt; })
         : null;
@@ -4600,7 +4601,7 @@ function jajNumMatch(scNum, pdtNum) {
 
 function jajGetSequencesForJournee(jdt) {
   // Croiser PDT + scénario, retourner les séquences enrichies
-  var pdtJ = typeof PDT_DATA !== 'undefined' ? PDT_DATA.find(function(p){return p.jdt===jdt;}) : null;
+  var pdtJ = getPDTData().find(function(p){return p.jdt===jdt;}) || null;
   var fds = (state.fds||[]).find(function(f){ return f.filmId===activeFilmId && (f.jdt===jdt||f.id===jdt); });
   var sc = getScenarioForFilm();
 
@@ -4633,7 +4634,7 @@ function jajSelectJournee(jdt) {
   // Rafraîchir juste les boutons sans toucher aux panels
   renderJourAJour();
 
-  var pdtJ = typeof PDT_DATA !== 'undefined' ? PDT_DATA.find(function(p){return p.jdt===jdt;}) : null;
+  var pdtJ = getPDTData().find(function(p){return p.jdt===jdt;}) || null;
   var fds = activeFilmId
     ? (state.fds||[]).find(function(f){ return f.filmId===activeFilmId && (f.jdt===jdt||f.id===jdt); })
     : null;
@@ -4690,7 +4691,7 @@ function jajToggleSeq(header) {
 }
 
 function jajApercu() {
-  var pdtJ = typeof PDT_DATA !== 'undefined' ? PDT_DATA.find(function(p){return p.jdt===jajCurrentJdt;}) : null;
+  var pdtJ = getPDTData().find(function(p){return p.jdt===jajCurrentJdt;}) || null;
   var fds = (state.fds||[]).find(function(f){ return f.filmId===activeFilmId && (f.jdt===jajCurrentJdt||f.id===jajCurrentJdt); });
   var film = activeFilm();
   var journee = (pdtJ&&pdtJ.journee)||(fds&&fds.infos&&fds.infos.journee)||'';
@@ -4747,7 +4748,7 @@ function jajRetour() {
 }
 
 function jajEnvoyer() {
-  var pdtJ = typeof PDT_DATA !== 'undefined' ? PDT_DATA.find(function(p){return p.jdt===jajCurrentJdt;}) : null;
+  var pdtJ = getPDTData().find(function(p){return p.jdt===jajCurrentJdt;}) || null;
   var fds = (state.fds||[]).find(function(f){ return f.filmId===activeFilmId && (f.jdt===jajCurrentJdt||f.id===jajCurrentJdt); });
   var film = activeFilm();
   var journee = (pdtJ&&pdtJ.journee)||(fds&&fds.infos&&fds.infos.journee)||'?';
@@ -5423,13 +5424,17 @@ function getPDTData() {
   return PDT_DATA_LEDR2;
 }
 
-// Compatibilité : PDT_DATA pointe toujours sur les données actives
-var PDT_DATA = getPDTData();
 
-// Recharger PDT_DATA quand le film actif change
-function reloadPDTData() {
-  PDT_DATA = getPDTData();
-}
+// PDT_DATA est maintenant dynamique : recharge depuis localStorage à chaque accès
+// Cela permet de changer de film sans rechargement de page
+Object.defineProperty(window, 'PDT_DATA', {
+  get: function() { return getPDTData(); },
+  configurable: true
+});
+
+// reloadPDTData garde la compatibilité mais n'est plus nécessaire
+function reloadPDTData() { /* PDT_DATA est maintenant toujours à jour via getter */ }
+
 
 
 function ouvrirModalImportPDT() {
