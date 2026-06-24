@@ -787,9 +787,8 @@ textarea.form-input{resize:vertical;min-height:72px;}
       <div class="page-sub" id="pg-convoc-sub"></div>
     </div>
     <div class="scroll">
-      <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap">
-        <button class="btn btn-primary" style="flex:1;justify-content:center" onclick="envoyerConvocations()">🖨 Imprimer / PDF</button>
-        <button class="btn btn-secondary" style="flex:1;justify-content:center" onclick="partagerConvocations()">✉ Envoyer par mail</button>
+      <div style="display:flex;gap:8px;margin-bottom:10px">
+        <button class="btn btn-primary" style="flex:1;justify-content:center" onclick="envoyerConvocations()">✉ Envoyer les convocations</button>
       </div>
       <div id="pg-convoc-content"></div>
     </div>
@@ -898,9 +897,10 @@ textarea.form-input{resize:vertical;min-height:72px;}
     </div>
     <div class="scroll">
       <div id="resume-convoc-selector" style="margin-bottom:8px"></div>
-      <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">
-        <button class="btn btn-primary" style="flex:1;justify-content:center" onclick="envoyerConvocations()">🖨 Imprimer / PDF</button>
-        <button class="btn btn-secondary" style="flex:1;justify-content:center" onclick="partagerConvocations()">✉ Envoyer par mail</button>
+      <div style="display:flex;gap:8px;margin-bottom:12px">
+        <button class="btn btn-primary" style="flex:1;justify-content:center;gap:6px" onclick="envoyerConvocations()">
+          ✉ Envoyer les convocations
+        </button>
       </div>
       <div id="apercu-convoc-content"></div>
     </div>
@@ -2145,16 +2145,65 @@ function editHeureConvoc(dept, idx) {
 
 function envoyerConvocations() {
   var f = activeFDS(); var film = activeFilm();
-  if (!f) { toast('Aucune journée active'); return; }
-  var html = buildConvocHtml(f, film, true);
+  if (!f) {
+    // Essayer de prendre la dernière FDS du film
+    if (!activeFilmId && state.films && state.films.length) activeFilmId = state.films[0].id;
+    var allFds = (state.fds||[]).filter(function(x){ return x.filmId===activeFilmId; });
+    if (allFds.length) { activeFdsId = allFds[allFds.length-1].id; f = activeFDS(); }
+    if (!f) { toast('Aucune journée active — sélectionnez une journée d\'abord'); return; }
+  }
+
   var i = f.infos||{};
-  var titre = 'Convocations '+(i.journee||'')+(i.date?' — '+i.date:'');
-  var win = window.open('', '_blank', 'width=800,height=900');
-  if (!win) { toast('Autorisez les popups pour imprimer'); return; }
-  win.document.write('<!DOCTYPE html><html><head><meta charset="UTF-8"><title>'+titre+'</title>'+
-    '<style>body{font-family:Arial,sans-serif;margin:20px;color:#111}@media print{body{margin:10mm}}</style>'+
-    '</head><body>'+html+
-    '<script>setTimeout(function(){window.print();},400)<\/script></body></html>');
+  var html = buildConvocHtml(f, film, true);
+  var nomFilm = film ? film.nom : 'LES ENFANTS DE LA RESISTANCE';
+  var titre = nomFilm+' — Convocations '+(i.journee||'')+(i.date?' — '+i.date:'');
+
+  // Construire le texte pour WhatsApp/mail
+  var equipeBase = (typeof EQUIPE_FIXE !== 'undefined') ? EQUIPE_FIXE : {};
+  var bibleEquipe = (typeof getBibleEquipe !== 'undefined') ? getBibleEquipe() : null;
+  if (bibleEquipe) equipeBase = bibleEquipe;
+  var fdsEq = f.equipe || {};
+  var texte = nomFilm+'\nCONVOCATIONS — '+(i.journee||'')+(i.date?' — '+i.date:'')+'\nPAT : '+(fmtTime(i.pat)||'—')+'  Horaires : '+(fmtTime(i.debut)||'')+' → '+(fmtTime(i.fin)||'')+'\n\n';
+  Object.keys(EQUIPE_DEPT_LABELS).forEach(function(dept){
+    var base = (equipeBase[dept]||[]).map(function(m){return Object.assign({},m);});
+    (fdsEq[dept]||[]).forEach(function(fm){
+      var found = base.find(function(b){return b.nom===fm.nom;});
+      if (found){if(fm.heure)found.heure=fm.heure;}else base.push(fm);
+    });
+    if (!base.length) return;
+    texte += '— '+(EQUIPE_DEPT_LABELS[dept]||dept).toUpperCase()+' —\n';
+    base.forEach(function(m){ texte += (m.poste||'')+' '+(m.nom||'')+(m.tel?' '+m.tel:'')+' '+(m.heure||'Own Call')+'\n'; });
+    texte += '\n';
+  });
+
+  var mailUrl = 'mailto:?subject='+encodeURIComponent(titre)+'&body='+encodeURIComponent(texte);
+  var waUrl = 'https://wa.me/?text='+encodeURIComponent(texte.substring(0, 4000));
+
+  // Ouvrir fenêtre avec aperçu + boutons partage
+  var win = window.open('', '_blank', 'width=820,height=960');
+  if (!win) { toast('Autorisez les popups'); return; }
+  win.document.write('<!DOCTYPE html><html><head>'+
+    '<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">'+
+    '<title>'+titre+'</title>'+
+    '<style>'+
+    'body{font-family:Arial,sans-serif;margin:0;padding:0;background:#f5f5f5}'+
+    '.toolbar{position:sticky;top:0;background:#fff;border-bottom:2px solid #4338ca;padding:10px 20px;display:flex;gap:10px;align-items:center;z-index:99;flex-wrap:wrap}'+
+    '.btn{padding:8px 16px;border-radius:6px;border:none;cursor:pointer;font-size:13px;font-weight:600;text-decoration:none;display:inline-flex;align-items:center;gap:6px}'+
+    '.btn-mail{background:#4338ca;color:#fff}'+
+    '.btn-wa{background:#25d366;color:#fff}'+
+    '.btn-print{background:#f0f0f0;color:#333;border:1px solid #ccc}'+
+    '.content{max-width:700px;margin:20px auto;background:#fff;padding:24px;box-shadow:0 2px 8px rgba(0,0,0,.1)}'+
+    '@media print{.toolbar{display:none!important}.content{box-shadow:none;margin:0;padding:10mm}}'+
+    '</style>'+
+    '</head><body>'+
+    '<div class="toolbar">'+
+    '<span style="font-weight:700;font-size:13px;flex:1;color:#4338ca">'+titre+'</span>'+
+    '<a class="btn btn-mail" href="'+mailUrl+'">✉ Mail</a>'+
+    '<a class="btn btn-wa" href="'+waUrl+'" target="_blank">💬 WhatsApp</a>'+
+    '<button class="btn btn-print" onclick="window.print()">🖨 Imprimer</button>'+
+    '</div>'+
+    '<div class="content">'+html+'</div>'+
+    '</body></html>');
   win.document.close();
 }
 
