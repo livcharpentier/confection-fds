@@ -5527,8 +5527,28 @@ function parseScenarioPdfText(text) {
 
 function getScenarioForFilm(filmId) {
   try {
-    var stored = localStorage.getItem('scenario_' + (filmId || activeFilmId));
-    return stored ? JSON.parse(stored) : [];
+    // Chercher d'abord la clé exacte du film actif
+    var key = 'scenario_' + (filmId || activeFilmId);
+    var stored = localStorage.getItem(key);
+    if (stored) return JSON.parse(stored);
+    // Fallback : chercher n'importe quelle clé scenario_ qui existe
+    for (var i = 0; i < localStorage.length; i++) {
+      var k = localStorage.key(i);
+      if (k && k.startsWith('scenario_')) {
+        var val = localStorage.getItem(k);
+        if (val) {
+          try {
+            var parsed = JSON.parse(val);
+            if (parsed && parsed.length > 0) {
+              // Migrer vers la bonne clé
+              localStorage.setItem(key, val);
+              return parsed;
+            }
+          } catch(e2) {}
+        }
+      }
+    }
+    return [];
   } catch(e) { return []; }
 }
 
