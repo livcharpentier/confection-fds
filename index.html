@@ -4572,8 +4572,8 @@ function jajSelectJournee(jdt) {
 
   listEl.innerHTML = sequences.map(function(s, i) {
     var hasTexte = s.texte && s.texte.trim();
-    var headerLine = [s.num, s.effet, s.decor].filter(Boolean).join(' — ');
-    return '<div style="border:1px solid '+(hasTexte?'var(--green)':'#e5e7eb')+';border-radius:8px;margin-bottom:8px;overflow:hidden">' +
+    var seqId = 'jaj-seq-' + String(s.num||'').replace(/[^a-zA-Z0-9]/g,'_');
+    return '<div id="'+seqId+'" style="border:1px solid '+(hasTexte?'var(--green)':'#e5e7eb')+';border-radius:8px;margin-bottom:8px;overflow:hidden">' +
       '<div style="background:'+(hasTexte?'var(--green-light)':'#f9fafb')+';padding:8px 12px;display:flex;align-items:center;gap:8px;cursor:pointer" onclick="jajToggleSeq(this)">' +
         '<span style="font-weight:800;font-size:15px;color:var(--purple);min-width:45px">'+escHtml(String(s.num||''))+'</span>' +
         '<span style="font-size:11px;color:#555;flex:1;font-style:italic">'+escHtml(s.titre||s.decor||'')+'</span>' +
@@ -4583,15 +4583,26 @@ function jajSelectJournee(jdt) {
         '<span style="font-size:11px">▼</span>' +
       '</div>' +
       '<div class="jaj-seq-body" style="display:none;padding:10px;background:#fff">' +
-        '<div style="display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap;font-size:11px">' +
+        '<div style="display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap;font-size:11px;align-items:center">' +
           '<b>Effet :</b> '+escHtml(s.effet||'—')+' &nbsp; ' +
           '<b>Décor :</b> '+escHtml(s.decor||'—')+' &nbsp; ' +
           (s.roles ? '<b>Rôles :</b> '+escHtml(s.roles) : '') +
+          '<button onclick="jajEditTexte(\''+escHtml(String(s.num||''))+'\')" style="margin-left:auto;background:none;border:1px solid #ccc;border-radius:4px;cursor:pointer;padding:2px 8px;font-size:11px;color:#555">✏️ Modifier</button>' +
         '</div>' +
-        (hasTexte
-          ? '<div style="font-family:Courier,monospace;font-size:11px;white-space:pre-wrap;background:#fafafa;padding:10px;border-radius:4px;border:1px solid #eee;max-height:300px;overflow-y:auto">'+escHtml(s.texte)+'</div>'
-          : '<div style="color:#aaa;font-style:italic;font-size:12px;padding:8px">'+(hasScenario?'Séquence non trouvée dans le scénario':'Importez le scénario PDF dans l\'onglet Import')+'</div>'
-        ) +
+        '<div id="jaj-view-'+seqId+'">' +
+          (hasTexte
+            ? '<div style="font-family:Courier,monospace;font-size:11px;white-space:pre-wrap;background:#fafafa;padding:10px;border-radius:4px;border:1px solid #eee;max-height:300px;overflow-y:auto">'+escHtml(s.texte)+'</div>'
+            : '<div style="color:#aaa;font-style:italic;font-size:12px;padding:8px">'+(hasScenario?'Séquence non trouvée dans le scénario':'Importez le scénario PDF dans l\'onglet Import')+'</div>'
+          ) +
+        '</div>' +
+        '<div id="jaj-edit-'+seqId+'" style="display:none">' +
+          '<textarea id="jaj-ta-'+seqId+'" style="width:100%;height:220px;font-family:Courier,monospace;font-size:11px;border:1px solid var(--purple);border-radius:4px;padding:8px;box-sizing:border-box;resize:vertical">'+escHtml(s.texte||'')+'</textarea>' +
+          '<div style="display:flex;gap:8px;margin-top:6px">' +
+            '<button onclick="jajSaveTexte(\''+escHtml(String(s.num||''))+'\',\''+seqId+'\')" style="flex:1;padding:6px;background:var(--purple);color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:12px;font-weight:600">💾 Sauvegarder</button>' +
+            '<button onclick="jajCancelEdit(\''+seqId+'\')" style="padding:6px 12px;background:#f0f0f0;border:none;border-radius:6px;cursor:pointer;font-size:12px">Annuler</button>' +
+            '<button onclick="jajEffacerTexte(\''+escHtml(String(s.num||''))+'\',\''+seqId+'\')" style="padding:6px 12px;background:#fee2e2;color:#c00;border:none;border-radius:6px;cursor:pointer;font-size:12px">🗑 Effacer</button>' +
+          '</div>' +
+        '</div>' +
       '</div>' +
     '</div>';
   }).join('');
@@ -4603,6 +4614,68 @@ function jajToggleSeq(header) {
   var open = body.style.display !== 'none';
   body.style.display = open ? 'none' : 'block';
   if (arrow) arrow.style.transform = open ? '' : 'rotate(180deg)';
+}
+
+function jajEditTexte(numSeq) {
+  var seqId = 'jaj-seq-' + String(numSeq||'').replace(/[^a-zA-Z0-9]/g,'_');
+  var viewEl = document.getElementById('jaj-view-' + seqId);
+  var editEl = document.getElementById('jaj-edit-' + seqId);
+  if (!viewEl || !editEl) return;
+  viewEl.style.display = 'none';
+  editEl.style.display = 'block';
+  var ta = document.getElementById('jaj-ta-' + seqId);
+  if (ta) ta.focus();
+}
+
+function jajCancelEdit(seqId) {
+  var viewEl = document.getElementById('jaj-view-' + seqId);
+  var editEl = document.getElementById('jaj-edit-' + seqId);
+  if (viewEl) viewEl.style.display = 'block';
+  if (editEl) editEl.style.display = 'none';
+}
+
+function jajSaveTexte(numSeq, seqId) {
+  var ta = document.getElementById('jaj-ta-' + seqId);
+  if (!ta) return;
+  var newTexte = ta.value;
+  try {
+    var sc = getScenarioForFilm();
+    var found = sc.find(function(s){ return jajNumMatch(s.num, numSeq); });
+    if (found) {
+      found.texte = newTexte;
+    } else {
+      sc.push({ num: numSeq, titre: numSeq, decor: '', effet: '', texte: newTexte });
+    }
+    localStorage.setItem('scenario_' + activeFilmId, JSON.stringify(sc));
+  } catch(e) { toast('Erreur sauvegarde : ' + e.message); return; }
+
+  var viewEl = document.getElementById('jaj-view-' + seqId);
+  var editEl = document.getElementById('jaj-edit-' + seqId);
+  var cardEl = document.getElementById(seqId);
+  var hasTexte = newTexte && newTexte.trim();
+
+  if (viewEl) {
+    viewEl.style.display = 'block';
+    viewEl.innerHTML = hasTexte
+      ? '<div style="font-family:Courier,monospace;font-size:11px;white-space:pre-wrap;background:#fafafa;padding:10px;border-radius:4px;border:1px solid #eee;max-height:300px;overflow-y:auto">' + escHtml(newTexte) + '</div>'
+      : '<div style="color:#aaa;font-style:italic;font-size:12px;padding:8px">Texte vide</div>';
+  }
+  if (editEl) editEl.style.display = 'none';
+  if (cardEl) {
+    cardEl.style.borderColor = hasTexte ? 'var(--green)' : '#e5e7eb';
+    var hdr = cardEl.querySelector('div:first-child');
+    if (hdr) hdr.style.background = hasTexte ? 'var(--green-light)' : '#f9fafb';
+    var spans = hdr ? hdr.querySelectorAll('span') : [];
+    if (spans[2]) { spans[2].textContent = hasTexte ? '\u2713' : '\u2014'; spans[2].style.color = hasTexte ? 'var(--green)' : '#bbb'; }
+  }
+  toast('S\u00e9quence ' + numSeq + ' sauvegard\u00e9e \u2713');
+}
+
+function jajEffacerTexte(numSeq, seqId) {
+  if (!confirm('Effacer le texte de la s\u00e9quence ' + numSeq + ' ?')) return;
+  var ta = document.getElementById('jaj-ta-' + seqId);
+  if (ta) ta.value = '';
+  jajSaveTexte(numSeq, seqId);
 }
 
 function formatScenarioTexte(texte) {
