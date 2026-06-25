@@ -1440,30 +1440,22 @@ async function loadData() {
   // Puis charger depuis Supabase pour avoir la version la plus récente
   try {
     const remote = await sbLoad();
-    // Restaurer le scénario depuis Supabase dans localStorage
-    if (remote && remote.scenario) {
-      try {
-        Object.keys(remote.scenario).forEach(function(k) {
-          if (k.startsWith('scenario_') && remote.scenario[k]) {
-            // Ne pas écraser si déjà présent localement avec plus de contenu
-            var local = localStorage.getItem(k);
-            var remoteVal = remote.scenario[k];
-            try {
-              var localParsed = local ? JSON.parse(local) : [];
-              var remoteParsed = JSON.parse(remoteVal);
-              if (!local || remoteParsed.length >= localParsed.length) {
-                localStorage.setItem(k, remoteVal);
-              }
-            } catch(e) { localStorage.setItem(k, remoteVal); }
-          }
-        });
-      } catch(e) {}
-    }
+    // (scénario restauré après activeFilmId ci-dessous)
     if (remote && remote.state && remote.state.films) {
       state = remote.state || state;
       activeFilmId = remote.activeFilmId || null;
       activeFdsId = remote.activeFdsId || null;
       try { localStorage.setItem('fds_local', JSON.stringify(remote)); } catch(e) {}
+      // Restaurer le scénario APRÈS avoir le bon activeFilmId
+      if (remote.scenario) {
+        try {
+          Object.keys(remote.scenario).forEach(function(k) {
+            if (k.startsWith('scenario_') && remote.scenario[k]) {
+              localStorage.setItem(k, remote.scenario[k]);
+            }
+          });
+        } catch(e) {}
+      }
       renderFilms();
       updateTopbar();
     }
@@ -5474,8 +5466,18 @@ function importScenarioFile(input) {
             var light = scenes.map(function(s){return Object.assign({},s,{texte:s.texte.slice(0,2000)});});
             localStorage.setItem('scenario_' + activeFilmId, JSON.stringify(light));
           }
-          save(); // Synchroniser vers Supabase → téléphone
-          toast(scenes.length + ' séquences importées ✓');
+          // Synchroniser immédiatement vers Supabase (pas de délai)
+          (function() {
+            var scenario = {};
+            try {
+              for (var i = 0; i < localStorage.length; i++) {
+                var k = localStorage.key(i);
+                if (k && k.startsWith('scenario_')) scenario[k] = localStorage.getItem(k);
+              }
+            } catch(e2) {}
+            sbSave({state: state, activeFilmId: activeFilmId, activeFdsId: activeFdsId, scenario: scenario});
+          })();
+          toast(scenes.length + ' séquences importées et synchronisées ✓');
           renderImportPageScenario();
           input.value = '';
         });
