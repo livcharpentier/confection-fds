@@ -4679,41 +4679,55 @@ function jajEffacerTexte(numSeq, seqId) {
 }
 
 function formatScenarioTexte(texte) {
-  // Parser le texte scénario Final Draft et générer HTML avec mise en page correcte
   if (!texte || !texte.trim()) return '<div style="color:#bbb;font-style:italic;font-size:12px">(texte non disponible)</div>';
 
   var lines = texte.split('\n');
   var html = '';
+  var prevType = '';
 
-  // Détecter le type de chaque ligne selon son indentation
-  // Final Draft Courier : action ~0 espaces, perso ~25 espaces, dialogue ~15 espaces, parenthèse ~20 espaces
   lines.forEach(function(line) {
     var raw = line;
     var trimmed = line.trim();
-    if (!trimmed) { html += '<div style="height:0.9em"></div>'; return; }
+
+    // Ligne vide = saut minimal entre blocs
+    if (!trimmed) {
+      if (prevType) html += '<div style="height:0.3em"></div>';
+      return;
+    }
 
     var leadSpaces = raw.search(/\S/);
     if (leadSpaces < 0) leadSpaces = 0;
 
-    // Nom de personnage : beaucoup d'espaces (>15), tout en MAJUSCULES, court
-    var isPerso = leadSpaces >= 15 && trimmed === trimmed.toUpperCase() && trimmed.length < 50
-                  && !/^[IVX]+\./.test(trimmed) && !/^\(/.test(trimmed);
-    // Parenthèse (indication de jeu) : commence par (
-    var isParenth = /^\(.*\)$/.test(trimmed) && leadSpaces >= 10;
-    // Dialogue : indentation moyenne (8-20 espaces), après un perso
-    var isDialogue = leadSpaces >= 8 && leadSpaces < 25 && !isPerso && !isParenth;
-    // Action : peu d'espaces (0-7)
-    var isAction = leadSpaces < 8 && !isPerso;
+    // Nom de personnage : tout majuscules, assez indenté, court
+    var isPerso = leadSpaces >= 12 && trimmed === trimmed.toUpperCase()
+                  && trimmed.length < 55 && !/^\(/.test(trimmed)
+                  && !/^\d+\./.test(trimmed);
+    // Parenthèse (indication de jeu)
+    var isParenth = /^\(/.test(trimmed) && /\)$/.test(trimmed) && leadSpaces >= 8;
+    // Dialogue : indenté mais pas autant qu'un perso
+    var isDialogue = leadSpaces >= 6 && !isPerso && !isParenth;
+    // Action : peu ou pas indenté
+    // var isAction = !isPerso && !isParenth && !isDialogue; // non utilisé directement
+
+    // Espace avant le bloc personnage seulement (pas avant dialogue/parenthèse)
+    if (isPerso && prevType && prevType !== 'perso') {
+      html += '<div style="height:0.5em"></div>';
+    }
 
     if (isPerso) {
-      html += '<div style="text-align:center;font-weight:bold;font-size:12px;font-family:Courier,monospace;margin-top:0.8em;letter-spacing:0.05em">'+escHtml(trimmed)+'</div>';
+      html += '<div style="text-align:center;font-weight:bold;font-size:12px;font-family:Courier New,Courier,monospace;line-height:1.3;letter-spacing:0.03em">'+escHtml(trimmed)+'</div>';
+      prevType = 'perso';
     } else if (isParenth) {
-      html += '<div style="text-align:center;font-style:italic;font-size:11px;font-family:Courier,monospace;color:#444">'+escHtml(trimmed)+'</div>';
+      html += '<div style="text-align:center;font-style:italic;font-size:11.5px;font-family:Courier New,Courier,monospace;line-height:1.3;color:#555">'+escHtml(trimmed)+'</div>';
+      prevType = 'parenth';
     } else if (isDialogue) {
-      html += '<div style="margin:0 15% 0 15%;font-size:12px;font-family:Courier,monospace;line-height:1.6">'+escHtml(trimmed)+'</div>';
+      html += '<div style="margin:0 12% 0 12%;font-size:12px;font-family:Courier New,Courier,monospace;line-height:1.35">'+escHtml(trimmed)+'</div>';
+      prevType = 'dialogue';
     } else {
       // Action
-      html += '<div style="font-size:12px;font-family:Courier,monospace;line-height:1.6;margin-top:0.4em">'+escHtml(trimmed)+'</div>';
+      if (prevType === 'dialogue' || prevType === 'perso') html += '<div style="height:0.4em"></div>';
+      html += '<div style="font-size:12px;font-family:Courier New,Courier,monospace;line-height:1.35">'+escHtml(trimmed)+'</div>';
+      prevType = 'action';
     }
   });
   return html;
@@ -4745,10 +4759,10 @@ function jajApercu() {
     // En-tête : numéro + titre en gras MAJUSCULES
     var titre = s.titre || ([s.effet, s.decor].filter(Boolean).join(' '));
     var headerLine = s.num + '   ' + titre.toUpperCase();
-    h += '<div style="font-weight:bold;font-size:13px;margin-bottom:20px;font-family:Courier,monospace;letter-spacing:0.02em">'+escHtml(headerLine)+'</div>';
+    h += '<div style="font-weight:bold;font-size:12px;margin-bottom:10px;font-family:Courier New,Courier,monospace;letter-spacing:0.02em">'+escHtml(headerLine)+'</div>';
 
     // Texte formaté
-    h += '<div style="line-height:1.7">'+formatScenarioTexte(s.texte)+'</div>';
+    h += '<div style="line-height:1.35">'+formatScenarioTexte(s.texte)+'</div>';
 
     // Numéro de page bas droite
     h += '<div style="position:absolute;bottom:12mm;right:22mm;font-size:12px;font-family:Courier,monospace">'+pageNum+'.</div>';
