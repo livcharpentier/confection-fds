@@ -4511,7 +4511,18 @@ function renderJourAJour_reset() {
 function jajNumMatch(scNum, pdtNum) {
   var a = String(scNum||'').trim().toUpperCase().replace(/\s+/g,'');
   var b = String(pdtNum||'').trim().toUpperCase().replace(/\s+/g,'');
-  return a === b || a.replace(/[^A-Z0-9]/g,'') === b.replace(/[^A-Z0-9]/g,'');
+  if (a === b) return true;
+  var ac = a.replace(/[^A-Z0-9]/g,'');
+  var bc = b.replace(/[^A-Z0-9]/g,'');
+  if (ac === bc) return true;
+  // Match partiel : "38B" contient "38" ou vice versa (pour "38 B" PDT vs "38" scénario)
+  var an = a.replace(/[^0-9]/g,'');
+  var bn = b.replace(/[^0-9]/g,'');
+  if (an && bn && an === bn) {
+    // Même numéro de base — accepter si l'un commence par l'autre
+    return ac.startsWith(bc) || bc.startsWith(ac);
+  }
+  return false;
 }
 
 function jajGetSequencesForJournee(jdt) {
@@ -4715,18 +4726,18 @@ function formatScenarioTexte(texte) {
     }
 
     if (isPerso) {
-      html += '<div style="text-align:center;font-weight:bold;font-size:12px;font-family:Courier New,Courier,monospace;line-height:1.3;letter-spacing:0.03em">'+escHtml(trimmed)+'</div>';
+      html += '<div style="text-align:center;font-weight:900;font-size:12px;font-family:Courier New,Courier,monospace;line-height:1.3;letter-spacing:0.03em">'+escHtml(trimmed)+'</div>';
       prevType = 'perso';
     } else if (isParenth) {
-      html += '<div style="text-align:center;font-style:italic;font-size:11.5px;font-family:Courier New,Courier,monospace;line-height:1.3;color:#555">'+escHtml(trimmed)+'</div>';
+      html += '<div style="text-align:center;font-style:italic;font-weight:700;font-size:11.5px;font-family:Courier New,Courier,monospace;line-height:1.3;color:#333">'+escHtml(trimmed)+'</div>';
       prevType = 'parenth';
     } else if (isDialogue) {
-      html += '<div style="margin:0 12% 0 12%;font-size:12px;font-family:Courier New,Courier,monospace;line-height:1.35">'+escHtml(trimmed)+'</div>';
+      html += '<div style="margin:0 20% 0 20%;font-size:12px;font-weight:600;font-family:Courier New,Courier,monospace;line-height:1.35">'+escHtml(trimmed)+'</div>';
       prevType = 'dialogue';
     } else {
       // Action
       if (prevType === 'dialogue' || prevType === 'perso') html += '<div style="height:0.4em"></div>';
-      html += '<div style="font-size:12px;font-family:Courier New,Courier,monospace;line-height:1.35">'+escHtml(trimmed)+'</div>';
+      html += '<div style="font-size:12px;font-weight:600;font-family:Courier New,Courier,monospace;line-height:1.35">'+escHtml(trimmed)+'</div>';
       prevType = 'action';
     }
   });
