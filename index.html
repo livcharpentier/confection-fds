@@ -959,6 +959,7 @@ textarea.form-input{resize:vertical;min-height:72px;}
           📂 Choisir le PDF Dépouillement
           <input type="file" accept=".pdf" id="import-depo-pdf-file" style="display:none" onchange="importDepoPdfFile(this)"/>
         </label>
+        <button class="btn btn-sm" style="margin-top:6px;color:#c00;border:1px solid #c00" onclick="resetImport('depo_pdf')">🗑 Effacer le dépouillement importé</button>
         <div id="import-depo-pdf-preview" style="margin-top:10px"></div>
       </div>
 
@@ -975,6 +976,7 @@ textarea.form-input{resize:vertical;min-height:72px;}
           📂 Choisir le PDF du scénario
           <input type="file" accept=".pdf" id="import-scenario-file" style="display:none" onchange="importScenarioFile(this)"/>
         </label>
+        <button class="btn btn-sm" style="margin-top:6px;color:#c00;border:1px solid #c00" onclick="resetImport('scenario')">🗑 Effacer le scénario importé</button>
         <div id="import-scenario-preview" style="margin-top:10px"></div>
       </div>
 
@@ -991,6 +993,7 @@ textarea.form-input{resize:vertical;min-height:72px;}
           📂 Choisir le PDF Bible de tournage
           <input type="file" accept=".pdf" id="import-bible-file" style="display:none" onchange="importBibleFile(this)"/>
         </label>
+        <button class="btn btn-sm" style="margin-top:6px;color:#c00;border:1px solid #c00" onclick="resetImport('bible')">🗑 Effacer la Bible importée</button>
         <div id="import-bible-preview" style="margin-top:10px"></div>
       </div>
 
@@ -1007,6 +1010,7 @@ textarea.form-input{resize:vertical;min-height:72px;}
           📂 Choisir une FDS PDF
           <input type="file" accept=".pdf" id="import-fds-modele-file" style="display:none" onchange="importFdsModeleFile(this)"/>
         </label>
+        <button class="btn btn-sm" style="margin-top:6px;color:#c00;border:1px solid #c00" onclick="resetImport('fds_modele')">🗑 Effacer le modèle FDS importé</button>
         <div id="import-fds-modele-preview" style="margin-top:10px"></div>
       </div>
 
@@ -5671,6 +5675,44 @@ function renderPDTMapping(headers, dataRows, colMap) {
   preview.innerHTML = html;
   window._pdtDataRows = dataRows;
   window._pdtHeaders = headers;
+}
+
+function resetImport(type) {
+  if (!activeFilmId) { toast('Sélectionnez un film d\'abord'); return; }
+  var labels = {
+    'depo_pdf':   'le dépouillement importé',
+    'scenario':   'le scénario importé',
+    'bible':      'la Bible de tournage importée',
+    'fds_modele': 'le modèle FDS importé'
+  };
+  var label = labels[type] || type;
+  if (!confirm('Effacer ' + label + ' pour ce film ?\nCette action ne modifie pas les FDS déjà remplies.')) return;
+
+  if (type === 'scenario') {
+    localStorage.removeItem('scenario_' + activeFilmId);
+    renderImportPageScenario();
+    document.getElementById('import-scenario-preview').innerHTML = '';
+    toast('Scénario supprimé');
+  } else if (type === 'bible') {
+    localStorage.removeItem('equipe_bible_' + activeFilmId);
+    var statusEl = document.getElementById('import-bible-status');
+    if (statusEl) statusEl.innerHTML = '<div style="color:#888;font-style:italic;font-size:12px">Aucune Bible importée pour ce film.</div>';
+    document.getElementById('import-bible-preview').innerHTML = '';
+    toast('Bible supprimée');
+  } else if (type === 'fds_modele') {
+    localStorage.removeItem('fds_modele_' + activeFilmId);
+    renderImportPageFdsModeleStatus();
+    document.getElementById('import-fds-modele-preview').innerHTML = '';
+    toast('Modèle FDS supprimé');
+  } else if (type === 'depo_pdf') {
+    // Le dépouillement PDF n'a pas de stockage propre (il enrichit les FDS directement)
+    // On efface juste le status affiché et la preview en cours
+    var statusEl2 = document.getElementById('import-depo-pdf-status');
+    if (statusEl2) statusEl2.innerHTML = '<div style="color:#888;font-style:italic;font-size:12px">Aucun dépouillement importé.</div>';
+    document.getElementById('import-depo-pdf-preview').innerHTML = '';
+    window._depoData = null;
+    toast('Dépouillement effacé de la vue (les FDS déjà mises à jour ne sont pas modifiées)');
+  }
 }
 
 function resetPDTImport() {
