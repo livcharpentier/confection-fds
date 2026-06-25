@@ -4843,17 +4843,17 @@ function formatScenarioTexte(texte) {
     }
 
     if (isPerso) {
-      html += '<div style="text-align:center;font-weight:bold;font-size:12px;font-family:Courier New,Courier,monospace;line-height:1.3;letter-spacing:0.03em">'+escHtml(trimmed)+'</div>';
+      html += '<div style="text-align:center;font-weight:bold;font-size:11px;font-family:Courier New,Courier,monospace;line-height:1.3;letter-spacing:0.03em;margin-top:0.4em">'+escHtml(trimmed)+'</div>';
       prevType = 'perso';
     } else if (isParenth) {
-      html += '<div style="text-align:center;font-style:italic;font-size:12px;font-family:Courier New,Courier,monospace;line-height:1.3">'+escHtml(trimmed)+'</div>';
+      html += '<div style="text-align:center;font-style:italic;font-size:11px;font-family:Courier New,Courier,monospace;line-height:1.3;color:#333">'+escHtml(trimmed)+'</div>';
       prevType = 'parenth';
     } else if (isDialogue) {
-      html += '<div style="margin:0 20% 0 20%;font-size:12px;font-family:Courier New,Courier,monospace;line-height:1.35">'+escHtml(trimmed)+'</div>';
+      html += '<div style="margin-left:25%;font-size:11px;font-family:Courier New,Courier,monospace;line-height:1.35">'+escHtml(trimmed)+'</div>';
       prevType = 'dialogue';
     } else {
-      if (prevType === 'dialogue' || prevType === 'perso') html += '<div style="height:0.4em"></div>';
-      html += '<div style="font-size:12px;font-family:Courier New,Courier,monospace;line-height:1.35">'+escHtml(trimmed)+'</div>';
+      if (prevType === 'dialogue' || prevType === 'perso') html += '<div style="height:0.3em"></div>';
+      html += '<div style="font-size:11px;font-family:Courier New,Courier,monospace;line-height:1.35">'+escHtml(trimmed)+'</div>';
       prevType = 'action';
     }
   });
@@ -4886,10 +4886,10 @@ function jajApercu() {
     // En-tête : numéro + titre en gras MAJUSCULES
     var titre = s.titre || ([s.effet, s.decor].filter(Boolean).join(' '));
     var headerLine = s.num + '   ' + titre.toUpperCase();
-    h += '<div style="font-weight:bold;font-size:12px;margin-bottom:10px;font-family:Courier New,Courier,monospace;letter-spacing:0.02em">'+escHtml(headerLine)+'</div>';
+    h += '<div style="font-weight:bold;font-size:11px;margin-bottom:8px;font-family:Courier New,Courier,monospace;letter-spacing:0.02em">'+escHtml(headerLine)+'</div>';
 
     // Texte formaté
-    h += '<div style="line-height:1.35">'+formatScenarioTexte(s.texte)+'</div>';
+    h += '<div style="line-height:1.35;font-size:11px">'+formatScenarioTexte(s.texte)+'</div>';
 
     // Numéro de page bas droite
     h += '<div style="position:absolute;bottom:12mm;right:22mm;font-size:12px;font-family:Courier,monospace">'+pageNum+'.</div>';
