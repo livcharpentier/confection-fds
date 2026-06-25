@@ -4581,6 +4581,13 @@ function jajSelectJournee(jdt) {
 
   var sequences = jajGetSequencesForJournee(jdt);
   var listEl = document.getElementById('jaj-sequences-list');
+  var hasScenario = (getScenarioForFilm()||[]).length > 0;
+  var statusEl = document.getElementById('jaj-import-pdf-status');
+
+  // Bannière si pas de scénario chargé
+  if (!hasScenario && statusEl && !statusEl.textContent) {
+    statusEl.innerHTML = '<span style="color:#e65100;font-weight:600">⚠ Aucun scénario importé — choisissez le PDF ci-dessus pour voir les textes</span>';
+  }
 
   if (!sequences.length) {
     listEl.innerHTML = '<div style="color:#999;text-align:center;padding:16px">Aucune séquence pour cette journée dans le PDT.</div>';
