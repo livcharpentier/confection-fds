@@ -946,6 +946,22 @@ textarea.form-input{resize:vertical;min-height:72px;}
         <div id="import-depo-preview" style="margin-top:10px"></div>
       </div>
 
+      <!-- IMPORT DÉPOUILLEMENT PDF -->
+      <div class="card" style="margin-top:8px;border:2px solid #2e7d32">
+        <div class="card-title" style="color:#2e7d32">📋 Import Dépouillement PDF
+          <span style="font-size:11px;font-weight:400;color:var(--text-muted)">(.pdf)</span>
+        </div>
+        <div style="font-size:12px;color:var(--text-muted);margin-bottom:8px">
+          Importe le dépouillement PDF (format standard Movie Magic / EP Scheduling) et pré-remplit les séquences, effets, décors, durées, rôles, figurants, cascades et véhicules de chaque journée.
+        </div>
+        <div id="import-depo-pdf-status" style="margin-bottom:8px;font-size:12px"></div>
+        <label class="btn btn-block" style="cursor:pointer;text-align:center;background:#f1f8e9;border:2px solid #2e7d32;color:#2e7d32">
+          📂 Choisir le PDF Dépouillement
+          <input type="file" accept=".pdf" id="import-depo-pdf-file" style="display:none" onchange="importDepoPdfFile(this)"/>
+        </label>
+        <div id="import-depo-pdf-preview" style="margin-top:10px"></div>
+      </div>
+
       <!-- IMPORT SCÉNARIO PDF -->
       <div class="card" style="margin-top:8px;border:2px solid #e65100">
         <div class="card-title" style="color:#e65100">📖 Import Scénario PDF
@@ -5781,6 +5797,438 @@ function executerImportPDT(dataRows) {
 
   document.getElementById('import-pdt-preview').innerHTML = '<div style="background:#d1fae5;padding:10px;border-radius:6px;color:#065f46;font-weight:600">✓ '+count+' journée(s) importée(s) !</div>';
   toast(count + ' journées importées');
+}
+
+// ── IMPORT DÉPOUILLEMENT PDF ───────────────────────────────────────────────
+function importDepoPdfFile(input) {
+  if (!activeFilmId) { toast('Sélectionnez un film d\'abord'); return; }
+  if (!input.files || !input.files[0]) return;
+  var preview = document.getElementById('import-depo-pdf-preview');
+  var status  = document.getElementById('import-depo-pdf-status');
+  preview.innerHTML = '<div style="color:#888;padding:12px;text-align:center">⏳ Lecture du PDF en cours...</div>';
+
+  function loadPdfJs(cb) {
+    if (window.pdfjsLib) { cb(); return; }
+    var s = document.createElement('script');
+    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+    s.onload = function() {
+      pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+      cb();
+    };
+    document.head.appendChild(s);
+  }
+
+  loadPdfJs(function() {
+    var reader = new FileReader();
+    reader.onload = function(e) {
+      pdfjsLib.getDocument({data: e.target.result}).promise.then(function(pdf) {
+        var total = pdf.numPages;
+        var promises = [];
+        for (var p = 1; p <= total; p++) {
+          promises.push(pdf.getPage(p).then(function(page) {
+            return page.getTextContent().then(function(tc) {
+              // Récupérer les items avec leur position Y pour reconstituer les lignes
+              var items = tc.items;
+              var lines = [];
+              var lastY = null;
+              var curLine = '';
+              items.forEach(function(it) {
+                var y = it.transform ? Math.round(it.transform[5]) : 0;
+                if (lastY !== null && Math.abs(y - lastY) > 3) {
+                  if (curLine.trim()) lines.push(curLine.trim());
+                  curLine = '';
+                }
+                curLine += it.str;
+                lastY = y;
+              });
+              if (curLine.trim()) lines.push(curLine.trim());
+              return lines;
+            });
+          }));
+        }
+        Promise.all(promises).then(function(pagesLines) {
+          var allLines = [];
+          pagesLines.forEach(function(lines) { allLines = allLines.concat(lines); });
+          var result = parseDepoPdf(allLines);
+          afficherDepoPdfPreview(result, preview);
+          input.value = '';
+        });
+      }).catch(function(err) {
+        preview.innerHTML = '<div style="color:#c00">Erreur PDF : ' + err.message + '</div>';
+        input.value = '';
+      });
+    };
+    reader.readAsArrayBuffer(input.files[0]);
+  });
+}
+
+function parseDepoPdf(lines) {
+  // Résultat : tableau de journées avec leurs séquences
+  var journees = [];
+  var curJournee = null;
+  var curSeq = null;
+  var i = 0;
+
+  // Patterns
+  var reJour = /^(\d+)[eè][mr][em]?\s+jour de tournage\s*:\s*([\w\.\/]+(?:\s*[\w\.\/]+)?)\s*[-–]\s*Minutage\s*:\s*([\d:]+)/i;
+  var reJourSimple = /^(\d+)[eè][mr][em]?\s+jour de tournage/i;
+  var reDateJour = /(\d{1,2}\/\d{2}\/\d{4})/;
+  var reSeqHeader = /^(\d+\s*(?:BIS|TER|A|B|C|D|E|F|G|H|I|J|K|P\d*|BIS\s*[A-Z]|PT)?(?:\s*(?:PEL|\?\!?|!|\(D\)|\(EQ\.?B?\)|P\d+|POV|P\d+\s*\+\s*POV))*)\s+(I\+?E\/[JNMS]|E\/[JNMS]|I\/[JNMS]|I\+?E\/[JN]\.?Am?|E\/[JN]\.?Am?|I\/[JN]\.?Am?|E\/(?:Soir|M|Aube|Crép\.?)|I\/(?:Soir|M|Aube|Crép\.?))/;
+  var reMinutage = /Minutage\s*:\s*([\d:]+)/i;
+  var rePages = /Pages?\s*:\s*([\d\s\/84]+)/i;
+  var reChrono = /Chrono-jour\s*:\s*(J\d+)/i;
+  var reNbRoles = /^(\d+)\s+R[oô]les?\s*:/;
+  var reNbFig = /^(\d+)\s+Figurants?\s*:/;
+  var reNbSil = /^(\d+)\s+Silhouettes?\s*:/;
+  var reCascPhys = /^Cascades?\s+physiques?\s*:/i;
+  var reCascVeh = /^Cascades?\s+v[eé]hicules?\s*:/i;
+  var reVehicules = /^V[eé]hicules?\s*:/i;
+  var reCostumes = /^Costumes?\s*:/i;
+  var reDoublure = /^(\d+)\s+Doublures?\s*:/i;
+  var reFinJour = /^Fin\s+\d+/i;
+
+  function finSeq() {
+    if (curSeq && curJournee) { curJournee.sequences.push(curSeq); }
+    curSeq = null;
+  }
+  function finJour() {
+    finSeq();
+    if (curJournee) journees.push(curJournee);
+    curJournee = null;
+  }
+
+  var collectingField = null; // 'roles', 'figurants', 'cascphys', 'cascveh', 'vehic', 'cost', 'sil', 'doublure'
+  var collectBuf = '';
+
+  function flushCollect() {
+    if (!curSeq || !collectingField) { collectingField = null; collectBuf = ''; return; }
+    var v = collectBuf.trim();
+    if (collectingField === 'roles') {
+      curSeq.roles = (curSeq.roles ? curSeq.roles + ', ' : '') + v;
+    } else if (collectingField === 'figurants') {
+      curSeq.figurants = (curSeq.figurants ? curSeq.figurants + '\n' : '') + v;
+    } else if (collectingField === 'sil') {
+      curSeq.silhouettes = (curSeq.silhouettes ? curSeq.silhouettes + '\n' : '') + v;
+    } else if (collectingField === 'doublure') {
+      curSeq.doublures = (curSeq.doublures ? curSeq.doublures + '\n' : '') + v;
+    } else if (collectingField === 'cascphys') {
+      curSeq.cascades_phys = (curSeq.cascades_phys ? curSeq.cascades_phys + ' ' : '') + v;
+    } else if (collectingField === 'cascveh') {
+      curSeq.cascades_veh = (curSeq.cascades_veh ? curSeq.cascades_veh + ' ' : '') + v;
+    } else if (collectingField === 'vehic') {
+      curSeq.vehicules = (curSeq.vehicules ? curSeq.vehicules + ' ' : '') + v;
+    } else if (collectingField === 'cost') {
+      curSeq.costumes = (curSeq.costumes ? curSeq.costumes + ' ' : '') + v;
+    }
+    collectingField = null; collectBuf = '';
+  }
+
+  for (i = 0; i < lines.length; i++) {
+    var line = lines[i].trim();
+    if (!line) continue;
+
+    // Skip footer lines
+    if (/^PDT D[eé]pouillement/i.test(line)) continue;
+    if (/^p\.\s*\d+$/.test(line)) continue;
+
+    // Fin journée
+    if (reFinJour.test(line)) { flushCollect(); finJour(); continue; }
+
+    // Début journée
+    var mj = line.match(reJour);
+    if (!mj) mj = line.match(reJourSimple);
+    if (mj) {
+      flushCollect(); finJour();
+      var numJour = parseInt(line.match(/^(\d+)/)[1]);
+      // Chercher date dans la même ligne ou les suivantes
+      var dateLine = line;
+      var mDate = dateLine.match(reDateJour);
+      var dateStr = mDate ? mDate[1] : '';
+      var minJour = '';
+      var mMinJ = line.match(/Minutage\s*:\s*([\d:]+)/i);
+      if (mMinJ) minJour = mMinJ[1];
+      curJournee = { numJour: numJour, date: dateStr, minutage: minJour, sequences: [] };
+      continue;
+    }
+
+    // Séquence header
+    var ms = line.match(reSeqHeader);
+    if (ms) {
+      flushCollect(); finSeq();
+      var numSeq = ms[1].trim().replace(/\s+/g,' ');
+      var effet = ms[2].trim();
+      // Le reste de la ligne = décor
+      var restLine = line.substring(line.indexOf(effet) + effet.length).trim();
+      // Chercher info sur la même ligne ou ligne suivante = décor/titre scène
+      var decor = restLine;
+      // Ligne suivante = résumé (titre de scène)
+      var resumeLine = '';
+      if (i+1 < lines.length && !lines[i+1].match(reSeqHeader) && !lines[i+1].match(reJourSimple) && !lines[i+1].match(reFinJour)) {
+        // Vérifie que c'est pas un champ technique
+        var nextL = lines[i+1].trim();
+        if (!reMinutage.test(nextL) && !rePages.test(nextL) && !reChrono.test(nextL) && !reNbRoles.test(nextL) && !reNbFig.test(nextL) && nextL.length < 120 && !reCascPhys.test(nextL) && !reVehicules.test(nextL) && !reCostumes.test(nextL) && !reNbSil.test(nextL)) {
+          resumeLine = nextL;
+          i++;
+        }
+      }
+      curSeq = { num: numSeq, effet: effet, decor: decor, resume: resumeLine, minutage: '', pages: '', cont: '', nbRoles: 0, roles: '', nbFig: 0, figurants: '', silhouettes: '', doublures: '', cascades_phys: '', cascades_veh: '', vehicules: '', costumes: '' };
+      continue;
+    }
+
+    if (!curSeq) continue;
+
+    // Minutage
+    var mm = line.match(reMinutage);
+    if (mm) { curSeq.minutage = mm[1]; flushCollect(); continue; }
+
+    // Chrono-jour
+    var mc = line.match(reChrono);
+    if (mc) { curSeq.cont = mc[1]; flushCollect(); continue; }
+
+    // Pages
+    // (on skip, pas utile)
+
+    // Nombre rôles
+    var mnr = line.match(reNbRoles);
+    if (mnr) { flushCollect(); curSeq.nbRoles = parseInt(mnr[1]); collectingField = 'roles'; collectBuf = ''; continue; }
+
+    // Nombre figurants
+    var mnf = line.match(reNbFig);
+    if (mnf) { flushCollect(); curSeq.nbFig = parseInt(mnf[1]); collectingField = 'figurants'; collectBuf = line.replace(mnf[0],'').trim(); continue; }
+
+    // Silhouettes
+    var mns = line.match(reNbSil);
+    if (mns) { flushCollect(); collectingField = 'sil'; collectBuf = ''; continue; }
+
+    // Doublures
+    var mnd = line.match(reDoublure);
+    if (mnd) { flushCollect(); collectingField = 'doublure'; collectBuf = ''; continue; }
+
+    // Cascades physiques
+    if (reCascPhys.test(line)) { flushCollect(); collectingField = 'cascphys'; collectBuf = line.replace(/^Cascades?\s+physiques?\s*:\s*/i,'').trim(); continue; }
+
+    // Cascades véhicules
+    if (reCascVeh.test(line)) { flushCollect(); collectingField = 'cascveh'; collectBuf = line.replace(/^Cascades?\s+v[eé]hicules?\s*:\s*/i,'').trim(); continue; }
+
+    // Véhicules
+    if (reVehicules.test(line)) { flushCollect(); collectingField = 'vehic'; collectBuf = line.replace(/^V[eé]hicules?\s*:\s*/i,'').trim(); continue; }
+
+    // Costumes
+    if (reCostumes.test(line)) { flushCollect(); collectingField = 'cost'; collectBuf = line.replace(/^Costumes?\s*:\s*/i,'').trim(); continue; }
+
+    // Ligne de continuation pour les champs multi-lignes
+    if (collectingField) {
+      // Stopper si on rencontre un nouveau champ reconnu
+      if (reSeqHeader.test(line) || reJourSimple.test(line) || reFinJour.test(line)) {
+        flushCollect(); i--; continue;
+      }
+      collectBuf += (collectBuf ? ' ' : '') + line;
+      continue;
+    }
+
+    // Ligne de rôle (format "N - NOM ROLE") dans le mode collecte rôles
+    // déjà géré via collectingField
+  }
+  flushCollect(); finJour();
+
+  return journees;
+}
+
+function afficherDepoPdfPreview(journees, preview) {
+  if (!journees || !journees.length) {
+    preview.innerHTML = '<div style="color:#c00">Aucune journée reconnue dans ce PDF. Vérifiez le format.</div>';
+    return;
+  }
+  var totalSeqs = journees.reduce(function(s,j){ return s + j.sequences.length; }, 0);
+  var html = '<div style="background:#e8f5e9;border:1px solid #2e7d32;border-radius:8px;padding:12px;margin-bottom:12px">';
+  html += '<div style="font-weight:700;color:#2e7d32;margin-bottom:6px">✅ ' + journees.length + ' journées analysées — ' + totalSeqs + ' séquences</div>';
+
+  // Comparer avec les FDS existantes
+  var fdsExistantes = (state.fds||[]).filter(function(f){ return f.filmId === activeFilmId; });
+  var matches = 0;
+  journees.forEach(function(j) {
+    var fds = fdsExistantes.find(function(f){ return f.jdt === j.numJour; });
+    if (fds) matches++;
+  });
+  html += '<div style="font-size:12px;color:#555;margin-bottom:8px">' + matches + ' journées correspondent à des FDS existantes · ' + (journees.length - matches) + ' sans FDS</div>';
+
+  html += '</div>';
+
+  // Table aperçu
+  html += '<div style="max-height:300px;overflow-y:auto;font-size:11px">';
+  html += '<table style="width:100%;border-collapse:collapse">';
+  html += '<thead><tr style="background:#2e7d32;color:#fff">';
+  html += '<th style="padding:4px 6px;text-align:left">Jour</th>';
+  html += '<th style="padding:4px 6px;text-align:left">Date</th>';
+  html += '<th style="padding:4px 6px;text-align:left">Séquences</th>';
+  html += '<th style="padding:4px 6px;text-align:center">FDS</th>';
+  html += '</tr></thead><tbody>';
+
+  journees.forEach(function(j, idx) {
+    var fds = fdsExistantes.find(function(f){ return f.jdt === j.numJour; });
+    var seqNums = j.sequences.map(function(s){ return s.num; }).join(', ');
+    html += '<tr style="border-bottom:1px solid #ddd;background:'+(idx%2?'#f9f9f9':'#fff')+'">';
+    html += '<td style="padding:4px 6px;font-weight:700">J' + j.numJour + '</td>';
+    html += '<td style="padding:4px 6px;color:#555">' + (j.date||'—') + '</td>';
+    html += '<td style="padding:4px 6px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+seqNums+'">' + seqNums + '</td>';
+    html += '<td style="padding:4px 6px;text-align:center">' + (fds ? '<span style="color:#2e7d32;font-weight:700">✓</span>' : '<span style="color:#aaa">—</span>') + '</td>';
+    html += '</tr>';
+  });
+  html += '</tbody></table></div>';
+
+  // Options d'import
+  html += '<div style="margin-top:12px;background:#fff3e0;border:1px solid #e65100;border-radius:6px;padding:10px;font-size:12px">';
+  html += '<div style="font-weight:700;color:#e65100;margin-bottom:6px">⚙ Options d\'import</div>';
+  html += '<label style="display:flex;align-items:center;gap:6px;margin-bottom:4px"><input type="checkbox" id="depo-opt-seqs" checked> Séquences (numéro, effet, décor, durée, chrono)</label>';
+  html += '<label style="display:flex;align-items:center;gap:6px;margin-bottom:4px"><input type="checkbox" id="depo-opt-fig" checked> Figurants (nombre + description dans FIGURATION)</label>';
+  html += '<label style="display:flex;align-items:center;gap:6px;margin-bottom:4px"><input type="checkbox" id="depo-opt-casc" checked> Cascades (notes dans depts Véhicules / Cascadeurs)</label>';
+  html += '<label style="display:flex;align-items:center;gap:6px;margin-bottom:4px"><input type="checkbox" id="depo-opt-vehic" checked> Véhicules (note dans département Véhicules)</label>';
+  html += '<label style="display:flex;align-items:center;gap:6px;margin-bottom:4px"><input type="checkbox" id="depo-opt-cost" checked> Costumes (note dans département Costumes)</label>';
+  html += '<label style="display:flex;align-items:center;gap:6px;margin-bottom:8px"><input type="checkbox" id="depo-opt-ecrase"> Écraser les données existantes (décoché = compléter seulement)</label>';
+  html += '</div>';
+
+  html += '<div style="display:flex;gap:8px;margin-top:10px">';
+  html += '<button class="btn btn-primary btn-block" style="background:#2e7d32;border-color:#2e7d32" onclick="appliquerDepoPdf(window._depoData)">✅ Importer dans les FDS</button>';
+  html += '<button class="btn btn-secondary" onclick="document.getElementById(\'import-depo-pdf-preview\').innerHTML=\'\'">Annuler</button>';
+  html += '</div>';
+
+  preview.innerHTML = html;
+  window._depoData = journees;
+}
+
+function appliquerDepoPdf(journees) {
+  if (!journees || !journees.length) return;
+  var optSeqs = document.getElementById('depo-opt-seqs') && document.getElementById('depo-opt-seqs').checked;
+  var optFig  = document.getElementById('depo-opt-fig')  && document.getElementById('depo-opt-fig').checked;
+  var optCasc = document.getElementById('depo-opt-casc') && document.getElementById('depo-opt-casc').checked;
+  var optVehic= document.getElementById('depo-opt-vehic')&& document.getElementById('depo-opt-vehic').checked;
+  var optCost = document.getElementById('depo-opt-cost') && document.getElementById('depo-opt-cost').checked;
+  var optEcrase= document.getElementById('depo-opt-ecrase')&&document.getElementById('depo-opt-ecrase').checked;
+
+  var fdsExistantes = (state.fds||[]).filter(function(f){ return f.filmId === activeFilmId; });
+  var nbMaj = 0;
+  var nbSeqs = 0;
+
+  journees.forEach(function(j) {
+    var fds = fdsExistantes.find(function(f){ return f.jdt === j.numJour; });
+    if (!fds) return; // pas de FDS créée = on skip
+
+    nbMaj++;
+    if (!fds.deptNotes) fds.deptNotes = {};
+
+    // ── SÉQUENCES ──
+    if (optSeqs) {
+      j.sequences.forEach(function(s) {
+        var seqExist = (fds.sequences||[]).find(function(se){ return se.num === s.num; });
+        if (seqExist) {
+          if (optEcrase || !seqExist.effet) seqExist.effet = s.effet || seqExist.effet;
+          if (optEcrase || !seqExist.decor) seqExist.decor = s.decor || seqExist.decor;
+          if (optEcrase || !seqExist.resume) seqExist.resume = s.resume || seqExist.resume;
+          if (optEcrase || !seqExist.duree) seqExist.duree = s.minutage || seqExist.duree;
+          if (optEcrase || !seqExist.cont) seqExist.cont = s.cont || seqExist.cont;
+        } else {
+          if (!fds.sequences) fds.sequences = [];
+          fds.sequences.push({ num: s.num, effet: s.effet, decor: s.decor, resume: s.resume, roles: s.roles || '', duree: s.minutage, cont: s.cont });
+          nbSeqs++;
+        }
+      });
+    }
+
+    // ── FIGURANTS ──
+    if (optFig) {
+      // Agréger tous les figurants de toutes les séquences du jour
+      var figLines = [];
+      var totalFig = 0;
+      j.sequences.forEach(function(s) {
+        if (s.nbFig > 0) {
+          totalFig += s.nbFig;
+          if (s.figurants) figLines.push('Sc.' + s.num + ' : ' + s.nbFig + 'F — ' + s.figurants.replace(/\n/g, ', '));
+        }
+      });
+      if (figLines.length) {
+        var figTexte = figLines.join('\n');
+        // Injecter dans le champ FIGURATION des lieux
+        var lieuFig = (fds.lieux||[]).find(function(l){ return l.label === 'FIGURATION'; });
+        if (lieuFig) {
+          if (optEcrase || !lieuFig.valeur) lieuFig.valeur = figTexte;
+          else if (!lieuFig.valeur) lieuFig.valeur = figTexte;
+        } else {
+          if (!fds.lieux) fds.lieux = [];
+          fds.lieux.push({label:'FIGURATION', valeur: figTexte});
+        }
+      }
+    }
+
+    // ── CASCADES ──
+    if (optCasc) {
+      var cascPhysLines = [];
+      var cascVehLines = [];
+      j.sequences.forEach(function(s) {
+        if (s.cascades_phys) cascPhysLines.push('Sc.' + s.num + ' : ' + s.cascades_phys);
+        if (s.cascades_veh)  cascVehLines.push('Sc.' + s.num + ' : ' + s.cascades_veh);
+      });
+      if (cascPhysLines.length) {
+        var txt = cascPhysLines.join('\n');
+        if (optEcrase || !fds.deptNotes['mise_en_scene']) fds.deptNotes['cascadeurs_phys'] = txt;
+        // On met dans coach_enfants ou mise_en_scene selon besoin — ici on enrichit vehicules
+        var existNote = fds.deptNotes['machinerie'] || '';
+        if (optEcrase) fds.deptNotes['machinerie'] = txt;
+        else if (!existNote) fds.deptNotes['machinerie'] = txt;
+      }
+      if (cascVehLines.length) {
+        var txt2 = cascVehLines.join('\n');
+        var existVeh = fds.deptNotes['vehicules'] || '';
+        if (optEcrase) fds.deptNotes['vehicules'] = txt2;
+        else fds.deptNotes['vehicules'] = existVeh ? existVeh + '\n' + txt2 : txt2;
+      }
+    }
+
+    // ── VÉHICULES ──
+    if (optVehic) {
+      var vehicLines = [];
+      j.sequences.forEach(function(s) {
+        if (s.vehicules) vehicLines.push('Sc.' + s.num + ' : ' + s.vehicules);
+      });
+      if (vehicLines.length) {
+        var txtV = vehicLines.join('\n');
+        var existV = fds.deptNotes['vehicules'] || '';
+        if (optEcrase) fds.deptNotes['vehicules'] = txtV;
+        else fds.deptNotes['vehicules'] = existV ? existV + '\n\nVÉHICULES :\n' + txtV : 'VÉHICULES :\n' + txtV;
+      }
+    }
+
+    // ── COSTUMES ──
+    if (optCost) {
+      var costLines = [];
+      j.sequences.forEach(function(s) {
+        if (s.costumes) costLines.push('Sc.' + s.num + ' : ' + s.costumes);
+      });
+      if (costLines.length) {
+        var txtC = costLines.join('\n');
+        var existC = fds.deptNotes['costumes'] || '';
+        if (optEcrase) fds.deptNotes['costumes'] = txtC;
+        else fds.deptNotes['costumes'] = existC ? existC + '\n' + txtC : txtC;
+      }
+    }
+  });
+
+  save();
+
+  var preview = document.getElementById('import-depo-pdf-preview');
+  preview.innerHTML = '<div style="background:#e8f5e9;border:1px solid #2e7d32;border-radius:8px;padding:12px">' +
+    '<div style="font-weight:700;color:#2e7d32;font-size:14px">✅ Import terminé</div>' +
+    '<div style="font-size:12px;margin-top:4px">' + nbMaj + ' FDS mises à jour · ' + nbSeqs + ' nouvelles séquences ajoutées</div>' +
+    '</div>';
+
+  // Mettre à jour le statut
+  var status = document.getElementById('import-depo-pdf-status');
+  if (status) status.innerHTML = '<div style="color:#2e7d32;font-size:12px">✓ Dépouillement importé — ' + nbMaj + ' journées</div>';
+
+  toast('Dépouillement importé — ' + nbMaj + ' FDS mises à jour ✓');
+  window._depoData = null;
+
+  // Rafraîchir si on est sur une FDS active
+  if (activeFdsId) renderAll();
 }
 
 // ── IMPORT DÉPOUILLEMENT ───────────────────────────────────────────────────
