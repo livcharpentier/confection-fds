@@ -4726,18 +4726,18 @@ function formatScenarioTexte(texte) {
     }
 
     if (isPerso) {
-      html += '<div style="text-align:center;font-weight:900;font-size:12px;font-family:Courier New,Courier,monospace;line-height:1.3;letter-spacing:0.03em">'+escHtml(trimmed)+'</div>';
+      html += '<div style="text-align:center;font-weight:bold;font-size:12px;font-family:Courier New,Courier,monospace;line-height:1.3;letter-spacing:0.03em">'+escHtml(trimmed)+'</div>';
       prevType = 'perso';
     } else if (isParenth) {
-      html += '<div style="text-align:center;font-style:italic;font-weight:700;font-size:11.5px;font-family:Courier New,Courier,monospace;line-height:1.3;color:#333">'+escHtml(trimmed)+'</div>';
+      html += '<div style="text-align:center;font-style:italic;font-size:12px;font-family:Courier New,Courier,monospace;line-height:1.3">'+escHtml(trimmed)+'</div>';
       prevType = 'parenth';
     } else if (isDialogue) {
-      html += '<div style="margin:0 20% 0 20%;font-size:12px;font-weight:600;font-family:Courier New,Courier,monospace;line-height:1.35">'+escHtml(trimmed)+'</div>';
+      html += '<div style="margin:0 20% 0 20%;font-size:12px;font-family:Courier New,Courier,monospace;line-height:1.35">'+escHtml(trimmed)+'</div>';
       prevType = 'dialogue';
     } else {
-      // Action
+      // Action — pleine largeur, normal
       if (prevType === 'dialogue' || prevType === 'perso') html += '<div style="height:0.4em"></div>';
-      html += '<div style="font-size:12px;font-weight:600;font-family:Courier New,Courier,monospace;line-height:1.35">'+escHtml(trimmed)+'</div>';
+      html += '<div style="font-size:12px;font-family:Courier New,Courier,monospace;line-height:1.35">'+escHtml(trimmed)+'</div>';
       prevType = 'action';
     }
   });
