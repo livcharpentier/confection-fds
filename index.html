@@ -1038,6 +1038,14 @@ textarea.form-input{resize:vertical;min-height:72px;}
             <button class="btn btn-primary" style="flex:1" onclick="jajApercu()">👁 Aperçu</button>
             <button class="btn btn-secondary" style="flex:1" onclick="jajEnvoyer()">✉ Envoyer à la prod</button>
           </div>
+          <div style="margin-top:8px;border-top:1px solid #eee;padding-top:8px">
+            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:12px;color:#555">
+              <span>📄 Importer un PDF scénario pour cette journée :</span>
+              <input type="file" accept=".pdf" id="jaj-import-pdf" style="display:none" onchange="jajImporterPdfJournee(this)"/>
+              <span style="background:#f0f4ff;border:1px solid #6366f1;border-radius:4px;padding:3px 10px;color:#6366f1;font-weight:600">Choisir PDF</span>
+            </label>
+            <div id="jaj-import-pdf-status" style="font-size:11px;color:#888;margin-top:4px"></div>
+          </div>
         </div>
       </div>
       <!-- Aperçu imprimable -->
@@ -4682,6 +4690,89 @@ function jajSaveTexte(numSeq, seqId) {
   toast('S\u00e9quence ' + numSeq + ' sauvegard\u00e9e \u2713');
 }
 
+function jajImporterPdfJournee(input) {
+  if (!input.files || !input.files[0]) return;
+  var statusEl = document.getElementById('jaj-import-pdf-status');
+  if (statusEl) statusEl.textContent = '⏳ Lecture du PDF...';
+
+  function loadPdfJs(cb) {
+    if (window.pdfjsLib) { cb(); return; }
+    var s = document.createElement('script');
+    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+    s.onload = function() {
+      pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+      cb();
+    };
+    document.head.appendChild(s);
+  }
+
+  loadPdfJs(function() {
+    var reader = new FileReader();
+    reader.onload = function(e) {
+      pdfjsLib.getDocument({data: e.target.result}).promise.then(function(pdf) {
+        var promises = [];
+        for (var p = 1; p <= pdf.numPages; p++) {
+          promises.push(pdf.getPage(p).then(function(page) {
+            return page.getTextContent().then(function(tc) {
+              // Reconstituer les lignes en groupant par Y
+              var items = tc.items;
+              var rows = [];
+              items.forEach(function(it) {
+                var y = Math.round(it.transform[5]);
+                var row = rows.find(function(r){ return Math.abs(r.y - y) < 3; });
+                if (row) { row.text += it.str; }
+                else { rows.push({y: y, text: it.str}); }
+              });
+              // Trier par Y décroissant (haut→bas)
+              rows.sort(function(a,b){ return b.y - a.y; });
+              return rows.map(function(r){ return r.text; }).join('\n');
+            });
+          }));
+        }
+        Promise.all(promises).then(function(pages) {
+          var allText = pages.join('\n');
+          var scenes = parseScenarioPdfText(allText);
+
+          if (!scenes.length) {
+            if (statusEl) statusEl.textContent = '⚠ Aucune séquence reconnue dans ce PDF.';
+            input.value = ''; return;
+          }
+
+          // Fusionner avec le scénario existant
+          var sc = getScenarioForFilm() || [];
+          var nbMaj = 0, nbNew = 0;
+          scenes.forEach(function(s) {
+            var found = sc.find(function(x){ return jajNumMatch(x.num, s.num); });
+            if (found) {
+              if (s.texte && s.texte.trim()) { found.texte = s.texte; nbMaj++; }
+            } else {
+              sc.push(s); nbNew++;
+            }
+          });
+
+          try {
+            localStorage.setItem('scenario_' + activeFilmId, JSON.stringify(sc));
+          } catch(e) {
+            var light = sc.map(function(x){ return Object.assign({},x,{texte:(x.texte||'').slice(0,2000)}); });
+            localStorage.setItem('scenario_' + activeFilmId, JSON.stringify(light));
+          }
+
+          if (statusEl) statusEl.textContent = '✓ ' + scenes.length + ' séquences importées (' + nbMaj + ' mises à jour, ' + nbNew + ' nouvelles)';
+          toast(scenes.length + ' séquences importées ✓');
+
+          // Rafraîchir la liste
+          if (jajCurrentJdt) jajSelectJournee(jajCurrentJdt);
+          input.value = '';
+        });
+      }).catch(function(err) {
+        if (statusEl) statusEl.textContent = '⚠ Erreur : ' + err.message;
+        input.value = '';
+      });
+    };
+    reader.readAsArrayBuffer(input.files[0]);
+  });
+}
+
 function jajEffacerTexte(numSeq, seqId) {
   if (!confirm('Effacer le texte de la s\u00e9quence ' + numSeq + ' ?')) return;
   var ta = document.getElementById('jaj-ta-' + seqId);
@@ -4696,31 +4787,45 @@ function formatScenarioTexte(texte) {
   var html = '';
   var prevType = '';
 
-  lines.forEach(function(line) {
-    var raw = line;
-    var trimmed = line.trim();
+  // Détecter si le PDF a de l'indentation ou pas
+  var hasIndent = lines.some(function(l){ return /^\s{6,}/.test(l); });
 
-    // Ligne vide = saut minimal entre blocs
-    if (!trimmed) {
+  lines.forEach(function(line) {
+    var trimmed = line.trim();
+    if (!trimmed || /^\d+\.$/.test(trimmed)) {
       if (prevType) html += '<div style="height:0.3em"></div>';
       return;
     }
 
-    var leadSpaces = raw.search(/\S/);
+    var leadSpaces = line.search(/\S/);
     if (leadSpaces < 0) leadSpaces = 0;
 
-    // Nom de personnage : tout majuscules, assez indenté, court
-    var isPerso = leadSpaces >= 12 && trimmed === trimmed.toUpperCase()
-                  && trimmed.length < 55 && !/^\(/.test(trimmed)
-                  && !/^\d+\./.test(trimmed);
-    // Parenthèse (indication de jeu)
-    var isParenth = /^\(/.test(trimmed) && /\)$/.test(trimmed) && leadSpaces >= 8;
-    // Dialogue : indenté mais pas autant qu'un perso
-    var isDialogue = leadSpaces >= 6 && !isPerso && !isParenth;
-    // Action : peu ou pas indenté
-    // var isAction = !isPerso && !isParenth && !isDialogue; // non utilisé directement
+    var isPerso, isParenth, isDialogue;
 
-    // Espace avant le bloc personnage seulement (pas avant dialogue/parenthèse)
+    if (hasIndent) {
+      // PDF avec indentation classique Final Draft
+      isPerso   = leadSpaces >= 12 && trimmed === trimmed.toUpperCase()
+                  && trimmed.length < 55 && !/^\(/.test(trimmed) && !/^\d+\./.test(trimmed);
+      isParenth = /^\(/.test(trimmed) && leadSpaces >= 8;
+      isDialogue= leadSpaces >= 6 && !isPerso && !isParenth;
+    } else {
+      // PDF sans indentation : détection par contenu
+      // Perso : ligne courte (< 50 car), tout en MAJUSCULES (hors ponctuation), pas de minuscule
+      var noAccent = trimmed.replace(/[àâäéèêëîïôöùûüç]/gi,'a');
+      var upperOnly = noAccent === noAccent.toUpperCase();
+      isPerso = upperOnly && trimmed.length < 52
+                && !/^\d/.test(trimmed)
+                && !/^\(/.test(trimmed)
+                && !/[.!?…]{2,}$/.test(trimmed)  // évite les lignes action qui finissent en ...
+                && !/^[A-Z]{2,}[^A-Z]/.test(trimmed.slice(trimmed.search(/[a-zàâéèêîôùûç]/i))) // pas de minuscule
+                && trimmed.split(' ').length <= 6;  // max 6 mots
+      // Parenthèse : commence par (
+      isParenth = /^\(/.test(trimmed);
+      // Dialogue : ligne qui suit un perso ou une parenthèse
+      isDialogue = (prevType === 'perso' || prevType === 'parenth' || prevType === 'dialogue')
+                   && !isPerso && !isParenth;
+    }
+
     if (isPerso && prevType && prevType !== 'perso') {
       html += '<div style="height:0.5em"></div>';
     }
@@ -4735,7 +4840,6 @@ function formatScenarioTexte(texte) {
       html += '<div style="margin:0 20% 0 20%;font-size:12px;font-family:Courier New,Courier,monospace;line-height:1.35">'+escHtml(trimmed)+'</div>';
       prevType = 'dialogue';
     } else {
-      // Action — pleine largeur, normal
       if (prevType === 'dialogue' || prevType === 'perso') html += '<div style="height:0.4em"></div>';
       html += '<div style="font-size:12px;font-family:Courier New,Courier,monospace;line-height:1.35">'+escHtml(trimmed)+'</div>';
       prevType = 'action';
