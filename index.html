@@ -1045,6 +1045,7 @@ textarea.form-input{resize:vertical;min-height:72px;}
               <span style="background:#f0f4ff;border:1px solid #6366f1;border-radius:4px;padding:3px 10px;color:#6366f1;font-weight:600">Choisir PDF</span>
             </label>
             <div id="jaj-import-pdf-status" style="font-size:11px;color:#888;margin-top:4px"></div>
+            <button onclick="jajDiagnostic()" style="margin-top:6px;font-size:10px;color:#999;background:none;border:1px solid #ddd;border-radius:4px;padding:2px 8px;cursor:pointer">🔍 Diagnostic scénario</button>
           </div>
         </div>
       </div>
@@ -4939,6 +4940,33 @@ function jajEnvoyer() {
   body += 'Bien cordialement,\nLiv Charpentier\nRéférent Enfants / Assistante mise en scène — '+nomFilm;
 
   window.open('mailto:'+mail+'?subject='+subj+'&body='+encodeURIComponent(body));
+}
+
+function jajDiagnostic() {
+  var keys = [];
+  for (var i = 0; i < localStorage.length; i++) {
+    var k = localStorage.key(i);
+    if (k && k.startsWith('scenario_')) {
+      var val = localStorage.getItem(k);
+      try {
+        var parsed = JSON.parse(val);
+        keys.push(k + ' → ' + parsed.length + ' séquences, ex: ' + (parsed[0]?parsed[0].num:'?'));
+      } catch(e) { keys.push(k + ' → ERREUR PARSE'); }
+    }
+  }
+  var sc = getScenarioForFilm();
+  var msg = '=== DIAGNOSTIC JAJ ===\n';
+  msg += 'activeFilmId: ' + activeFilmId + '\n';
+  msg += 'Clés scénario localStorage: ' + (keys.length ? keys.join(', ') : 'AUCUNE') + '\n';
+  msg += 'getScenarioForFilm(): ' + sc.length + ' séquences\n';
+  if (sc.length) {
+    msg += 'Premières séquences: ' + sc.slice(0,5).map(function(s){return s.num+'('+s.texte.length+'c)';}).join(', ') + '\n';
+  }
+  if (jajCurrentJdt) {
+    var seqs = jajGetSequencesForJournee(jajCurrentJdt);
+    msg += 'Séquences J'+jajCurrentJdt+': ' + seqs.map(function(s){return s.num+'→'+s.texte.length+'c';}).join(', ');
+  }
+  alert(msg);
 }
 
 function escHtml(str) {
