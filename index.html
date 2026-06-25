@@ -4443,6 +4443,7 @@ function deleteVehicule() {
 var jajCurrentJdt = null;
 
 function renderJourAJour() {
+  try {
   // Assurer film actif
   if (!activeFilmId && state.films && state.films.length) activeFilmId = state.films[0].id;
   // Ne cacher les panels que si pas de journée sélectionnée
@@ -4451,10 +4452,12 @@ function renderJourAJour() {
     var ap = document.getElementById('jaj-apercu-panel'); if(ap) ap.style.display='none';
   }
 
-  var hasScenario = getScenarioForFilm().length > 0;
+  var sc = [];
+  try { sc = getScenarioForFilm() || []; } catch(e) {}
+  var hasScenario = sc.length > 0;
   var subEl = document.getElementById('jaj-sub');
   if (subEl) subEl.textContent = hasScenario
-    ? 'Scénario chargé — ' + getScenarioForFilm().length + ' séquences'
+    ? 'Scénario chargé — ' + sc.length + ' séquences'
     : '⚠ Importez le scénario PDF d\'abord (onglet Import)';
 
   var listEl = document.getElementById('jaj-journees-list');
@@ -4462,7 +4465,8 @@ function renderJourAJour() {
 
   // Toutes les journées PDT
   var journees = [];
-  var _pdt = getPDTData();
+  var _pdt = [];
+  try { _pdt = getPDTData() || []; } catch(e) {}
   if (_pdt && _pdt.length) {
     _pdt.forEach(function(pdt) {
       var fds = activeFilmId
@@ -4471,7 +4475,6 @@ function renderJourAJour() {
       // Compter combien de séquences ont un texte
       var seqsAvecTexte = 0;
       var pdtSeqs = pdt.sequences || [];
-      var sc = getScenarioForFilm();
       pdtSeqs.forEach(function(num) {
         var found = sc.find(function(s){ return jajNumMatch(s.num, num); });
         if (found && found.texte && found.texte.trim()) seqsAvecTexte++;
@@ -4508,6 +4511,7 @@ function renderJourAJour() {
       '</div>'+
     '</button>';
   }).join('');
+  } catch(eJAJ) { console.error('renderJourAJour error:', eJAJ); }
 }
 
 function renderJourAJour_reset() {
