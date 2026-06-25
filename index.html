@@ -5215,32 +5215,53 @@ function parseScenarioPdfText(text) {
   var lines = text.split('\n');
   var scenes = [];
   var current = null;
-  var sceneHeaderRe = /^(\d+(?:\s*(?:BIS\s*[A-D]?|TER\s*[A-D]?|P\d+|ET\s+\d+|[A-D]))?(?:\s+(?:BIS|TER))?)\ {3,}(.*(?:INT\b|EXT\b|I\.E\b|I\/E\b|I-E\b|JOUR|NUIT|SOIR|MATIN|CR.P|SUPPRIM|D.PLAC).*)/i;
+
+  // Patterns pour détecter un header de scène
+  // Format 1 (Final Draft / Courier) : "55 B          I/J          PARIS 11 - EPICERIE ANDRÉ"
+  // Format 2 : "55 B   INT./JOUR   PARIS 11"
+  // Format 3 : numéro seul sur une ligne, puis effet/décor sur la ligne suivante
+  var reNum = /^\s*(\d+(?:\s*(?:BIS(?:\s+[A-D])?|TER(?:\s+[A-D])?|P\d+(?:\s*-\s*\d+)?|ET\s+\d+|[A-Da-d]))?(?:\s+(?:BIS|TER|PT|PEL))?(?:\s*(?:\(D\)|\(EQ\.?B\)|\?!?|!|POV|P\d+))*)/;
+  var reEffet = /\b(I\+?E|E\+?I|EXT\b|INT\b|I\/E|E\/J|I\/J|E\/N|I\/N|E\/S|I\/S|E\/M|I\/M|E\/Crép|I\/Crép|E\/Aube|I\/Aube|E\/N\.Am|I\/N\.Am|I\+E\/[JNMS]|E\/[JNMS]|I\/[JNMS])/i;
+  var reMotsCles = /\b(JOUR|NUIT|SOIR|MATIN|CR.P|AM\.?|SUPPRIM|D.PLAC)\b/i;
+
+  function isSceneHeader(line) {
+    var trimmed = line.trim();
+    if (!trimmed) return false;
+    // Doit commencer par un numéro
+    var mNum = reNum.exec(trimmed);
+    if (!mNum) return false;
+    var numPart = mNum[1].trim();
+    if (!numPart || !/^\d/.test(numPart)) return false;
+    // La ligne doit aussi contenir un indicateur INT/EXT/I/J... ou un lieu connu
+    return reEffet.test(trimmed) || (trimmed.length - numPart.length > 8 && reMotsCles.test(trimmed));
+  }
+
+  function parseHeaderLine(line) {
+    var trimmed = line.trim();
+    var mNum = reNum.exec(trimmed);
+    var num = mNum ? mNum[1].trim() : '';
+    var rest = trimmed.slice(mNum ? mNum[0].length : 0).trim();
+    // rest peut contenir "I/J    PARIS 11 - EPICERIE" ou "INT./JOUR   DECOR"
+    var effet = '', decor = rest, titre = rest;
+    var mEff = reEffet.exec(rest);
+    if (mEff) {
+      effet = mEff[0];
+      decor = rest.slice(mEff.index + mEff[0].length).trim().replace(/^[-–\s]+/, '').trim();
+      titre = effet + (decor ? ' — ' + decor : '');
+    }
+    // Supprimer le numéro répété en fin
+    decor = decor.replace(new RegExp('\\s+' + num.replace(/[.*+?^${}()|[\]\\]/g,'\\$&') + '\\s*$'), '').trim();
+    return {num: num, titre: titre, effet: effet, decor: decor};
+  }
 
   for (var i = 0; i < lines.length; i++) {
     var line = lines[i];
-    var m = sceneHeaderRe.exec(line);
-    if (m) {
-      var num = m[1].trim();
-      var titre = m[2].trim();
-      // Supprimer le numéro répété en fin de titre
-      titre = titre.replace(new RegExp('\\s+' + num.replace(/\s+/g,'\\s+') + '\\s*$'), '').trim();
+    if (isSceneHeader(line)) {
       if (current) scenes.push(current);
-      // Parser effet et décor depuis le titre
-      var effet = '', decor = titre;
-      var effM = /^(INT\.|EXT\.|I\.E\.|I\/E|I-E\.?)\s*/i.exec(titre);
-      if (effM) {
-        var rest = titre.slice(effM[0].length);
-        var momM = /\b(JOUR|NUIT|SOIR|MATIN|CR.P\.?|AM\.?)\s*$/i.exec(rest);
-        if (momM) {
-          effet = effM[1].replace('.','') + '/' + momM[1][0].toUpperCase();
-          decor = rest.slice(0, momM.index).trim().replace(/\s*[-–]\s*$/, '');
-        }
-      }
-      current = {num: num, titre: titre, decor: decor, effet: effet, texte: ''};
+      var h = parseHeaderLine(line);
+      current = {num: h.num, titre: h.titre, decor: h.decor, effet: h.effet, texte: ''};
     } else if (current !== null) {
       var clean = line.trim();
-      // Ignorer sauts de page, numéros de page seuls
       if (clean && !/^\f/.test(clean) && !/^\d+\.$/.test(clean) && !/^\d+\s*$/.test(clean)) {
         current.texte += line + '\n';
       }
@@ -5252,6 +5273,18 @@ function parseScenarioPdfText(text) {
   scenes.forEach(function(s) {
     s.texte = s.texte.replace(/\n{3,}/g, '\n\n').trim();
   });
+
+  // Dédoublonner par numéro (garder la plus longue)
+  var seen = {};
+  scenes = scenes.filter(function(s) {
+    var key = String(s.num||'').trim().toUpperCase().replace(/\s+/g,'');
+    if (!key) return false;
+    if (!seen[key] || s.texte.length > seen[key].texte.length) {
+      seen[key] = s; return true;
+    }
+    return false;
+  });
+
   return scenes;
 }
 
