@@ -4605,16 +4605,16 @@ function jajSelectJournee(jdt) {
     var hasTexte = s.texte && s.texte.trim();
     var seqId = 'jaj-seq-' + String(s.num||'').replace(/[^a-zA-Z0-9]/g,'_');
     return '<div id="'+seqId+'" style="border:1px solid '+(hasTexte?'var(--green)':'#e5e7eb')+';border-radius:8px;margin-bottom:8px;overflow:hidden">' +
-      '<div style="background:'+(hasTexte?'var(--green-light)':'#f9fafb')+';padding:8px 12px;display:flex;align-items:center;gap:8px;cursor:pointer" onclick="jajToggleSeq(this)">' +
-        '<span style="font-weight:800;font-size:15px;color:var(--purple);min-width:45px">'+escHtml(String(s.num||''))+'</span>' +
+      '<div style="background:'+(hasTexte?'var(--green-light)':'#f9fafb')+';padding:8px 12px;display:flex;align-items:center;gap:6px;cursor:pointer" onclick="jajToggleSeq(this)">' +
+        '<span style="font-weight:800;font-size:13px;color:var(--purple);min-width:40px">'+escHtml(String(s.num||''))+'</span>' +
         '<span style="font-size:11px;color:#555;flex:1;font-style:italic">'+escHtml(s.titre||s.decor||'')+'</span>' +
-        '<span style="font-size:10px;font-weight:600;color:'+(hasTexte?'var(--green)':'#bbb')+'">'+
-          (hasTexte ? '✓' : (hasScenario ? '—' : '⚠'))+
+        '<span style="font-size:10px;font-weight:600;color:'+(hasTexte?'var(--green)':'#e65100')+'">'+
+          (hasTexte ? '✓' : '⚠')+
         '</span>' +
-        '<span style="font-size:11px">▼</span>' +
+        '<span style="font-size:11px" class="jaj-arrow" style="transform:rotate(180deg)">▲</span>' +
       '</div>' +
-      '<div class="jaj-seq-body" style="display:none;padding:10px;background:#fff">' +
-        '<div style="display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap;font-size:11px;align-items:center">' +
+      '<div class="jaj-seq-body" style="display:block;padding:10px;background:#fff">' +
+        '<div style="display:flex;gap:6px;margin-bottom:6px;flex-wrap:wrap;font-size:11px;align-items:center">' +
           '<b>Effet :</b> '+escHtml(s.effet||'—')+' &nbsp; ' +
           '<b>Décor :</b> '+escHtml(s.decor||'—')+' &nbsp; ' +
           (s.roles ? '<b>Rôles :</b> '+escHtml(s.roles) : '') +
@@ -4622,8 +4622,8 @@ function jajSelectJournee(jdt) {
         '</div>' +
         '<div id="jaj-view-'+seqId+'">' +
           (hasTexte
-            ? '<div style="font-family:Courier,monospace;font-size:11px;white-space:pre-wrap;background:#fafafa;padding:10px;border-radius:4px;border:1px solid #eee;max-height:300px;overflow-y:auto">'+escHtml(s.texte)+'</div>'
-            : '<div style="color:#aaa;font-style:italic;font-size:12px;padding:8px">'+(hasScenario?'Séquence non trouvée dans le scénario':'Importez le scénario PDF dans l\'onglet Import')+'</div>'
+            ? formatScenarioTexte(s.texte)
+            : '<div style="color:#e65100;font-style:italic;font-size:12px;padding:8px;background:#fff8f0;border-radius:4px">'+(hasScenario?'⚠ Séquence non trouvée dans le scénario':'⚠ Importez le scénario PDF — bouton ci-dessous')+'</div>'
           ) +
         '</div>' +
         '<div id="jaj-edit-'+seqId+'" style="display:none">' +
