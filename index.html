@@ -3423,6 +3423,10 @@ function navTo(name, btn) {
   if (name === 'pg-dept') pgRenderDept();
   if (name === 'transport-nav') renderTransportNav();
   if (name === 'apercu-nav') renderApercuNav();
+  if (name === 'resume-convoc') { renderResumeConvoc(); }
+  if (name === 'bilan') { renderBilan(); }
+  if (name === 'import') { renderImportPage(); }
+  if (name === 'jourAjour') { renderJourAJour(); }
   if (name === 'info') { var el=document.getElementById('info-email'); if(el&&currentUser) el.textContent=currentUser.email; }
 }
 
