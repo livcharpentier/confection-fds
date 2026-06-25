@@ -3306,13 +3306,23 @@ function renderApercuNav() {
 }
 
 function changerJourneeApercuJdt(jdtNum) {
-  // Créer la FDS si elle n'existe pas encore
+  // Afficher seulement les FDS déjà créées — pas de création silencieuse
   var fdsExist = (state.fds||[]).find(function(f){ return f.filmId===activeFilmId && f.jdt===jdtNum; });
+  var navEl = document.getElementById('apercu-nav-content');
   if (!fdsExist) {
-    ouvrirOuCreerFDSSilent(jdtNum);
-    fdsExist = (state.fds||[]).find(function(f){ return f.filmId===activeFilmId && f.jdt===jdtNum; });
+    var pdt = typeof PDT_DATA !== 'undefined' ? PDT_DATA.find(function(j){return j.jdt===jdtNum;}) : null;
+    var titleEl = document.getElementById('apercu-nav-title');
+    var subEl = document.getElementById('apercu-nav-sub');
+    if (titleEl) titleEl.textContent = 'Apercu ' + (pdt?pdt.journee:'J'+jdtNum) + ' — ' + (pdt?pdt.date:'');
+    if (subEl && activeFilm()) subEl.textContent = activeFilm().nom;
+    if (navEl) navEl.innerHTML = '<div style="padding:30px;text-align:center;color:#999">' +
+      '<div style="font-size:32px;margin-bottom:12px">\u{1F4C4}</div>' +
+      '<div style="font-size:14px;font-weight:600;margin-bottom:8px">Aucune FDS cr\u00e9\u00e9e pour cette journ\u00e9e</div>' +
+      '<div style="font-size:12px;margin-bottom:16px">Ouvre la journ\u00e9e depuis l\u0027onglet Journ\u00e9es pour cr\u00e9er et remplir la FDS.</div>' +
+      '<button class="btn btn-primary" onclick="navTo(\'journees\',document.getElementById(\'nav-journees\'))">→ Aller aux Journ\u00e9es</button>' +
+      '</div>';
+    return;
   }
-  if (!fdsExist) return;
   activeFdsId = fdsExist.id;
   var i = fdsExist.infos||{};
   var film = activeFilm();
