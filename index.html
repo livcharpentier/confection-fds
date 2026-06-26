@@ -1458,6 +1458,11 @@ async function loadData() {
       }
       renderFilms();
       updateTopbar();
+      // Re-render JAJ si actif, maintenant que le scénario est chargé
+      if (document.getElementById('page-jourAjour') && document.getElementById('page-jourAjour').classList.contains('active')) {
+        renderJourAJour();
+        if (jajCurrentJdt) jajSelectJournee(jajCurrentJdt);
+      }
     }
   } catch(e) {}
 }
@@ -1512,7 +1517,13 @@ function showPage(name) {
   if (name === 'resume-convoc') { renderResumeConvoc(); }
   if (name === 'bilan') { renderBilan(); }
   if (name === 'import') { renderImportPage(); }
-  if (name === 'jourAjour') { renderJourAJour(); }
+  if (name === 'jourAjour') {
+    renderJourAJour();
+    // Si pas de scénario encore, réessayer après chargement Supabase
+    if (!getScenarioForFilm().length) {
+      setTimeout(function() { renderJourAJour(); if (jajCurrentJdt) jajSelectJournee(jajCurrentJdt); }, 1500);
+    }
+  }
 }
 
 function stab(name, btn) {
