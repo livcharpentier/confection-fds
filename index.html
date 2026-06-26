@@ -1045,7 +1045,10 @@ textarea.form-input{resize:vertical;min-height:72px;}
               <span style="background:#f0f4ff;border:1px solid #6366f1;border-radius:4px;padding:3px 10px;color:#6366f1;font-weight:600">Choisir PDF</span>
             </label>
             <div id="jaj-import-pdf-status" style="font-size:11px;color:#888;margin-top:4px"></div>
-            <button onclick="jajDiagnostic()" style="margin-top:6px;font-size:10px;color:#999;background:none;border:1px solid #ddd;border-radius:4px;padding:2px 8px;cursor:pointer">🔍 Diagnostic scénario</button>
+            <div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap">
+              <button onclick="jajDiagnostic()" style="font-size:10px;color:#999;background:none;border:1px solid #ddd;border-radius:4px;padding:2px 8px;cursor:pointer">🔍 Diagnostic scénario</button>
+              <button onclick="jajForcerSync()" style="font-size:10px;color:#6366f1;background:none;border:1px solid #6366f1;border-radius:4px;padding:2px 8px;cursor:pointer;font-weight:600">☁️ Forcer sync Supabase</button>
+            </div>
           </div>
         </div>
       </div>
@@ -4981,6 +4984,37 @@ function jajEnvoyer() {
   body += 'Bien cordialement,\nLiv Charpentier\nRéférent Enfants / Assistante mise en scène — '+nomFilm;
 
   window.open('mailto:'+mail+'?subject='+subj+'&body='+encodeURIComponent(body));
+}
+
+async function jajForcerSync() {
+  var sc = {};
+  var found = false;
+  try {
+    for (var i = 0; i < localStorage.length; i++) {
+      var k = localStorage.key(i);
+      if (k && k.startsWith('scenario_')) {
+        var v = localStorage.getItem(k);
+        if (v) { sc[k] = v; found = true; }
+      }
+    }
+  } catch(e) {}
+
+  if (!found) {
+    alert('Aucun scénario dans le localStorage de cet appareil.\nImportez le scénario PDF d\'abord.');
+    return;
+  }
+
+  var statusEl = document.getElementById('jaj-import-pdf-status');
+  if (statusEl) statusEl.innerHTML = '<span style="color:#6366f1">☁️ Synchronisation en cours...</span>';
+
+  try {
+    await sbSave({state: state, activeFilmId: activeFilmId, activeFdsId: activeFdsId, scenario: sc});
+    var total = Object.keys(sc).reduce(function(n,k){ try{return n+JSON.parse(sc[k]).length;}catch(e){return n;} },0);
+    if (statusEl) statusEl.innerHTML = '<span style="color:#2e7d32;font-weight:600">✅ Synchronisé — ' + total + ' séquences envoyées vers Supabase</span>';
+    toast('Scénario synchronisé ✓ — ouvre l\'appli sur le téléphone');
+  } catch(e) {
+    if (statusEl) statusEl.innerHTML = '<span style="color:#c00">Erreur : ' + e.message + '</span>';
+  }
 }
 
 function jajDiagnostic() {
