@@ -1373,27 +1373,33 @@ function sbLogout() {
 }
 
 async function sbSave(data) {
-  if (!accessToken) return;
+  if (!accessToken) { const ok = await sbRefresh(); if (!ok) return; }
   const uid = currentUser.id;
-  const hasScenario = data.scenario && Object.keys(data.scenario).length > 0;
-  const scenarioSize = hasScenario ? JSON.stringify(data.scenario).length : 0;
-  console.log('[sbSave] scenario:', hasScenario ? 'OUI ' + scenarioSize + ' bytes' : 'NON');
-  try {
-    const r = await fetch(SB_URL + '/rest/v1/' + SB_TABLE, {
+  const doSave = async () => {
+    return fetch(SB_URL + '/rest/v1/' + SB_TABLE, {
       method:'POST',
       headers:{'Content-Type':'application/json','apikey':SB_KEY,'Authorization':'Bearer '+accessToken,'Prefer':'resolution=merge-duplicates'},
       body: JSON.stringify({id:uid, user_id:uid, data, updated_at: new Date().toISOString()})
     });
-    console.log('[sbSave] status:', r.status);
-  } catch(e) { console.error('[sbSave] error:', e); }
+  };
+  try {
+    let r = await doSave();
+    if (r.status === 401) {
+      // Token expiré — refresh et réessayer
+      const ok = await sbRefresh();
+      if (ok) r = await doSave();
+    }
+  } catch(e) {}
 }
 
 async function sbLoad() {
-  if (!accessToken) return null;
+  if (!accessToken) { const ok = await sbRefresh(); if (!ok) return null; }
+  const doLoad = async () => fetch(SB_URL + '/rest/v1/' + SB_TABLE + '?id=eq.' + currentUser.id, {
+    headers:{'apikey':SB_KEY,'Authorization':'Bearer '+accessToken}
+  });
   try {
-    const r = await fetch(SB_URL + '/rest/v1/' + SB_TABLE + '?id=eq.' + currentUser.id, {
-      headers:{'apikey':SB_KEY,'Authorization':'Bearer '+accessToken}
-    });
+    let r = await doLoad();
+    if (r.status === 401) { const ok = await sbRefresh(); if (ok) r = await doLoad(); else return null; }
     if (r.ok) { const rows = await r.json(); if (rows.length) return rows[0].data; }
   } catch(e) {}
   return null;
