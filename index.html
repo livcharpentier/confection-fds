@@ -6291,6 +6291,31 @@ function afficherDepoPdfPreview(journees, preview) {
   window._depoData = journees;
 }
 
+function jajReremplirResumes() {
+  // Reremplir les résumés manquants depuis le dépouillement PDF stocké
+  var nbMaj = 0;
+  if (!window._depoData || !window._depoData.length) {
+    toast('Réimportez le dépouillement PDF d\'abord'); return;
+  }
+  var fdsExistantes = (state.fds||[]).filter(function(f){ return f.filmId===activeFilmId; });
+  window._depoData.forEach(function(j) {
+    var fds = fdsExistantes.find(function(f){ return f.jdt===j.numJour; });
+    if (!fds) return;
+    j.sequences.forEach(function(s) {
+      var seqExist = (fds.sequences||[]).find(function(se){ return jajNumMatch(se.num, s.num); });
+      if (seqExist) {
+        if (s.resume && !seqExist.resume) { seqExist.resume = s.resume; nbMaj++; }
+        if (s.effet && !seqExist.effet) seqExist.effet = s.effet;
+        if (s.decor && !seqExist.decor) seqExist.decor = s.decor;
+        if (s.minutage && !seqExist.duree) seqExist.duree = s.minutage;
+        if (s.cont && !seqExist.cont) seqExist.cont = s.cont;
+      }
+    });
+  });
+  save();
+  toast(nbMaj + ' résumés mis à jour ✓');
+}
+
 function appliquerDepoPdf(journees) {
   if (!journees || !journees.length) return;
   var optSeqs = document.getElementById('depo-opt-seqs') && document.getElementById('depo-opt-seqs').checked;
@@ -6314,7 +6339,7 @@ function appliquerDepoPdf(journees) {
     // ── SÉQUENCES ──
     if (optSeqs) {
       j.sequences.forEach(function(s) {
-        var seqExist = (fds.sequences||[]).find(function(se){ return se.num === s.num; });
+        var seqExist = (fds.sequences||[]).find(function(se){ return jajNumMatch(se.num, s.num); });
         if (seqExist) {
           if (optEcrase || !seqExist.effet) seqExist.effet = s.effet || seqExist.effet;
           if (optEcrase || !seqExist.decor) seqExist.decor = s.decor || seqExist.decor;
@@ -6566,9 +6591,15 @@ function executerImportDepo(dataRows) {
   var count = 0;
   (state.fds||[]).filter(function(f){ return f.filmId===activeFilmId; }).forEach(function(fds) {
     (fds.sequences||[]).forEach(function(s) {
-      var key = String(s.num||'').trim();
-      if (depoIndex[key]) {
-        var d = depoIndex[key];
+      var key = String(s.num||'').trim().toUpperCase().replace(/\s+/g,'');
+      var depoMatch = depoIndex[key] || depoIndex[String(s.num||'').trim()];
+      // Cherche aussi avec espaces normalisés
+      if (!depoMatch) {
+        Object.keys(depoIndex).forEach(function(dk) {
+          if (dk.toUpperCase().replace(/\s+/g,'') === key) depoMatch = depoIndex[dk];
+        });
+      }
+      if (depoMatch) { var d = depoMatch;
         if (d.effet && !s.effet) { s.effet = d.effet; count++; }
         if (d.decor && !s.decor) s.decor = d.decor;
         if (d.resume && !s.resume) s.resume = d.resume;
