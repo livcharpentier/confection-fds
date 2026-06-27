@@ -6335,9 +6335,10 @@ function appliquerDepoPdf(journees) {
     journees.forEach(function(j) {
       var existe = state.fds.find(function(f){ return f.filmId===activeFilmId && f.jdt===j.numJour; });
       if (!existe) {
+        try {
         nbCrees++;
         var pdt = typeof PDT_DATA !== 'undefined' ? PDT_DATA.find(function(p){ return p.jdt===j.numJour; }) : null;
-        if (!pdt) return;
+        if (!pdt) { console.warn('PDT non trouvé pour jdt='+j.numJour); return; }
         var lieux = [];
         pdt.decors.forEach(function(d,i){ lieux.push({label:'Décor '+(i+1),valeur:d}); });
         if (!lieux.length) lieux.push({label:'Décor 1',valeur:pdt.lieu||''});
@@ -6371,10 +6372,11 @@ function appliquerDepoPdf(journees) {
           filmId:activeFilmId, jdt:j.numJour,
           infos:{journee:pdt.journee,date:pdt.date,pat:pdt.pat||'',debut:pdt.debut||'',fin:pdt.fin||'',repas:'',meteo:'',lever:'',coucher:'',crep_m:'',crep_s:'',note:''},
           lieux:lieux, sequences:sequences, comediens:comediens,
-          deptNotes:{}, equipe:JSON.parse(JSON.stringify(EQUIPE_FIXE)),
+          deptNotes:{}, equipe:(function(){ try { return JSON.parse(JSON.stringify(EQUIPE_FIXE)); } catch(e) { return {}; } })(),
           transports:[], previsions:[]
         };
         state.fds.push(fds);
+        } catch(eFds) { console.error('Erreur création FDS j'+j.numJour+':', eFds); }
       }
     });
     state.fds.sort(function(a,b){return (a.jdt||0)-(b.jdt||0);});
