@@ -1375,13 +1375,17 @@ function sbLogout() {
 async function sbSave(data) {
   if (!accessToken) return;
   const uid = currentUser.id;
+  const hasScenario = data.scenario && Object.keys(data.scenario).length > 0;
+  const scenarioSize = hasScenario ? JSON.stringify(data.scenario).length : 0;
+  console.log('[sbSave] scenario:', hasScenario ? 'OUI ' + scenarioSize + ' bytes' : 'NON');
   try {
-    await fetch(SB_URL + '/rest/v1/' + SB_TABLE, {
+    const r = await fetch(SB_URL + '/rest/v1/' + SB_TABLE, {
       method:'POST',
       headers:{'Content-Type':'application/json','apikey':SB_KEY,'Authorization':'Bearer '+accessToken,'Prefer':'resolution=merge-duplicates'},
       body: JSON.stringify({id:uid, user_id:uid, data, updated_at: new Date().toISOString()})
     });
-  } catch(e) {}
+    console.log('[sbSave] status:', r.status);
+  } catch(e) { console.error('[sbSave] error:', e); }
 }
 
 async function sbLoad() {
