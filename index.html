@@ -1394,15 +1394,27 @@ async function sbSave(data) {
     payload.scenario = scCompressed;
   }
 
-  const doPost = async () => fetch(SB_URL + '/rest/v1/' + SB_TABLE, {
-    method:'POST',
-    headers:{'Content-Type':'application/json','apikey':SB_KEY,'Authorization':'Bearer '+accessToken,'Prefer':'resolution=merge-duplicates'},
-    body: JSON.stringify({id:uid, user_id:uid, data: payload, updated_at: new Date().toISOString()})
-  });
+  const doSave = async () => {
+    // Essayer PATCH d'abord (mise à jour ligne existante)
+    const rPatch = await fetch(SB_URL + '/rest/v1/' + SB_TABLE + '?id=eq.' + uid, {
+      method:'PATCH',
+      headers:{'Content-Type':'application/json','apikey':SB_KEY,'Authorization':'Bearer '+accessToken,'Prefer':'return=minimal'},
+      body: JSON.stringify({data: payload, updated_at: new Date().toISOString()})
+    });
+    if (rPatch.status === 404 || rPatch.status === 406) {
+      // Ligne n'existe pas encore — créer avec POST
+      return fetch(SB_URL + '/rest/v1/' + SB_TABLE, {
+        method:'POST',
+        headers:{'Content-Type':'application/json','apikey':SB_KEY,'Authorization':'Bearer '+accessToken},
+        body: JSON.stringify({id:uid, user_id:uid, data: payload, updated_at: new Date().toISOString()})
+      });
+    }
+    return rPatch;
+  };
 
   try {
-    let r = await doPost();
-    if (r.status === 401) { const ok = await sbRefresh(); if (ok) r = await doPost(); }
+    let r = await doSave();
+    if (r.status === 401) { const ok = await sbRefresh(); if (ok) r = await doSave(); }
   } catch(e) {}
 }
 
