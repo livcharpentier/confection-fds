@@ -6286,10 +6286,23 @@ function afficherDepoPdfPreview(journees, preview) {
   html += '<div style="display:flex;gap:8px;margin-top:10px">';
   html += '<button class="btn btn-primary btn-block" style="background:#2e7d32;border-color:#2e7d32" onclick="appliquerDepoPdf(window._depoData)">✅ Importer dans les FDS</button>';
   html += '<button class="btn btn-secondary" onclick="document.getElementById(\'import-depo-pdf-preview\').innerHTML=\'\'">Annuler</button>';
+  html += '<button class="btn btn-sm" onclick="depoDiag()" style="background:none;border:1px solid #999;color:#555;font-size:11px">🔍 Diagnostic FDS</button>';
   html += '</div>';
 
   preview.innerHTML = html;
   window._depoData = journees;
+}
+
+function depoDiag() {
+  var fds = (state.fds||[]).filter(function(f){return f.filmId===activeFilmId;});
+  var msg = 'FDS dans state pour ce film : ' + fds.length + '\n\n';
+  // Lister les jdt existants
+  var jdts = fds.map(function(f){return f.jdt;}).sort(function(a,b){return a-b;});
+  msg += 'jdt présents : ' + jdts.join(', ') + '\n\n';
+  // Compter les FDS vides (sans comédiens ni séquences remplies)
+  var vides = fds.filter(function(f){return !(f.comediens&&f.comediens.length)&&!(f.sequences&&f.sequences.length);});
+  msg += 'FDS vides (sans comédiens ni séquences) : ' + vides.length + '\n';
+  alert(msg);
 }
 
 function jajReremplirResumes() {
