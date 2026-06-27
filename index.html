@@ -1411,7 +1411,7 @@ function save() {
   try { localStorage.setItem('fds_local', JSON.stringify({state, activeFilmId, activeFdsId})); } catch(e) {}
   clearTimeout(saveTimer);
   saveTimer = setTimeout(() => {
-    // Inclure le scénario dans la sauvegarde Supabase
+    // Toujours inclure le scénario depuis localStorage
     var scenario = {};
     try {
       for (var i = 0; i < localStorage.length; i++) {
@@ -1422,6 +1422,11 @@ function save() {
         }
       }
     } catch(e) {}
+    // Si pas de scénario local, utiliser celui déjà dans state
+    if (!Object.keys(scenario).length && state._scenario) {
+      scenario = state._scenario;
+    }
+    if (Object.keys(scenario).length) state._scenario = scenario;
     sbSave({state, activeFilmId, activeFdsId, scenario});
   }, 2000);
 }
@@ -1451,14 +1456,18 @@ async function loadData() {
       activeFdsId = remote.activeFdsId || null;
       try { localStorage.setItem('fds_local', JSON.stringify(remote)); } catch(e) {}
       // Restaurer le scénario APRÈS avoir le bon activeFilmId
-      if (remote.scenario) {
+      if (remote.scenario && Object.keys(remote.scenario).length) {
         try {
+          state._scenario = remote.scenario;
           Object.keys(remote.scenario).forEach(function(k) {
             if (k.startsWith('scenario_') && remote.scenario[k]) {
               localStorage.setItem(k, remote.scenario[k]);
             }
           });
-        } catch(e) {}
+          console.log('Scénario chargé depuis Supabase:', Object.keys(remote.scenario));
+        } catch(e) { console.error('Erreur restore scenario:', e); }
+      } else {
+        console.log('Pas de scénario dans Supabase remote:', remote ? Object.keys(remote) : 'null');
       }
       renderFilms();
       updateTopbar();
@@ -5639,25 +5648,29 @@ function parseScenarioPdfText(text) {
 
 function getScenarioForFilm(filmId) {
   try {
-    // Chercher d'abord la clé exacte du film actif
     var key = 'scenario_' + (filmId || activeFilmId);
+    // 1. localStorage exact
     var stored = localStorage.getItem(key);
-    if (stored) return JSON.parse(stored);
-    // Fallback : chercher n'importe quelle clé scenario_ qui existe
+    if (stored) { try { var p = JSON.parse(stored); if (p&&p.length) return p; } catch(e) {} }
+    // 2. state._scenario (chargé depuis Supabase)
+    if (state._scenario) {
+      var v = state._scenario[key];
+      if (v) { try { var p2 = JSON.parse(v); if (p2&&p2.length) { localStorage.setItem(key,v); return p2; } } catch(e) {} }
+      // Chercher n'importe quelle clé scenario_ dans state._scenario
+      var keys2 = Object.keys(state._scenario);
+      for (var i2 = 0; i2 < keys2.length; i2++) {
+        var k2 = keys2[i2];
+        if (k2.startsWith('scenario_')) {
+          try { var p3 = JSON.parse(state._scenario[k2]); if (p3&&p3.length) { localStorage.setItem(key,state._scenario[k2]); return p3; } } catch(e) {}
+        }
+      }
+    }
+    // 3. Fallback localStorage toutes clés
     for (var i = 0; i < localStorage.length; i++) {
       var k = localStorage.key(i);
       if (k && k.startsWith('scenario_')) {
         var val = localStorage.getItem(k);
-        if (val) {
-          try {
-            var parsed = JSON.parse(val);
-            if (parsed && parsed.length > 0) {
-              // Migrer vers la bonne clé
-              localStorage.setItem(key, val);
-              return parsed;
-            }
-          } catch(e2) {}
-        }
+        if (val) { try { var p4 = JSON.parse(val); if (p4&&p4.length) { localStorage.setItem(key,val); return p4; } } catch(e2) {} }
       }
     }
     return [];
