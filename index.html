@@ -1420,27 +1420,16 @@ async function sbSave(data) {
 
 async function sbLoad() {
   if (!accessToken) { const ok = await sbRefresh(); if (!ok) return null; }
-  const doLoad = async (id) => fetch(SB_URL + '/rest/v1/' + SB_TABLE + '?id=eq.' + id, {
+  const doLoad = async () => fetch(SB_URL + '/rest/v1/' + SB_TABLE + '?id=eq.' + currentUser.id, {
     headers:{'apikey':SB_KEY,'Authorization':'Bearer '+accessToken}
   });
   try {
-    let r = await doLoad(currentUser.id);
-    if (r.status === 401) { const ok = await sbRefresh(); if (ok) r = await doLoad(currentUser.id); else return null; }
+    let r = await doLoad();
+    if (r.status === 401) { const ok = await sbRefresh(); if (ok) r = await doLoad(); else return null; }
     if (!r.ok) return null;
     const rows = await r.json();
     if (!rows.length) return null;
-    const mainData = rows[0].data || {};
-
-    // Charger le scénario depuis la ligne séparée
-    try {
-      const r2 = await doLoad(currentUser.id + '_sc');
-      if (r2.ok) {
-        const rows2 = await r2.json();
-        if (rows2.length && rows2[0].data) mainData.scenario = rows2[0].data;
-      }
-    } catch(e2) {}
-
-    return mainData;
+    return rows[0].data || {};
   } catch(e) {}
   return null;
 }
