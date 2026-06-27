@@ -1375,32 +1375,52 @@ function sbLogout() {
 async function sbSave(data) {
   if (!accessToken) { const ok = await sbRefresh(); if (!ok) return; }
   const uid = currentUser.id;
-  const doSave = async () => {
-    return fetch(SB_URL + '/rest/v1/' + SB_TABLE, {
-      method:'POST',
-      headers:{'Content-Type':'application/json','apikey':SB_KEY,'Authorization':'Bearer '+accessToken,'Prefer':'resolution=merge-duplicates'},
-      body: JSON.stringify({id:uid, user_id:uid, data, updated_at: new Date().toISOString()})
-    });
-  };
+  // Séparer le scénario du reste pour éviter body trop gros
+  const scenario = data.scenario || null;
+  const mainData = {state: data.state, activeFilmId: data.activeFilmId, activeFdsId: data.activeFdsId};
+
+  const doPost = async (id, payload) => fetch(SB_URL + '/rest/v1/' + SB_TABLE, {
+    method:'POST',
+    headers:{'Content-Type':'application/json','apikey':SB_KEY,'Authorization':'Bearer '+accessToken,'Prefer':'resolution=merge-duplicates'},
+    body: JSON.stringify({id, user_id:uid, data: payload, updated_at: new Date().toISOString()})
+  });
+
   try {
-    let r = await doSave();
-    if (r.status === 401) {
-      // Token expiré — refresh et réessayer
-      const ok = await sbRefresh();
-      if (ok) r = await doSave();
+    // 1. Sauvegarder les données principales
+    let r = await doPost(uid, mainData);
+    if (r.status === 401) { const ok = await sbRefresh(); if (ok) r = await doPost(uid, mainData); }
+
+    // 2. Sauvegarder le scénario séparément si présent
+    if (scenario && Object.keys(scenario).length) {
+      let r2 = await doPost(uid + '_sc', scenario);
+      if (r2.status === 401) { const ok = await sbRefresh(); if (ok) await doPost(uid + '_sc', scenario); }
     }
   } catch(e) {}
 }
 
 async function sbLoad() {
   if (!accessToken) { const ok = await sbRefresh(); if (!ok) return null; }
-  const doLoad = async () => fetch(SB_URL + '/rest/v1/' + SB_TABLE + '?id=eq.' + currentUser.id, {
+  const doLoad = async (id) => fetch(SB_URL + '/rest/v1/' + SB_TABLE + '?id=eq.' + id, {
     headers:{'apikey':SB_KEY,'Authorization':'Bearer '+accessToken}
   });
   try {
-    let r = await doLoad();
-    if (r.status === 401) { const ok = await sbRefresh(); if (ok) r = await doLoad(); else return null; }
-    if (r.ok) { const rows = await r.json(); if (rows.length) return rows[0].data; }
+    let r = await doLoad(currentUser.id);
+    if (r.status === 401) { const ok = await sbRefresh(); if (ok) r = await doLoad(currentUser.id); else return null; }
+    if (!r.ok) return null;
+    const rows = await r.json();
+    if (!rows.length) return null;
+    const mainData = rows[0].data || {};
+
+    // Charger le scénario depuis la ligne séparée
+    try {
+      const r2 = await doLoad(currentUser.id + '_sc');
+      if (r2.ok) {
+        const rows2 = await r2.json();
+        if (rows2.length && rows2[0].data) mainData.scenario = rows2[0].data;
+      }
+    } catch(e2) {}
+
+    return mainData;
   } catch(e) {}
   return null;
 }
