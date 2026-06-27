@@ -6330,10 +6330,52 @@ function appliquerDepoPdf(journees) {
 
   // Créer les FDS manquantes si option cochée
   if (optCreer) {
+    if (!state.fds) state.fds = [];
     journees.forEach(function(j) {
-      var existe = (state.fds||[]).find(function(f){ return f.filmId===activeFilmId && f.jdt===j.numJour; });
-      if (!existe) ouvrirOuCreerFDSSilent(j.numJour);
+      var existe = state.fds.find(function(f){ return f.filmId===activeFilmId && f.jdt===j.numJour; });
+      if (!existe) {
+        var pdt = typeof PDT_DATA !== 'undefined' ? PDT_DATA.find(function(p){ return p.jdt===j.numJour; }) : null;
+        if (!pdt) return;
+        var lieux = [];
+        pdt.decors.forEach(function(d,i){ lieux.push({label:'Décor '+(i+1),valeur:d}); });
+        if (!lieux.length) lieux.push({label:'Décor 1',valeur:pdt.lieu||''});
+        lieux.push(
+          {label:'HMC',valeur:''},{label:'Loge comédiens',valeur:''},{label:'Loge figuration',valeur:''},
+          {label:'FIGURATION',valeur:''},{label:'CANTINE',valeur:''},
+          {label:'STATIONNEMENT VÉHIC. TECHNIQUES',valeur:''},{label:'STATIONNEMENT VÉHIC. PERSONNELS',valeur:''},
+          {label:'PRODUCTION',valeur:''}
+        );
+        var comediens = pdt.roles.map(function(r){
+          return {type:'comedien',num:r.num,role:r.role,nom:r.comedien,seqs:pdt.sequences.join(', '),hmc:'',loges:'',pat:'',nbre:1};
+        });
+        // Doublures fixes selon rôles présents
+        var DBFIXES = [
+          {num:'DBIFR',role:'Doublure image François',nom:'Céline LAURENTIE',roleRef:'FRANÇOIS'},
+          {num:'DBILI',role:'Doublure image Lisa',nom:'Prune LEMAIRE',roleRef:'LISA'},
+          {num:'DBIE',role:'Doublure image Eusèbe',nom:'Venance CASTANET PARCOT',roleRef:'EUSÈBE'},
+          {num:'DBIP',role:'Doublure image Proslier',nom:'Michel BIZOT',roleRef:'PERE PROSLIER'}
+        ];
+        pdt.roles.forEach(function(r){
+          DBFIXES.forEach(function(db){
+            if (r.role===db.roleRef && !comediens.find(function(c){return c.num===db.num;}))
+              comediens.push({type:'doublure',num:db.num,role:db.role,nom:db.nom,seqs:pdt.sequences.join(', '),hmc:'',loges:'',pat:'',nbre:1});
+          });
+        });
+        var sequences = pdt.sequences.map(function(s){
+          return {num:s,effet:'',decor:pdt.decors[0]||'',resume:'',roles:pdt.roles.map(function(r){return r.num;}).join(', '),duree:'',cont:''};
+        });
+        var fds = {
+          id:'fds_'+Date.now()+'_'+j.numJour+'_'+Math.random().toString(36).slice(2,6),
+          filmId:activeFilmId, jdt:j.numJour,
+          infos:{journee:pdt.journee,date:pdt.date,pat:pdt.pat||'',debut:pdt.debut||'',fin:pdt.fin||'',repas:'',meteo:'',lever:'',coucher:'',crep_m:'',crep_s:'',note:''},
+          lieux:lieux, sequences:sequences, comediens:comediens,
+          deptNotes:{}, equipe:JSON.parse(JSON.stringify(EQUIPE_FIXE)),
+          transports:[], previsions:[]
+        };
+        state.fds.push(fds);
+      }
     });
+    state.fds.sort(function(a,b){return (a.jdt||0)-(b.jdt||0);});
   }
 
   var fdsExistantes = (state.fds||[]).filter(function(f){ return f.filmId === activeFilmId; });
