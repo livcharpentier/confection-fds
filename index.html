@@ -6451,7 +6451,24 @@ function appliquerDepoPdf(journees) {
           },
           lieux: [{label:'Décor 1',valeur:decor0},{label:'HMC',valeur:''},{label:'Loge comédiens',valeur:''},{label:'Loge figuration',valeur:''},{label:'FIGURATION',valeur:''},{label:'CANTINE',valeur:''},{label:'STATIONNEMENT VÉHIC. TECHNIQUES',valeur:''},{label:'STATIONNEMENT VÉHIC. PERSONNELS',valeur:''},{label:'PRODUCTION',valeur:''}],
           sequences: seqNums.map(function(s){ return {num:s,effet:'',decor:decor0,resume:'',roles:roleNums,duree:'',cont:''}; }),
-          comediens: pdt2 ? pdt2.roles.map(function(r){ return {type:'comedien',num:r.num,role:r.role,nom:r.comedien,seqs:seqNums.join(', '),hmc:'',loges:'',pat:'',nbre:1}; }) : [],
+          comediens: (function() {
+            if (!pdt2) return [];
+            // Construire index rôle→séquences depuis le dépouillement
+            var roleSeqs = {};
+            j.sequences.forEach(function(depSeq) {
+              if (!depSeq.roles) return;
+              var roleList = depSeq.roles.split(/[,;]+/).map(function(r){return r.trim().replace(/^(\d+).*$/,'$1');});
+              roleList.forEach(function(rNum) {
+                if (!rNum) return;
+                if (!roleSeqs[rNum]) roleSeqs[rNum] = [];
+                if (depSeq.num) roleSeqs[rNum].push(depSeq.num);
+              });
+            });
+            return pdt2.roles.map(function(r) {
+              var mySeqs = roleSeqs[r.num] || seqNums;
+              return {type:'comedien',num:r.num,role:r.role,nom:r.comedien,seqs:mySeqs.join(', '),hmc:'',loges:'',pat:'',nbre:1};
+            });
+          })(),
           deptNotes: {}, equipe: {}, transports: [], previsions: []
         };
         state.fds.push(fds);
@@ -6472,6 +6489,19 @@ function appliquerDepoPdf(journees) {
     if (!fds.deptNotes) fds.deptNotes = {};
 
     // ── SÉQUENCES ──
+    // Construire index rôle→séquences depuis le dépouillement pour cette journée
+    var roleSeqsDepo = {};
+    j.sequences.forEach(function(depSeq) {
+      if (!depSeq.roles) return;
+      var roleList = depSeq.roles.split(/[,;]+/).map(function(r){return r.trim().replace(/^(\d+).*$/,'$1');});
+      roleList.forEach(function(rNum) {
+        if (!rNum) return;
+        if (!roleSeqsDepo[rNum]) roleSeqsDepo[rNum] = [];
+        var numClean = String(depSeq.num||'').trim();
+        if (numClean) roleSeqsDepo[rNum].push(numClean);
+      });
+    });
+
     if (optSeqs) {
       j.sequences.forEach(function(s) {
         var seqExist = (fds.sequences||[]).find(function(se){ return jajNumMatch(se.num, s.num); });
@@ -6481,10 +6511,35 @@ function appliquerDepoPdf(journees) {
           if (optEcrase || !seqExist.resume) seqExist.resume = s.resume || seqExist.resume;
           if (optEcrase || !seqExist.duree) seqExist.duree = s.minutage || seqExist.duree;
           if (optEcrase || !seqExist.cont) seqExist.cont = s.cont || seqExist.cont;
+          // Mettre à jour roles sur la séquence
+          if (optEcrase || !seqExist.roles) seqExist.roles = s.roles || seqExist.roles;
         } else {
           if (!fds.sequences) fds.sequences = [];
           fds.sequences.push({ num: s.num, effet: s.effet, decor: s.decor, resume: s.resume, roles: s.roles || '', duree: s.minutage, cont: s.cont });
           nbSeqs++;
+        }
+      });
+    }
+
+    // ── SÉQUENCES PAR COMÉDIEN ──
+    // Recalculer les seqs de chaque comédien selon le dépouillement
+    if (optSeqs && Object.keys(roleSeqsDepo).length) {
+      (fds.comediens||[]).forEach(function(c) {
+        var rNum = String(c.num||'').trim();
+        if (roleSeqsDepo[rNum] && roleSeqsDepo[rNum].length) {
+          c.seqs = roleSeqsDepo[rNum].join(', ');
+        }
+        // Doublures : même séquences que le personnage doublé
+        if (c.type === 'doublure') {
+          var refRole = c.role || '';
+          // Trouver le rôle de référence selon le nom de la doublure
+          var refMatch = refRole.match(/(?:Doublure image|Doublure)\s+(.+)/i);
+          if (refMatch) {
+            var refName = refMatch[1].trim().toUpperCase();
+            // Chercher dans les comédiens le rôle correspondant
+            var refCom = (fds.comediens||[]).find(function(x){ return x.role && x.role.toUpperCase().indexOf(refName) >= 0 && x.type === 'comedien'; });
+            if (refCom && refCom.seqs) c.seqs = refCom.seqs;
+          }
         }
       });
     }
