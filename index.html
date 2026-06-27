@@ -6279,7 +6279,8 @@ function afficherDepoPdfPreview(journees, preview) {
   html += '<label style="display:flex;align-items:center;gap:6px;margin-bottom:4px"><input type="checkbox" id="depo-opt-casc" checked> Cascades (notes dans depts Véhicules / Cascadeurs)</label>';
   html += '<label style="display:flex;align-items:center;gap:6px;margin-bottom:4px"><input type="checkbox" id="depo-opt-vehic" checked> Véhicules (note dans département Véhicules)</label>';
   html += '<label style="display:flex;align-items:center;gap:6px;margin-bottom:4px"><input type="checkbox" id="depo-opt-cost" checked> Costumes (note dans département Costumes)</label>';
-  html += '<label style="display:flex;align-items:center;gap:6px;margin-bottom:8px"><input type="checkbox" id="depo-opt-ecrase"> Écraser les données existantes (décoché = compléter seulement)</label>';
+  html += '<label style="display:flex;align-items:center;gap:6px;margin-bottom:4px"><input type="checkbox" id="depo-opt-ecrase"> Écraser les données existantes (décoché = compléter seulement)</label>';
+  html += '<label style="display:flex;align-items:center;gap:6px;margin-bottom:8px"><input type="checkbox" id="depo-opt-creer" checked> Créer automatiquement les FDS manquantes ('+journees.filter(function(j){return !(state.fds||[]).find(function(f){return f.filmId===activeFilmId&&f.jdt===j.numJour;});}).length+' journées sans FDS)</label>';
   html += '</div>';
 
   html += '<div style="display:flex;gap:8px;margin-top:10px">';
@@ -6325,13 +6326,23 @@ function appliquerDepoPdf(journees) {
   var optCost = document.getElementById('depo-opt-cost') && document.getElementById('depo-opt-cost').checked;
   var optEcrase= document.getElementById('depo-opt-ecrase')&&document.getElementById('depo-opt-ecrase').checked;
 
+  var optCreer = document.getElementById('depo-opt-creer') && document.getElementById('depo-opt-creer').checked;
+
+  // Créer les FDS manquantes si option cochée
+  if (optCreer) {
+    journees.forEach(function(j) {
+      var existe = (state.fds||[]).find(function(f){ return f.filmId===activeFilmId && f.jdt===j.numJour; });
+      if (!existe) ouvrirOuCreerFDSSilent(j.numJour);
+    });
+  }
+
   var fdsExistantes = (state.fds||[]).filter(function(f){ return f.filmId === activeFilmId; });
   var nbMaj = 0;
   var nbSeqs = 0;
 
   journees.forEach(function(j) {
     var fds = fdsExistantes.find(function(f){ return f.jdt === j.numJour; });
-    if (!fds) return; // pas de FDS créée = on skip
+    if (!fds) return;
 
     nbMaj++;
     if (!fds.deptNotes) fds.deptNotes = {};
