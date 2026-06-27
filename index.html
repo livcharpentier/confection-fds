@@ -6559,27 +6559,91 @@ function appliquerDepoPdf(journees) {
       });
     }
 
-    // ── SÉQUENCES PAR COMÉDIEN ──
-    // Recalculer les seqs de chaque comédien selon le dépouillement
-    if (optSeqs && Object.keys(roleSeqsDepo).length) {
+    // ── SÉQUENCES PAR COMÉDIEN + DOUBLURES + SILHOUETTES + CASCADEURS ──
+    if (optSeqs) {
+
+      // 1. Mettre à jour les seqs des comédiens existants
       (fds.comediens||[]).forEach(function(c) {
         var rNum = String(c.num||'').trim();
         if (roleSeqsDepo[rNum] && roleSeqsDepo[rNum].length) {
           c.seqs = roleSeqsDepo[rNum].join(', ');
         }
-        // Doublures : même séquences que le personnage doublé
+        // Doublures image : mêmes séquences que le personnage doublé
         if (c.type === 'doublure') {
-          var refRole = c.role || '';
-          // Trouver le rôle de référence selon le nom de la doublure
-          var refMatch = refRole.match(/(?:Doublure image|Doublure)\s+(.+)/i);
+          var refMatch = (c.role||'').match(/Doublure(?:\s+image)?\s+(.+)/i);
           if (refMatch) {
             var refName = refMatch[1].trim().toUpperCase();
-            // Chercher dans les comédiens le rôle correspondant
-            var refCom = (fds.comediens||[]).find(function(x){ return x.role && x.role.toUpperCase().indexOf(refName) >= 0 && x.type === 'comedien'; });
+            var refCom = (fds.comediens||[]).find(function(x){ return x.role && x.role.toUpperCase() === refName && x.type === 'comedien'; });
             if (refCom && refCom.seqs) c.seqs = refCom.seqs;
           }
         }
       });
+
+      // 2. Ajouter/mettre à jour silhouettes depuis le dépouillement
+      var silIndex = {}; // "S3 - Pilote Avion" → [séquences]
+      j.sequences.forEach(function(depSeq) {
+        if (!depSeq.silhouettes) return;
+        var numClean = String(depSeq.num||'').trim();
+        depSeq.silhouettes.split(/\n/).forEach(function(sil) {
+          sil = sil.trim();
+          if (!sil) return;
+          // Format: "S3 - Pilote Avion (Parlante)"
+          var mS = sil.match(/^(S\d+)\s*[-–]\s*(.+?)(?:\s*\(Parlante\))?\s*$/i);
+          var key = mS ? mS[1] : sil.slice(0,20);
+          var label = mS ? sil : sil;
+          if (!silIndex[key]) silIndex[key] = {label: label, seqs: [], parlante: /parlante/i.test(sil)};
+          if (numClean && silIndex[key].seqs.indexOf(numClean) < 0) silIndex[key].seqs.push(numClean);
+        });
+      });
+      Object.keys(silIndex).forEach(function(key) {
+        var si = silIndex[key];
+        var exist = (fds.comediens||[]).find(function(c){ return c.num === key; });
+        if (exist) {
+          exist.seqs = si.seqs.join(', ');
+        } else {
+          if (!fds.comediens) fds.comediens = [];
+          fds.comediens.push({type: si.parlante ? 'silhouette_parlante' : 'silhouette', num: key, role: si.label, nom: '', seqs: si.seqs.join(', '), hmc:'', loges:'', pat:'', nbre:1});
+        }
+      });
+
+      // 3. Cascadeurs depuis le dépouillement
+      var cascIndex = {};
+      j.sequences.forEach(function(depSeq) {
+        var numClean = String(depSeq.num||'').trim();
+        // Cascades physiques
+        if (depSeq.cascades_phys) {
+          depSeq.cascades_phys.split(/,|;/).forEach(function(casc) {
+            casc = casc.trim();
+            if (!casc || /^R[eé]gleur/i.test(casc)) return; // skip régleur générique
+            var key = 'CASC_' + casc.slice(0,15).replace(/\s+/g,'_');
+            if (!cascIndex[key]) cascIndex[key] = {label: casc, seqs: [], type: 'cascadeur'};
+            if (numClean && cascIndex[key].seqs.indexOf(numClean) < 0) cascIndex[key].seqs.push(numClean);
+          });
+        }
+        // Cascades véhicules
+        if (depSeq.cascades_veh) {
+          depSeq.cascades_veh.split(/,|;/).forEach(function(casc) {
+            casc = casc.trim();
+            if (!casc || /^R[eé]gleur/i.test(casc)) return;
+            var key = 'CASCV_' + casc.slice(0,15).replace(/\s+/g,'_');
+            if (!cascIndex[key]) cascIndex[key] = {label: casc, seqs: [], type: 'cascade_vehicule'};
+            if (numClean && cascIndex[key].seqs.indexOf(numClean) < 0) cascIndex[key].seqs.push(numClean);
+          });
+        }
+      });
+      // Ajouter les régleurs si cascades présentes
+      var hasPhys = j.sequences.some(function(s){ return s.cascades_phys; });
+      var hasVeh = j.sequences.some(function(s){ return s.cascades_veh; });
+      if (hasPhys && !(fds.comediens||[]).find(function(c){ return c.num==='REGL_PHYS'; })) {
+        if (!fds.comediens) fds.comediens = [];
+        var seqsPhys = j.sequences.filter(function(s){return s.cascades_phys;}).map(function(s){return String(s.num||'');});
+        fds.comediens.push({type:'cascadeur',num:'REGL_PHYS',role:'Régleur cascade physique',nom:'',seqs:seqsPhys.join(', '),hmc:'',loges:'',pat:'',nbre:1});
+      }
+      if (hasVeh && !(fds.comediens||[]).find(function(c){ return c.num==='REGL_VEH'; })) {
+        if (!fds.comediens) fds.comediens = [];
+        var seqsVeh = j.sequences.filter(function(s){return s.cascades_veh;}).map(function(s){return String(s.num||'');});
+        fds.comediens.push({type:'cascade_vehicule',num:'REGL_VEH',role:'Régleur cascade véhicule',nom:'',seqs:seqsVeh.join(', '),hmc:'',loges:'',pat:'',nbre:1});
+      }
     }
 
     // ── FIGURANTS ──
