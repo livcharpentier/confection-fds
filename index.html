@@ -6177,7 +6177,26 @@ function parseDepoPdf(lines) {
     if (!curSeq || !collectingField) { collectingField = null; collectBuf = ''; return; }
     var v = collectBuf.trim();
     if (collectingField === 'roles') {
-      curSeq.roles = (curSeq.roles ? curSeq.roles + ', ' : '') + v;
+      // Extraire uniquement les numéros de rôle (format "N - NOM ROLE")
+      // depuis les lignes qui peuvent contenir des figurants sur la droite
+      var roleNums = [];
+      v.split('\n').forEach(function(ligne) {
+        // Chercher tous les patterns "N - NOM" au début de la ligne
+        var m = ligne.match(/^\s*(\d+)\s*[-–]\s*[A-ZÉÈÊÀÂÙÛÎÏÔ\s\(\)']+/);
+        if (m) roleNums.push(m[1]);
+      });
+      // Aussi essayer de parser directement si pas de match (lignes simples)
+      if (!roleNums.length) {
+        v.split(/[,\n]/).forEach(function(part) {
+          var m2 = part.trim().match(/^(\d+)/);
+          if (m2) roleNums.push(m2[1]);
+        });
+      }
+      if (roleNums.length) {
+        curSeq.roles = (curSeq.roles ? curSeq.roles + ', ' : '') + roleNums.join(', ');
+      } else {
+        curSeq.roles = (curSeq.roles ? curSeq.roles + ', ' : '') + v;
+      }
     } else if (collectingField === 'figurants') {
       curSeq.figurants = (curSeq.figurants ? curSeq.figurants + '\n' : '') + v;
     } else if (collectingField === 'sil') {
@@ -6295,7 +6314,12 @@ function parseDepoPdf(lines) {
       if (reSeqHeader.test(line) || reJourSimple.test(line) || reFinJour.test(line)) {
         flushCollect(); i--; continue;
       }
-      collectBuf += (collectBuf ? ' ' : '') + line;
+      // Pour les rôles, garder les sauts de ligne pour parsing ultérieur
+      if (collectingField === 'roles' || collectingField === 'sil' || collectingField === 'doublure') {
+        collectBuf += (collectBuf ? '\n' : '') + line;
+      } else {
+        collectBuf += (collectBuf ? ' ' : '') + line;
+      }
       continue;
     }
 
