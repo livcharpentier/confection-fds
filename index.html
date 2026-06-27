@@ -1375,26 +1375,34 @@ function sbLogout() {
 async function sbSave(data) {
   if (!accessToken) { const ok = await sbRefresh(); if (!ok) return; }
   const uid = currentUser.id;
-  // Séparer le scénario du reste pour éviter body trop gros
-  const scenario = data.scenario || null;
-  const mainData = {state: data.state, activeFilmId: data.activeFilmId, activeFdsId: data.activeFdsId};
 
-  const doPost = async (id, payload) => fetch(SB_URL + '/rest/v1/' + SB_TABLE, {
+  // Compresser le scénario : garder les métadonnées mais tronquer les textes longs
+  var payload = {state: data.state, activeFilmId: data.activeFilmId, activeFdsId: data.activeFdsId};
+  if (data.scenario) {
+    var scCompressed = {};
+    Object.keys(data.scenario).forEach(function(k) {
+      try {
+        var scenes = JSON.parse(data.scenario[k]);
+        // Garder num, titre, effet, decor, cont — tronquer texte à 300 chars
+        var mini = scenes.map(function(s) {
+          return {num:s.num, titre:s.titre||'', effet:s.effet||'', decor:s.decor||'', cont:s.cont||'',
+                  texte: s.texte ? s.texte.slice(0,300) : ''};
+        });
+        scCompressed[k] = JSON.stringify(mini);
+      } catch(e) { scCompressed[k] = data.scenario[k]; }
+    });
+    payload.scenario = scCompressed;
+  }
+
+  const doPost = async () => fetch(SB_URL + '/rest/v1/' + SB_TABLE, {
     method:'POST',
     headers:{'Content-Type':'application/json','apikey':SB_KEY,'Authorization':'Bearer '+accessToken,'Prefer':'resolution=merge-duplicates'},
-    body: JSON.stringify({id, user_id:uid, data: payload, updated_at: new Date().toISOString()})
+    body: JSON.stringify({id:uid, user_id:uid, data: payload, updated_at: new Date().toISOString()})
   });
 
   try {
-    // 1. Sauvegarder les données principales
-    let r = await doPost(uid, mainData);
-    if (r.status === 401) { const ok = await sbRefresh(); if (ok) r = await doPost(uid, mainData); }
-
-    // 2. Sauvegarder le scénario séparément si présent
-    if (scenario && Object.keys(scenario).length) {
-      let r2 = await doPost(uid + '_sc', scenario);
-      if (r2.status === 401) { const ok = await sbRefresh(); if (ok) await doPost(uid + '_sc', scenario); }
-    }
+    let r = await doPost();
+    if (r.status === 401) { const ok = await sbRefresh(); if (ok) r = await doPost(); }
   } catch(e) {}
 }
 
