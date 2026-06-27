@@ -6453,19 +6453,36 @@ function appliquerDepoPdf(journees) {
           sequences: seqNums.map(function(s){ return {num:s,effet:'',decor:decor0,resume:'',roles:roleNums,duree:'',cont:''}; }),
           comediens: (function() {
             if (!pdt2) return [];
-            // Construire index rôle→séquences depuis le dépouillement
+            // Construire index rôle→séquences depuis dépouillement + scénario
             var roleSeqs = {};
+            // 1. Depuis le dépouillement
             j.sequences.forEach(function(depSeq) {
               if (!depSeq.roles) return;
-              var roleList = depSeq.roles.split(/[,;]+/).map(function(r){return r.trim().replace(/^(\d+).*$/,'$1');});
-              roleList.forEach(function(rNum) {
+              depSeq.roles.split(/[,;]+/).forEach(function(r) {
+                var rNum = r.trim().replace(/^\s*(\d+).*/, '$1');
                 if (!rNum) return;
                 if (!roleSeqs[rNum]) roleSeqs[rNum] = [];
-                if (depSeq.num) roleSeqs[rNum].push(depSeq.num);
+                var n = String(depSeq.num||'').trim();
+                if (n && roleSeqs[rNum].indexOf(n) < 0) roleSeqs[rNum].push(n);
               });
             });
+            // 2. Depuis le scénario
+            try {
+              var sc = getScenarioForFilm() || [];
+              sc.forEach(function(scSeq) {
+                var matchJ = seqNums.find(function(sn){ return jajNumMatch(sn, scSeq.num); });
+                if (!matchJ || !scSeq.roles) return;
+                String(scSeq.roles).split(/[,;]+/).forEach(function(r) {
+                  var rNum = r.trim().replace(/^\s*(\d+).*/, '$1');
+                  if (!rNum) return;
+                  if (!roleSeqs[rNum]) roleSeqs[rNum] = [];
+                  var n = String(scSeq.num||'').trim();
+                  if (n && roleSeqs[rNum].indexOf(n) < 0) roleSeqs[rNum].push(n);
+                });
+              });
+            } catch(e) {}
             return pdt2.roles.map(function(r) {
-              var mySeqs = roleSeqs[r.num] || seqNums;
+              var mySeqs = roleSeqs[r.num] && roleSeqs[r.num].length ? roleSeqs[r.num] : seqNums;
               return {type:'comedien',num:r.num,role:r.role,nom:r.comedien,seqs:mySeqs.join(', '),hmc:'',loges:'',pat:'',nbre:1};
             });
           })(),
@@ -6489,17 +6506,38 @@ function appliquerDepoPdf(journees) {
     if (!fds.deptNotes) fds.deptNotes = {};
 
     // ── SÉQUENCES ──
-    // Construire index rôle→séquences depuis le dépouillement pour cette journée
+    // Construire index rôle→séquences en croisant dépouillement + scénario
     var roleSeqsDepo = {};
+
+    // 1. Depuis le dépouillement PDF
     j.sequences.forEach(function(depSeq) {
       if (!depSeq.roles) return;
-      var roleList = depSeq.roles.split(/[,;]+/).map(function(r){return r.trim().replace(/^(\d+).*$/,'$1');});
+      var roleList = depSeq.roles.split(/[,;]+/).map(function(r){return r.trim().replace(/^\s*(\d+).*/,'$1');}).filter(Boolean);
       roleList.forEach(function(rNum) {
-        if (!rNum) return;
         if (!roleSeqsDepo[rNum]) roleSeqsDepo[rNum] = [];
         var numClean = String(depSeq.num||'').trim();
-        if (numClean) roleSeqsDepo[rNum].push(numClean);
+        if (numClean && roleSeqsDepo[rNum].indexOf(numClean) < 0) roleSeqsDepo[rNum].push(numClean);
       });
+    });
+
+    // 2. Depuis le scénario importé — croiser les séquences de la journée
+    var scAll = [];
+    try { scAll = getScenarioForFilm() || []; } catch(e) {}
+    var seqNumsJour = j.sequences.map(function(s){ return String(s.num||'').trim(); });
+    scAll.forEach(function(scSeq) {
+      // Vérifier si cette séquence scénario appartient à la journée (matching souple)
+      var matchJour = seqNumsJour.find(function(jn){ return jajNumMatch(jn, scSeq.num); });
+      if (!matchJour) return;
+      // Extraire les rôles du texte scénario (noms en MAJUSCULES = personnages)
+      // On utilise aussi le champ roles si présent
+      if (scSeq.roles) {
+        var scRoles = String(scSeq.roles).split(/[,;]+/).map(function(r){return r.trim().replace(/^\s*(\d+).*/,'$1');}).filter(Boolean);
+        scRoles.forEach(function(rNum) {
+          if (!roleSeqsDepo[rNum]) roleSeqsDepo[rNum] = [];
+          var numClean = String(scSeq.num||'').trim();
+          if (numClean && roleSeqsDepo[rNum].indexOf(numClean) < 0) roleSeqsDepo[rNum].push(numClean);
+        });
+      }
     });
 
     if (optSeqs) {
