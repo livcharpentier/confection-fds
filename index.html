@@ -6329,16 +6329,22 @@ function appliquerDepoPdf(journees) {
   var optCreer = document.getElementById('depo-opt-creer') && document.getElementById('depo-opt-creer').checked;
 
   // Créer les FDS manquantes si option cochée
+  if (!state.fds) state.fds = [];
+  var nbCrees = 0;
   if (optCreer) {
-    if (!state.fds) state.fds = [];
-    var nbCrees = 0;
-    journees.forEach(function(j) {
-      var existe = state.fds.find(function(f){ return f.filmId===activeFilmId && f.jdt===j.numJour; });
+    var pdtAll = typeof PDT_DATA !== 'undefined' ? PDT_DATA : [];
+    for (var ji = 0; ji < journees.length; ji++) {
+      var j = journees[ji];
+      var existe = null;
+      for (var fi = 0; fi < state.fds.length; fi++) {
+        if (state.fds[fi].filmId === activeFilmId && state.fds[fi].jdt === j.numJour) { existe = state.fds[fi]; break; }
+      }
       if (!existe) {
         try {
         nbCrees++;
-        var pdt = typeof PDT_DATA !== 'undefined' ? PDT_DATA.find(function(p){ return p.jdt===j.numJour; }) : null;
-        if (!pdt) { console.warn('PDT non trouvé pour jdt='+j.numJour); return; }
+        var pdt = null;
+        for (var pi = 0; pi < pdtAll.length; pi++) { if (pdtAll[pi].jdt === j.numJour) { pdt = pdtAll[pi]; break; } }
+        if (!pdt) { console.warn('PDT non trouvé pour jdt='+j.numJour); continue; }
         var lieux = [];
         pdt.decors.forEach(function(d,i){ lieux.push({label:'Décor '+(i+1),valeur:d}); });
         if (!lieux.length) lieux.push({label:'Décor 1',valeur:pdt.lieu||''});
@@ -6376,11 +6382,10 @@ function appliquerDepoPdf(journees) {
           transports:[], previsions:[]
         };
         state.fds.push(fds);
-        } catch(eFds) { console.error('Erreur création FDS j'+j.numJour+':', eFds); }
+        } catch(eFds) { console.error('Erreur création FDS j'+j.numJour+':', eFds.message); }
       }
-    });
+    } // fin for ji
     state.fds.sort(function(a,b){return (a.jdt||0)-(b.jdt||0);});
-    toast(nbCrees + ' FDS créées, ' + state.fds.filter(function(f){return f.filmId===activeFilmId;}).length + ' total');
   }
 
   var fdsExistantes = (state.fds||[]).filter(function(f){ return f.filmId === activeFilmId; });
