@@ -872,15 +872,26 @@ textarea.form-input{resize:vertical;min-height:72px;}
         <div style="font-size:11px;color:var(--text-muted);margin-top:4px">Pré-remplie depuis les lieux de la journée</div>
       </div>
 
-      <!-- Tableaux transports -->
+      <!-- TRANSPORTS ÉQUIPE -->
       <div class="card" style="margin-bottom:10px">
-        <div class="card-title">Transports du jour
-          <button class="btn btn-sm btn-primary" onclick="preRemplirTransportsNav()">⟳ Pré-remplir</button>
+        <div class="card-title" style="background:#333;color:#fff;padding:6px 10px;border-radius:6px;margin:-10px -10px 8px">
+          TRANSPORTS ÉQUIPE — <span id="transport-nav-date-eq" style="font-weight:400;font-size:11px"></span>
+          <button class="btn btn-sm" style="background:#555;color:#fff;margin-left:auto" onclick="openTransportModal('equipe')">+ Ajouter</button>
         </div>
-        <div id="transport-nav-list"><div class="empty">Sélectionnez une journée puis cliquez ⟳ Pré-remplir</div></div>
+        <div id="transport-nav-equipe"><div class="empty">Aucun transport équipe</div></div>
       </div>
 
-      <!-- Arrivées veille -->
+      <!-- TRANSPORTS COMÉDIENS -->
+      <div class="card" style="margin-bottom:10px">
+        <div class="card-title" style="background:#333;color:#fff;padding:6px 10px;border-radius:6px;margin:-10px -10px 8px">
+          TRANSPORTS COMÉDIENS — <span id="transport-nav-date-com" style="font-weight:400;font-size:11px"></span>
+          <button class="btn btn-sm" style="background:#555;color:#fff;" onclick="preRemplirTransportsNav()">⟳ Pré-remplir</button>
+          <button class="btn btn-sm" style="background:#555;color:#fff;" onclick="openTransportModal('jour')">+ Manuel</button>
+        </div>
+        <div id="transport-nav-list"><div class="empty">Cliquez ⟳ Pré-remplir pour charger les comédiens</div></div>
+      </div>
+
+      <!-- ARRIVÉES VEILLE -->
       <div class="card" style="margin-bottom:10px">
         <div class="card-title">Arrivées la veille
           <button class="btn btn-sm btn-secondary" onclick="openTransportModal('arrivee_veille')">+ Ajouter</button>
@@ -888,7 +899,7 @@ textarea.form-input{resize:vertical;min-height:72px;}
         <div id="transport-nav-veille"><div class="empty">Aucune arrivée la veille</div></div>
       </div>
 
-      <!-- Arrivées jour -->
+      <!-- ARRIVÉES JOUR -->
       <div class="card" style="margin-bottom:10px">
         <div class="card-title" id="transport-nav-arrivee-titre">Arrivées du jour
           <button class="btn btn-sm btn-secondary" onclick="openTransportModal('arrivee_jour')">+ Ajouter</button>
@@ -896,10 +907,11 @@ textarea.form-input{resize:vertical;min-height:72px;}
         <div id="transport-nav-arrivee-list"><div class="empty">Aucune arrivée</div></div>
       </div>
 
-      <!-- Départs -->
+      <!-- DÉPARTS -->
       <div class="card">
-        <div class="card-title" id="transport-nav-depart-titre">Départs du jour
-          <button class="btn btn-sm btn-secondary" onclick="openTransportModal('depart')">+ Ajouter</button>
+        <div class="card-title" style="background:#333;color:#fff;padding:6px 10px;border-radius:6px;margin:-10px -10px 8px">
+          DÉPART(S) — <span id="transport-nav-date-dep" style="font-weight:400;font-size:11px"></span>
+          <button class="btn btn-sm" style="background:#555;color:#fff;" onclick="openTransportModal('depart')">+ Ajouter</button>
         </div>
         <div id="transport-nav-depart-list"><div class="empty">Aucun départ</div></div>
       </div>
@@ -1376,13 +1388,24 @@ textarea.form-input{resize:vertical;min-height:72px;}
     <div class="form-row"><label class="form-label">Adresse arrivée</label><input class="form-input" id="tr-arrivee" placeholder="D965, 89130 Mézilles"/></div>
     <div class="form-row"><label class="form-label">Type de mouvement</label>
     <select class="form-input" id="tr-type">
-      <option value="jour">Transport du jour</option>
+      <option value="equipe">Transport équipe</option>
+      <option value="jour">Transport comédien</option>
       <option value="arrivee_veille">Arrivée la veille</option>
       <option value="arrivee_jour">Arrivée le jour même</option>
       <option value="depart">Départ</option>
     </select></div>
-    <div class="form-row"><label class="form-label">PAT comédien</label><input class="form-input" id="tr-pat" type="time"/></div>
-    <div class="form-row"><label class="form-label">Sur place</label><input class="form-input" id="tr-sur-place" type="time"/></div>
+    <div class="form-row"><label class="form-label">PAT</label>
+      <div style="display:flex;gap:4px"><input class="form-input" id="tr-pat" style="flex:1" placeholder="8H00"/>
+      <button type="button" onclick="setSurTel('tr-pat')" style="background:#f0f0f0;border:1px solid #ccc;border-radius:6px;padding:4px 8px;font-size:11px;cursor:pointer">Sur tel</button></div>
+    </div>
+    <div class="form-row"><label class="form-label">Pick-up</label>
+      <div style="display:flex;gap:4px"><input class="form-input" id="tr-pickup" style="flex:1" placeholder="6H00 (calculé auto)"/>
+      <button type="button" onclick="setSurTel('tr-pickup')" style="background:#f0f0f0;border:1px solid #ccc;border-radius:6px;padding:4px 8px;font-size:11px;cursor:pointer">Sur tel</button></div>
+    </div>
+    <div class="form-row"><label class="form-label">Sur place</label>
+      <div style="display:flex;gap:4px"><input class="form-input" id="tr-sur-place" style="flex:1" placeholder="6H30"/>
+      <button type="button" onclick="setSurTel('tr-sur-place')" style="background:#f0f0f0;border:1px solid #ccc;border-radius:6px;padding:4px 8px;font-size:11px;cursor:pointer">Sur tel</button></div>
+    </div>
     <div class="form-row"><label class="form-label">Tél chauffeur</label><input class="form-input" id="tr-tel" placeholder="07 XX XX XX XX"/></div>
     <button class="btn btn-primary btn-block" onclick="addTransport()">Calculer & Ajouter</button>
   </div>
@@ -2533,7 +2556,7 @@ function renderTransportList() {
 function addTransport() {
   const f = activeFDS(); if (!f) return;
   var trType = document.getElementById('tr-type');
-  f.transports.push({
+  var data = {
     type: trType ? trType.value : 'jour',
     comedien: document.getElementById('tr-comedien').value,
     role: document.getElementById('tr-role').value,
@@ -2542,9 +2565,20 @@ function addTransport() {
     depart: document.getElementById('tr-depart').value,
     arrivee: document.getElementById('tr-arrivee').value,
     pat: document.getElementById('tr-pat').value || null,
-    sur_place: (document.getElementById('tr-sur-place')||{}).value || ''
-  });
-  closeModal('modal-transport'); renderTransportList(); save(); toast('Transport ajouté');
+    sur_place: (document.getElementById('tr-sur-place')||{}).value || '',
+    pickup: (document.getElementById('tr-pickup')||{}).value || ''
+  };
+  if (window._editTransportIdx !== undefined && window._editTransportIdx >= 0) {
+    f.transports[window._editTransportIdx] = data;
+    window._editTransportIdx = -1;
+    toast('Transport modifié ✓');
+  } else {
+    f.transports.push(data);
+    toast('Transport ajouté ✓');
+  }
+  closeModal('modal-transport');
+  document.querySelector('#modal-transport .modal-head h2').textContent = 'Ajouter un transport';
+  renderTransportNavLists(); renderTransportList(); save();
 }
 
 function removeTransport(i) {
@@ -3689,8 +3723,12 @@ function changerJourneeTransport(jdtNum) {
     var pdt = typeof PDT_DATA !== 'undefined' ? PDT_DATA.find(function(j){ return j.jdt === jdtNum; }) : null;
     document.getElementById('transport-nav-title').textContent = 'Transports ' + (i.journee||'');
     document.getElementById('transport-nav-sub').textContent = i.date || '';
-    document.getElementById('transport-nav-arrivee-titre').childNodes[0].textContent = 'Arrivées — ' + (i.date||'') + ' ';
-    document.getElementById('transport-nav-depart-titre').childNodes[0].textContent = 'Départs — ' + (i.date||'') + ' ';
+    var dateUp = (i.date||'').toUpperCase();
+    var elDeq = document.getElementById('transport-nav-date-eq'); if(elDeq) elDeq.textContent = dateUp;
+    var elDcom = document.getElementById('transport-nav-date-com'); if(elDcom) elDcom.textContent = dateUp;
+    var elDdep = document.getElementById('transport-nav-date-dep'); if(elDdep) elDdep.textContent = dateUp;
+    var arTitre = document.getElementById('transport-nav-arrivee-titre');
+    if(arTitre) arTitre.childNodes[0].textContent = 'Arrivées — ' + (i.date||'') + ' ';
     // Pré-remplir adresse arrivée depuis lieux
     var arriveeInput = document.getElementById('transport-nav-arrivee');
     if (arriveeInput && fdsExist.lieux && fdsExist.lieux.length) {
@@ -3765,67 +3803,130 @@ function openTransportModal(type) {
 
 function renderTransportNavLists() {
   var f = activeFDS();
-  var arrivee = (document.getElementById('transport-nav-arrivee')||{}).value||'';
+  var transports = f ? (f.transports||[]) : [];
+  var i = f ? (f.infos||{}) : {};
+  var dateStr = i.date ? i.date.toUpperCase() : '';
 
   function pencilTr(idx) {
-    return '<button onclick="openEditTransport('+idx+')" style="background:none;border:none;cursor:pointer;padding:3px" title="Modifier">'+
-      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px">'+
+    return '<button onclick="openEditTransport('+idx+')" style="background:none;border:none;cursor:pointer;padding:2px" title="Modifier">'+
+      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:13px;height:13px">'+
       '<path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>'+
       '<path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>';
   }
   function deleteTr(idx) {
-    return '<button onclick="removeTransportIdx('+idx+')" style="background:none;border:none;cursor:pointer;padding:3px;color:#999">'+
-      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:13px;height:13px">'+
+    return '<button onclick="removeTransportIdx('+idx+')" style="background:none;border:none;cursor:pointer;padding:2px;color:#bbb">'+
+      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:12px;height:12px">'+
       '<polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/></svg></button>';
   }
 
-  var transports = f ? (f.transports||[]) : [];
+  function buildTable(list, cols, rowFn, bg) {
+    var h = '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:11px">';
+    h += '<tr style="background:'+bg+'">';
+    cols.forEach(function(c){ h += '<th style="padding:4px 6px;border:1px solid #ccc;font-size:10px;font-weight:700;text-align:center">'+c+'</th>'; });
+    h += '<th style="border:1px solid #ccc;width:28px"></th></tr>';
+    if (!list.length) {
+      h += '<tr><td colspan="'+(cols.length+1)+'" style="padding:10px;text-align:center;color:#999;font-size:11px">Aucun — cliquez + pour ajouter</td></tr>';
+    } else {
+      list.forEach(function(t){ h += rowFn(t); });
+    }
+    h += '</table></div>';
+    return h;
+  }
 
-  // Transports jour
+  // ── TRANSPORTS ÉQUIPE ─────────────────────────────────────────
+  var equipe = transports.filter(function(t){return t.type==='equipe';});
+  var elEq = document.getElementById('transport-nav-equipe');
+  if (elEq) {
+    elEq.innerHTML = buildTable(equipe,
+      ['NOMS','CHAUFFEUR','PICK-UP','LIEUX','SUR PLACE'],
+      function(t){
+        var idx = transports.indexOf(t);
+        return '<tr>'+
+          '<td style="padding:4px 6px;border:1px solid #ddd">'+t.comedien+'</td>'+
+          '<td style="padding:4px 6px;border:1px solid #ddd;text-align:center">'+(t.chauffeur||'—')+(t.tel?'<br><span style="font-size:9px;color:#888">'+t.tel+'</span>':'')+'</td>'+
+          '<td style="padding:4px 6px;border:1px solid #ddd;text-align:center;font-weight:700">'+(fmtTime(t.pickup)||'—')+'</td>'+
+          '<td style="padding:4px 6px;border:1px solid #ddd">'+(t.depart||'—')+'</td>'+
+          '<td style="padding:4px 6px;border:1px solid #ddd;text-align:center">'+(fmtTime(t.sur_place)||'—')+'</td>'+
+          '<td style="padding:2px;border:1px solid #ddd;text-align:center">'+pencilTr(idx)+deleteTr(idx)+'</td></tr>';
+      }, '#f0f0f0');
+  }
+
+  // ── TRANSPORTS COMÉDIENS ──────────────────────────────────────
   var jour = transports.filter(function(t){return !t.type||t.type===''||t.type==='jour';});
   var elJ = document.getElementById('transport-nav-list');
   if (elJ) {
-    if (!jour.length) { elJ.innerHTML='<div class="empty">Cliquez ⧗ Pré-remplir</div>'; }
-    else {
-      elJ.innerHTML = jour.map(function(t) {
+    var arrivee = (document.getElementById('transport-nav-arrivee')||{}).value||'';
+    elJ.innerHTML = buildTable(jour,
+      ['NOMS','CHAUFFEUR','PICK-UP','LIEUX','SUR PLACE','PAT'],
+      function(t){
         var idx = transports.indexOf(t);
         var duree = estimerTrajet(t.depart, t.arrivee||arrivee);
-        var pickup = t.pat ? calcPickup(t.pat, duree) : null;
-        return '<div style="padding:8px 0;border-bottom:1px solid var(--border)">'+
-          '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px">'+
-            '<div><b style="font-size:13px">'+t.comedien+'</b> <span style="font-size:11px;color:var(--text-muted)">'+t.role+'</span></div>'+
-            '<div>'+pencilTr(idx)+deleteTr(idx)+'</div>'+
-          '</div>'+
-          '<div style="display:grid;grid-template-columns:1fr 1fr;gap:5px;font-size:11px;margin-bottom:4px">'+
-            '<div><span style="color:var(--text-muted)">Chauffeur: </span><b>'+(t.chauffeur||'—')+'</b>'+( t.tel?' '+t.tel:'')+'</div>'+
-            '<div><span style="color:var(--text-muted)">Départ: </span>'+(t.depart||'—')+'</div>'+
-          '</div>'+
-          (pickup ? '<div class="pickup-bar">⏱ ~'+duree+' min · Pick-up: <span class="pickup-badge">'+pickup+'</span>'+
-            '<a href="https://waze.com/ul?q='+encodeURIComponent(t.arrivee||arrivee)+'&navigate=yes" target="_blank" class="waze-link">Waze ↗</a></div>' :
-            '<div style="font-size:11px;color:#999">PAT: '+(t.pat ? fmtTime(t.pat) : 'Sur tel')+'</div>')+
-        '</div>';
-      }).join('');
-    }
+        var pickup = t.pat ? calcPickup(t.pat, duree) : '—';
+        return '<tr>'+
+          '<td style="padding:4px 6px;border:1px solid #ddd">'+(t.comedien||'')+(t.role?'<br><span style="font-size:9px;color:#888">'+t.role+'</span>':'')+'</td>'+
+          '<td style="padding:4px 6px;border:1px solid #ddd;text-align:center">'+(t.chauffeur||'—')+(t.tel?'<br><span style="font-size:9px;color:#888">'+t.tel+'</span>':'')+'</td>'+
+          '<td style="padding:4px 6px;border:1px solid #ddd;text-align:center;font-weight:700">'+pickup+'</td>'+
+          '<td style="padding:4px 6px;border:1px solid #ddd">'+(t.depart||'—')+'</td>'+
+          '<td style="padding:4px 6px;border:1px solid #ddd;text-align:center">'+(fmtTime(t.sur_place)||'—')+'</td>'+
+          '<td style="padding:4px 6px;border:1px solid #ddd;text-align:center;font-weight:700">'+(fmtTime(t.pat)||'—')+'</td>'+
+          '<td style="padding:2px;border:1px solid #ddd;text-align:center">'+pencilTr(idx)+deleteTr(idx)+'</td></tr>';
+      }, '#f0f0f0');
   }
 
-  function renderSimpleList(elId, liste) {
-    var el = document.getElementById(elId); if (!el) return;
-    if (!liste.length) { el.innerHTML='<div class="empty">Aucun</div>'; return; }
-    el.innerHTML = liste.map(function(t) {
-      var idx = transports.indexOf(t);
-      return '<div class="list-row">'+
-        '<div class="row-main"><div class="row-title">'+t.comedien+'</div>'+
-        '<div class="row-sub">'+t.chauffeur+(t.pickup?' · Pick-up: '+t.pickup:'')+(t.depart?' · '+t.depart:'')+'</div></div>'+
-        pencilTr(idx)+deleteTr(idx)+
-      '</div>';
-    }).join('');
+  // ── ARRIVÉES VEILLE ───────────────────────────────────────────
+  var veille = transports.filter(function(t){return t.type==='arrivee_veille';});
+  var elV = document.getElementById('transport-nav-veille');
+  if (elV) {
+    elV.innerHTML = buildTable(veille,
+      ['NOMS','CHAUFFEUR','PICK-UP','LIEUX DE PICK-UP','ARRIVÉE'],
+      function(t){
+        var idx = transports.indexOf(t);
+        return '<tr>'+
+          '<td style="padding:4px 6px;border:1px solid #ddd">'+t.comedien+'</td>'+
+          '<td style="padding:4px 6px;border:1px solid #ddd;text-align:center">'+(t.chauffeur||'—')+'</td>'+
+          '<td style="padding:4px 6px;border:1px solid #ddd;text-align:center">'+(fmtTime(t.pickup)||'—')+'</td>'+
+          '<td style="padding:4px 6px;border:1px solid #ddd">'+(t.depart||'—')+'</td>'+
+          '<td style="padding:4px 6px;border:1px solid #ddd;text-align:center">'+(t.arrivee||'—')+'</td>'+
+          '<td style="padding:2px;border:1px solid #ddd;text-align:center">'+pencilTr(idx)+deleteTr(idx)+'</td></tr>';
+      }, '#fff8e1');
   }
 
-  renderSimpleList('transport-nav-veille', transports.filter(function(t){return t.type==='arrivee_veille';}));
-  renderSimpleList('transport-nav-arrivee-list', transports.filter(function(t){return t.type==='arrivee_jour';}));
-  renderSimpleList('transport-nav-depart-list', transports.filter(function(t){return t.type==='depart';}));
+  // ── ARRIVÉES JOUR ─────────────────────────────────────────────
+  var arrJour = transports.filter(function(t){return t.type==='arrivee_jour';});
+  var elA = document.getElementById('transport-nav-arrivee-list');
+  if (elA) {
+    elA.innerHTML = buildTable(arrJour,
+      ['NOMS','CHAUFFEUR','PICK-UP','LIEUX DE PICK-UP','ARRIVÉE'],
+      function(t){
+        var idx = transports.indexOf(t);
+        return '<tr>'+
+          '<td style="padding:4px 6px;border:1px solid #ddd">'+t.comedien+'</td>'+
+          '<td style="padding:4px 6px;border:1px solid #ddd;text-align:center">'+(t.chauffeur||'—')+'</td>'+
+          '<td style="padding:4px 6px;border:1px solid #ddd;text-align:center">'+(fmtTime(t.pickup)||'—')+'</td>'+
+          '<td style="padding:4px 6px;border:1px solid #ddd">'+(t.depart||'—')+'</td>'+
+          '<td style="padding:4px 6px;border:1px solid #ddd;text-align:center">'+(t.arrivee||'—')+'</td>'+
+          '<td style="padding:2px;border:1px solid #ddd;text-align:center">'+pencilTr(idx)+deleteTr(idx)+'</td></tr>';
+      }, '#f0f0f0');
+  }
+
+  // ── DÉPARTS ──────────────────────────────────────────────────
+  var departs = transports.filter(function(t){return t.type==='depart';});
+  var elD = document.getElementById('transport-nav-depart-list');
+  if (elD) {
+    elD.innerHTML = buildTable(departs,
+      ['NOMS','CHAUFFEUR','PICK-UP','LIEUX DE PICK-UP','ARRIVÉE'],
+      function(t){
+        var idx = transports.indexOf(t);
+        return '<tr>'+
+          '<td style="padding:4px 6px;border:1px solid #ddd">'+t.comedien+'</td>'+
+          '<td style="padding:4px 6px;border:1px solid #ddd;text-align:center">'+(t.chauffeur||'cf. Régie')+'</td>'+
+          '<td style="padding:4px 6px;border:1px solid #ddd;text-align:center">—</td>'+
+          '<td style="padding:4px 6px;border:1px solid #ddd">'+(t.depart||'Set')+'</td>'+
+          '<td style="padding:4px 6px;border:1px solid #ddd;font-style:italic">'+(t.arrivee||'—')+'</td>'+
+          '<td style="padding:2px;border:1px solid #ddd;text-align:center">'+pencilTr(idx)+deleteTr(idx)+'</td></tr>';
+      }, '#f0f0f0');
+  }
 }
-
 function removeTransportIdx(idx) {
   var f = activeFDS(); if (!f) return;
   f.transports.splice(idx,1); save(); renderTransportNavLists();
@@ -3841,10 +3942,12 @@ function openEditTransport(idx) {
   document.getElementById('tr-depart').value = t.depart||'';
   document.getElementById('tr-arrivee').value = t.arrivee||'';
   document.getElementById('tr-pat').value = t.pat||'';
+  var pickupEl = document.getElementById('tr-pickup'); if(pickupEl) pickupEl.value = t.pickup||'';
+  var surEl = document.getElementById('tr-sur-place'); if(surEl) surEl.value = t.sur_place||'';
   var typeEl = document.getElementById('tr-type');
   if (typeEl) typeEl.value = t.type||'jour';
-  // Stocker l'index pour update
   window._editTransportIdx = idx;
+  document.querySelector('#modal-transport .modal-head h2').textContent = 'Modifier transport';
   openModal('modal-transport');
 }
 
