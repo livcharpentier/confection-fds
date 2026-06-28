@@ -462,6 +462,13 @@ textarea.form-input{resize:vertical;min-height:72px;}
         <div class="form-row-inline"><span class="form-label">Pause repas</span><input class="form-input" id="pg-pause-repas" placeholder="30" style="max-width:60px;flex:none"/><span style="padding:0 6px;color:var(--text-muted);font-size:12px">mn à prévoir</span></div>
       </div>
       <div class="card">
+        <div class="card-title">📋 Intitulés colonnes comédiens</div>
+        <div style="font-size:11px;color:var(--text-muted);margin-bottom:8px">Personnaliser les en-têtes du tableau comédiens dans l'aperçu FDS</div>
+        <div class="form-row-inline"><span class="form-label">Col. HMC</span><input class="form-input" id="pg-col-hmc" placeholder="HMC" style="flex:1"/></div>
+        <div class="form-row-inline"><span class="form-label">Col. Loges</span><input class="form-input" id="pg-col-loges" placeholder="Départ loges + Son" style="flex:1"/></div>
+        <div class="form-row-inline"><span class="form-label">Col. PAT</span><input class="form-input" id="pg-col-pat" placeholder="PAT" style="flex:1"/></div>
+      </div>
+      <div class="card">
         <div class="card-title">Météo</div>
         <div class="form-row-inline"><span class="form-label">Conditions</span><input class="form-input" id="pg-meteo" placeholder="Ensoleillé"/></div>
         <div class="form-row-inline"><span class="form-label">Température</span><input class="form-input" id="pg-temperature" placeholder="29°- 39°C" style="max-width:140px"/></div>
@@ -1175,9 +1182,24 @@ textarea.form-input{resize:vertical;min-height:72px;}
     <div class="form-row"><label class="form-label">Nom du rôle</label><input class="form-input" id="co-role" placeholder="FRANÇOIS"/></div>
     <div class="form-row"><label class="form-label">Comédien</label><input class="form-input" id="co-nom" placeholder="Lucas HECTOR"/></div>
     <div class="form-row"><label class="form-label">Séquences</label><input class="form-input" id="co-seqs" placeholder="65, 78, 95"/></div>
-    <div class="form-row"><label class="form-label">HMC</label><input class="form-input" id="co-hmc" type="time"/></div>
-    <div class="form-row"><label class="form-label">Départ loges</label><input class="form-input" id="co-loges" type="time"/></div>
-    <div class="form-row"><label class="form-label">PAT</label><input class="form-input" id="co-pat" type="time"/></div>
+    <div class="form-row"><label class="form-label" id="lbl-co-hmc">HMC</label>
+      <div style="display:flex;gap:4px;align-items:center">
+        <input class="form-input" id="co-hmc" style="flex:1"/>
+        <button type="button" onclick="setSurTel('co-hmc')" style="background:#f0f0f0;border:1px solid #ccc;border-radius:6px;padding:4px 8px;font-size:11px;cursor:pointer;white-space:nowrap">Sur tel</button>
+      </div>
+    </div>
+    <div class="form-row"><label class="form-label" id="lbl-co-loges">Départ loges</label>
+      <div style="display:flex;gap:4px;align-items:center">
+        <input class="form-input" id="co-loges" style="flex:1"/>
+        <button type="button" onclick="setSurTel('co-loges')" style="background:#f0f0f0;border:1px solid #ccc;border-radius:6px;padding:4px 8px;font-size:11px;cursor:pointer;white-space:nowrap">Sur tel</button>
+      </div>
+    </div>
+    <div class="form-row"><label class="form-label" id="lbl-co-pat">PAT</label>
+      <div style="display:flex;gap:4px;align-items:center">
+        <input class="form-input" id="co-pat" style="flex:1"/>
+        <button type="button" onclick="setSurTel('co-pat')" style="background:#f0f0f0;border:1px solid #ccc;border-radius:6px;padding:4px 8px;font-size:11px;cursor:pointer;white-space:nowrap">Sur tel</button>
+      </div>
+    </div>
     <button class="btn btn-primary btn-block" onclick="addComedien()">Ajouter</button>
   </div>
 </div>
@@ -1190,9 +1212,24 @@ textarea.form-input{resize:vertical;min-height:72px;}
     <div class="form-row"><label class="form-label">Rôle / Description</label><input class="form-input" id="edit-com-role"/></div>
     <div class="form-row"><label class="form-label">Nom comédien</label><input class="form-input" id="edit-com-nom"/></div>
     <div class="form-row"><label class="form-label">Séquences</label><input class="form-input" id="edit-com-seqs"/></div>
-    <div class="form-row"><label class="form-label">HMC</label><input class="form-input" id="edit-com-hmc" type="time"/></div>
-    <div class="form-row"><label class="form-label">Départ Loges</label><input class="form-input" id="edit-com-loges" type="time"/></div>
-    <div class="form-row"><label class="form-label">PAT</label><input class="form-input" id="edit-com-pat" type="time"/></div>
+    <div class="form-row"><label class="form-label" id="lbl-edit-hmc">HMC</label>
+      <div style="display:flex;gap:4px;align-items:center">
+        <input class="form-input" id="edit-com-hmc" style="flex:1"/>
+        <button type="button" onclick="setSurTel('edit-com-hmc')" style="background:#f0f0f0;border:1px solid #ccc;border-radius:6px;padding:4px 8px;font-size:11px;cursor:pointer;white-space:nowrap">Sur tel</button>
+      </div>
+    </div>
+    <div class="form-row"><label class="form-label" id="lbl-edit-loges">Départ Loges</label>
+      <div style="display:flex;gap:4px;align-items:center">
+        <input class="form-input" id="edit-com-loges" style="flex:1"/>
+        <button type="button" onclick="setSurTel('edit-com-loges')" style="background:#f0f0f0;border:1px solid #ccc;border-radius:6px;padding:4px 8px;font-size:11px;cursor:pointer;white-space:nowrap">Sur tel</button>
+      </div>
+    </div>
+    <div class="form-row"><label class="form-label" id="lbl-edit-pat">PAT</label>
+      <div style="display:flex;gap:4px;align-items:center">
+        <input class="form-input" id="edit-com-pat" style="flex:1"/>
+        <button type="button" onclick="setSurTel('edit-com-pat')" style="background:#f0f0f0;border:1px solid #ccc;border-radius:6px;padding:4px 8px;font-size:11px;cursor:pointer;white-space:nowrap">Sur tel</button>
+      </div>
+    </div>
     <div class="form-row"><label class="form-label">Nbre (figurants)</label><input class="form-input" id="edit-com-nbre" type="number" min="1" value="1" style="max-width:80px"/></div>
     <div class="form-row"><label class="form-label">Note / Loge</label><input class="form-input" id="edit-com-note" placeholder="loge rôles, loge fig..."/></div>
     <div style="display:flex;gap:8px;margin-top:4px">
@@ -2521,6 +2558,13 @@ function removePrev(i) {
 
 // ═══════════════════════ APERCU ═══════════════════════
 
+function setSurTel(fieldId) {
+  var el = document.getElementById(fieldId);
+  if (!el) return;
+  if (el.value === 'Sur tel') { el.value = ''; } // toggle
+  else { el.value = 'Sur tel'; }
+}
+
 function pencilInline(action, label) {
   return '<button onclick="' + action + '" style="background:none;border:none;cursor:pointer;padding:1px 4px;vertical-align:middle;opacity:0.5" title="Modifier ' + label + '">' +
     '<svg viewBox="0 0 24 24" fill="none" stroke="#333" stroke-width="2" style="width:12px;height:12px">' +
@@ -2758,10 +2802,13 @@ function renderApercu(targetEl) {
     h += '<th style="padding:2px 4px;border:1px solid #999;font-size:'+csz+'" rowspan="2">RÔLES ('+roles.length+')</th>';
     h += '<th style="padding:2px 4px;border:1px solid #999;font-size:'+csz+'" rowspan="2">COMÉDIENS</th>';
     if (nbSeqs) h += '<th style="padding:2px 4px;border:1px solid #999;font-size:'+csz+';text-align:center" colspan="'+nbSeqs+'">SÉQUENCES</th>';
+    var lblHmc   = (i.col_hmc   || 'HMC');
+    var lblLoges = (i.col_loges || 'Dép. Loges');
+    var lblPat   = (i.col_pat   || 'PAT');
     h += '<th style="padding:2px;border:1px solid #999;font-size:'+csz+'" rowspan="2">-</th>';
-    h += '<th style="padding:2px 4px;border:1px solid #999;font-size:'+csz+'" rowspan="2">HMC</th>';
-    if (hasLoges) h += '<th style="padding:2px 4px;border:1px solid #999;font-size:'+csz+'" rowspan="2">Dép. Loges</th>';
-    h += '<th style="padding:2px 4px;border:1px solid #999;font-size:'+csz+'" rowspan="2">PAT</th>';
+    h += '<th style="padding:2px 4px;border:1px solid #999;font-size:'+csz+'" rowspan="2">'+lblHmc+'</th>';
+    if (hasLoges) h += '<th style="padding:2px 4px;border:1px solid #999;font-size:'+csz+'" rowspan="2">'+lblLoges+'</th>';
+    h += '<th style="padding:2px 4px;border:1px solid #999;font-size:'+csz+'" rowspan="2">'+lblPat+'</th>';
     h += '<th style="border:1px solid #999" rowspan="2"></th>';
     h += '</tr>';
     // Ligne 2 : numéros de séquences
@@ -3093,6 +3140,11 @@ function openEditComedien(idx) {
   if (!f) return;
   var c = (f.comediens||[])[idx];
   if (!c) return;
+  // Mettre à jour les labels avec les intitulés personnalisés
+  var i = f.infos || {};
+  ['lbl-edit-hmc'].forEach(function(id){var el=document.getElementById(id);if(el)el.textContent=i.col_hmc||'HMC';});
+  ['lbl-edit-loges'].forEach(function(id){var el=document.getElementById(id);if(el)el.textContent=i.col_loges||'Départ Loges';});
+  ['lbl-edit-pat'].forEach(function(id){var el=document.getElementById(id);if(el)el.textContent=i.col_pat||'PAT';});
   document.getElementById('edit-com-idx').value = idx;
   document.getElementById('modal-edit-com-title').textContent = 'Modifier — ' + (c.type||'comédien');
   document.getElementById('edit-com-num').value = c.num||'';
@@ -3601,6 +3653,17 @@ function pgLoadInfos() {
   var harcel = document.getElementById('pg-harcelement');
   if (harcel) harcel.value = i.harcelement_texte !== undefined ? i.harcelement_texte : "Toute personne s\'estimant victime de harcèlement peut s\'adresser aux référents de notre film\nLouise Jacquet – Nina Allimann\n(cf. convocation pour les numéros de téléphone) et/ou envoyer un mail à l\'adresse axelfilmsproduction@gmail.com\nAu médecin du travail – Centre Thalie Santé : (+33)1 49 27 60 00 / Au CCHSCT : (+33)1 53 89 01 30 /\nAu N° vert AP-HP St Antoine : +33 800 00 46 41 / Au N° d\'urgence du Ministère de la Justice : +33 884 284 63";
   // Équipe B
+  // Intitulés colonnes
+  var colHmc  = i.col_hmc  || '';
+  var colLoges= i.col_loges|| '';
+  var colPat  = i.col_pat  || '';
+  var elColHmc = document.getElementById('pg-col-hmc'); if(elColHmc) elColHmc.value = colHmc;
+  var elColLoges=document.getElementById('pg-col-loges'); if(elColLoges) elColLoges.value = colLoges;
+  var elColPat = document.getElementById('pg-col-pat'); if(elColPat) elColPat.value = colPat;
+  // Mettre à jour les labels des modals
+  ['lbl-co-hmc','lbl-edit-hmc'].forEach(function(id){var el=document.getElementById(id);if(el)el.textContent=colHmc||'HMC';});
+  ['lbl-co-loges','lbl-edit-loges'].forEach(function(id){var el=document.getElementById(id);if(el)el.textContent=colLoges||'Départ loges';});
+  ['lbl-co-pat','lbl-edit-pat'].forEach(function(id){var el=document.getElementById(id);if(el)el.textContent=colPat||'PAT';});
   var eqb = i.eqb || {};
   var eqbFields = ['pat','debut','fin','seqs','lieu','intervenants','note'];
   eqbFields.forEach(function(k){
@@ -3625,6 +3688,10 @@ function pgSaveInfos() {
   var ecoprod = document.getElementById('pg-ecoprod'); if(ecoprod) f.infos.ecoprod = ecoprod.value;
   var harcel = document.getElementById('pg-harcelement'); if(harcel) f.infos.harcelement_texte = harcel.value;
   // Équipe B
+  // Intitulés colonnes
+  var elH=document.getElementById('pg-col-hmc'); if(elH) f.infos.col_hmc=elH.value;
+  var elL=document.getElementById('pg-col-loges'); if(elL) f.infos.col_loges=elL.value;
+  var elP=document.getElementById('pg-col-pat'); if(elP) f.infos.col_pat=elP.value;
   if (!f.infos.eqb) f.infos.eqb = {};
   var eqbFields = ['pat','debut','fin','seqs','lieu','intervenants','note'];
   eqbFields.forEach(function(k){
