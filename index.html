@@ -800,6 +800,7 @@ textarea.form-input{resize:vertical;min-height:72px;}
       <div class="card">
         <div class="card-title">Équipe par département
           <button class="btn btn-sm btn-primary" onclick="openModal('modal-membre')">+ Renfort</button>
+          <button class="btn btn-sm btn-secondary" onclick="reinjecterEquipe()" title="Réinjecter l'équipe fixe" style="font-size:10px">⟳ Réinit</button>
         </div>
         <div class="pills" id="pg-equipe-pills" style="margin-bottom:10px;flex-wrap:wrap"></div>
         <div style="overflow-x:auto">
@@ -2300,6 +2301,11 @@ function pgRenderEquipe() { pgRenderEquipeTableau(); }
 function pgRenderEquipeTableau() {
   pgSetSub('pg-equipe-sub');
   var f = activeFDS(); if (!f) return;
+  // Auto-réparer : si equipe vide ou undefined, réinjecter EQUIPE_FIXE
+  if (!f.equipe || Object.keys(f.equipe).length === 0) {
+    f.equipe = JSON.parse(JSON.stringify(EQUIPE_FIXE));
+    save();
+  }
   var pillsEl = document.getElementById('pg-equipe-pills');
   if (pillsEl) {
     pillsEl.innerHTML = Object.keys(EQUIPE_DEPT_LABELS).map(function(d){
@@ -2329,6 +2335,25 @@ function pgRenderEquipeTableau() {
         '<path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>'+
       '</td></tr>';
   }).join('');
+}
+
+function reinjecterEquipe() {
+  var f = activeFDS(); if (!f) return;
+  if (!confirm('Réinitialiser l\'équipe depuis EQUIPE_FIXE ? Les heures modifiées seront conservées.')) return;
+  // Fusionner : garder les heures saisies, compléter avec EQUIPE_FIXE
+  if (!f.equipe) f.equipe = {};
+  Object.keys(EQUIPE_FIXE).forEach(function(dept) {
+    if (!f.equipe[dept] || !f.equipe[dept].length) {
+      f.equipe[dept] = JSON.parse(JSON.stringify(EQUIPE_FIXE[dept]));
+    } else {
+      // Ajouter les membres manquants
+      EQUIPE_FIXE[dept].forEach(function(fixe) {
+        var existe = f.equipe[dept].find(function(m){ return m.nom === fixe.nom; });
+        if (!existe) f.equipe[dept].push(JSON.parse(JSON.stringify(fixe)));
+      });
+    }
+  });
+  save(); pgRenderEquipeTableau(); toast('Équipe réinitialisée ✓');
 }
 
 function pgSelectEquipeDeptTab(el, dept) {
