@@ -3500,9 +3500,18 @@ function renderFigurationTab() {
   var total = figurants.reduce(function(s,c){ return s + (parseInt(c.nbre)||1); }, 0);
   if (totalEl) totalEl.textContent = total;
   if (titleEl) titleEl.childNodes[0].textContent = 'Figuration : ' + total + ' figurant(s) ';
-  // Charger la description
+  // Auto-calculer fig_desc si vide ou si le total a changé
+  var autoDesc = calcFigDescAuto(f);
+  if (autoDesc && !f.fig_desc) {
+    f.fig_desc = autoDesc;
+    save();
+  } else if (autoDesc && f.fig_desc && f.fig_desc !== autoDesc) {
+    // Le total a changé — mettre à jour sauf si l'utilisateur a personnalisé
+    var wasAuto = /^FIGURATION\s*:\s*\d+/.test(f.fig_desc);
+    if (wasAuto) { f.fig_desc = autoDesc; save(); }
+  }
   var figDescEl = document.getElementById('fig-desc');
-  if (figDescEl && f.fig_desc !== undefined) figDescEl.value = f.fig_desc;
+  if (figDescEl) figDescEl.value = f.fig_desc || autoDesc || '';
   // allSeqsF déjà déclaré plus haut
   var theadF = document.getElementById('thead-figurants');
   if (theadF) {
@@ -3617,6 +3626,7 @@ function saveEditComedien() {
   var mepEl2 = document.getElementById('edit-com-mep'); if (mepEl2) c.mep = mepEl2.value;
   c.nbre  = parseInt(document.getElementById('edit-com-nbre').value)||1;
   var noteEl = document.getElementById('edit-com-note'); if (noteEl) c.note = noteEl.value;
+  var fRec=activeFDS(); if(fRec){var adR=calcFigDescAuto(fRec);if(adR)fRec.fig_desc=adR;}
   closeModal('modal-edit-comedien');
   save();
   toast('Modifié ✓');
@@ -4503,6 +4513,23 @@ function executerCopierFiguration() {
   toast('Figuration copiée depuis '+(src.infos&&src.infos.journee||'J'+src.jdt)+' ✓');
 }
 
+function calcFigDescAuto(f) {
+  // Calculer automatiquement l'encadré depuis les lignes figurants
+  if (!f) return '';
+  var figurants = (f.comediens||[]).filter(function(c){ return c.type==='figurant'; });
+  if (!figurants.length) return '';
+  var totalAdultes = 0, totalEnfants = 0;
+  figurants.forEach(function(c) {
+    var n = parseInt(c.nbre)||1;
+    var isEnfant = /enfant|child|kids?/i.test(c.role||'');
+    if (isEnfant) totalEnfants += n; else totalAdultes += n;
+  });
+  var parts = [];
+  if (totalAdultes > 0) parts.push(totalAdultes + ' figurant' + (totalAdultes>1?'s':'') + ' adulte' + (totalAdultes>1?'s':''));
+  if (totalEnfants > 0) parts.push(totalEnfants + ' figurant' + (totalEnfants>1?'s':'') + ' enfant' + (totalEnfants>1?'s':''));
+  return parts.length ? 'FIGURATION : ' + parts.join(' + ') : '';
+}
+
 function saveFigDesc() {
   var f = activeFDS(); if (!f) return;
   var el = document.getElementById('fig-desc') || document.getElementById('pg-fig-desc');
@@ -4863,6 +4890,13 @@ function pgRenderComplements() {
   var total = figurants.reduce(function(s,c){ return s+(parseInt(c.nbre)||1); },0);
   if (totalEl) totalEl.textContent = total;
   if (titleEl) titleEl.childNodes[0].textContent = 'Figuration ('+(total||0)+' figurant(s)) ';
+  // Auto-calculer fig_desc
+  var autoDescPg = calcFigDescAuto(f);
+  if (autoDescPg && (!f.fig_desc || /^FIGURATION\s*:\s*\d+/.test(f.fig_desc))) {
+    f.fig_desc = autoDescPg;
+  }
+  var pgFigDescEl = document.getElementById('pg-fig-desc');
+  if (pgFigDescEl) pgFigDescEl.value = f.fig_desc || autoDescPg || '';
 
   // Reconstruire le thead avec les bonnes colonnes de séquences
   var pgTheadF = document.getElementById('pg-thead-figurants');
