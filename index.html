@@ -2801,7 +2801,21 @@ function renderApercu(targetEl) {
   if (_fdsModele && _fdsModele.logoDataUrl) {
     h += '<div style="margin-bottom:4px"><img src="' + _fdsModele.logoDataUrl + '" style="height:' + (isMobile ? '40' : '55') + 'px;max-width:60%;display:block"/></div>';
   } else {
-    h += '<div style="margin-bottom:4px"><img src="data:image/png;base64,' + logoB64 + '" style="width:' + (isMobile ? '110' : '160') + 'px;max-width:45%;display:block"/></div>';
+    // Logo Axel Films SVG vectoriel
+    var logoSvg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 70" style="display:block">' +
+      '<rect width="220" height="70" fill="white"/>' +
+      // Ligne décorative fine au-dessus
+      '<line x1="0" y1="8" x2="220" y2="8" stroke="#222" stroke-width="0.5"/>' +
+      // A majuscule stylisé grand
+      '<text x="10" y="52" font-family="Garamond,Georgia,serif" font-size="52" font-weight="700" fill="#111" letter-spacing="-2">A</text>' +
+      // XEL FILMS en petites capitales à côté
+      '<text x="48" y="34" font-family="Garamond,Georgia,serif" font-size="16" font-weight="400" fill="#111" letter-spacing="4">XEL</text>' +
+      '<text x="48" y="52" font-family="Garamond,Georgia,serif" font-size="16" font-weight="400" fill="#111" letter-spacing="3">FILMS</text>' +
+      // Ligne décorative fine en dessous
+      '<line x1="0" y1="62" x2="220" y2="62" stroke="#222" stroke-width="0.5"/>' +
+      '</svg>';
+    var logoDataUrl = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(logoSvg);
+    h += '<div style="margin-bottom:4px"><img src="' + logoDataUrl + '" style="height:' + (isMobile ? '45' : '60') + 'px;max-width:50%;display:block"/></div>';
   }
   // TITRE FILM
   h += '<div style="text-align:center;font-size:'+fs(18)+';font-weight:900;font-style:italic;margin:6px 0 2px;font-family:Georgia,serif">';
@@ -2841,15 +2855,13 @@ function renderApercu(targetEl) {
   h += pencilInline("goToTab(\'infos\')", "les infos");
   h += '</div>';
 
-  // NOTE EQUIPE — toujours affichée
-  h += '<div style="border:1px solid #ccc;padding:8px;margin-bottom:5px;text-align:center">';
-  h += '<u><b>Note \u00e0 l\u2019\u00e9quipe</b></u>' + pencilInline("goToTab('infos')","la note") + '<br>';
-  if (i.note) {
+  // NOTE EQUIPE — seulement si renseignée
+  if (i.note && i.note.trim()) {
+    h += '<div style="border:1px solid #ccc;padding:8px;margin-bottom:5px;text-align:center">';
+    h += '<u><b>Note \u00e0 l\u2019\u00e9quipe</b></u>' + pencilInline("goToTab('infos')","la note") + '<br>';
     h += '<span style="color:#cc0000;font-style:italic;font-size:9px">' + i.note.replace(/\n/g,'<br>') + '</span>';
-  } else {
-    h += '<span style="color:#ccc;font-size:9px;font-style:italic">(aucune note)</span>';
+    h += '</div>';
   }
-  h += '</div>';
 
   // ECOPROD (éditable)
   if (i.ecoprod !== undefined ? i.ecoprod : true) {
