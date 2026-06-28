@@ -5700,87 +5700,106 @@ function jajEffacerTexte(numSeq, seqId) {
 function formatScenarioTexte(texte) {
   if (!texte || !texte.trim()) return '<div style="color:#bbb;font-style:italic;font-size:12px">(texte non disponible)</div>';
 
-  var lines = texte.split('\n');
-  var html = '';
-  var prevType = '';
-
-  // Normaliser les accents pour la détection MAJUSCULES
-  function normalizeUpper(s) {
-    return s
-      .replace(/[ÀÂÄÁÃÅ]/g,'A').replace(/[ÉÈÊË]/g,'E').replace(/[ÎÏÍÌ]/g,'I')
-      .replace(/[ÔÖÓÒ]/g,'O').replace(/[ÛÜÚÙ]/g,'U').replace(/[Ç]/g,'C').replace(/[Ñ]/g,'N')
-      .replace(/[àâäáãå]/g,'a').replace(/[éèêë]/g,'e').replace(/[îïíì]/g,'i')
-      .replace(/[ôöóò]/g,'o').replace(/[ûüúù]/g,'u').replace(/[ç]/g,'c').replace(/[ñ]/g,'n');
+  // Normaliser les accents pour test MAJUSCULES
+  function normUp(s) {
+    return s.replace(/[ÀÂÄÁÃ]/g,'A').replace(/[ÉÈÊË]/g,'E').replace(/[ÎÏÍÌ]/g,'I')
+            .replace(/[ÔÖÓÒ]/g,'O').replace(/[ÛÜÚÙ]/g,'U').replace(/[Ç]/g,'C')
+            .replace(/[àâäáã]/g,'a').replace(/[éèêë]/g,'e').replace(/[îïíì]/g,'i')
+            .replace(/[ôöóò]/g,'o').replace(/[ûüúù]/g,'u').replace(/[ç]/g,'c');
   }
-
   function isAllUpper(s) {
-    var n = normalizeUpper(s);
-    // Garder uniquement les lettres
+    var n = normUp(s);
     var letters = n.replace(/[^a-zA-Z]/g,'');
-    if (!letters) return false;
-    return letters === letters.toUpperCase();
+    return letters.length > 0 && letters === letters.toUpperCase();
   }
 
-  // Détecter si le PDF a de l'indentation ou pas
-  var hasIndent = lines.some(function(l){ return /^\s{6,}/.test(l); });
+  var lines = texte.split('\n');
+  var hasIndent = lines.some(function(l){ return /^\s{10,}/.test(l); });
 
-  lines.forEach(function(line) {
+  // Pré-analyse : classifier chaque ligne
+  var classified = lines.map(function(line) {
     var trimmed = line.trim();
-    if (!trimmed || /^\d+\.$/.test(trimmed)) {
-      if (prevType) html += '<div style="height:0.3em"></div>';
-      return;
-    }
-
+    if (!trimmed || /^\d+\.$/.test(trimmed)) return {type:'empty', text:trimmed};
     var leadSpaces = line.search(/\S/);
     if (leadSpaces < 0) leadSpaces = 0;
 
-    var isPerso, isParenth, isDialogue;
-
     if (hasIndent) {
-      // PDF avec indentation classique Final Draft
-      isPerso   = leadSpaces >= 12 && isAllUpper(trimmed)
-                  && trimmed.length < 60 && !/^\(/.test(trimmed) && !/^\d+\./.test(trimmed);
-      isParenth = /^\(/.test(trimmed) && leadSpaces >= 8;
-      isDialogue= leadSpaces >= 6 && !isPerso && !isParenth;
+      // Format Final Draft avec indentation
+      if (leadSpaces >= 30) return {type:'parenth', text:trimmed};
+      if (leadSpaces >= 22 && isAllUpper(trimmed) && trimmed.length < 60 && !/^\(/.test(trimmed))
+        return {type:'perso', text:trimmed};
+      if (leadSpaces >= 14) return {type:'dialogue', text:trimmed};
+      return {type:'action', text:trimmed};
     } else {
-      // PDF sans indentation : détection par contenu
-      // Perso : ligne courte, tout en MAJUSCULES (accents tolérés), pas de point final
-      isPerso = isAllUpper(trimmed)
-                && trimmed.length < 60
-                && !/^\d/.test(trimmed)          // pas de chiffre au début
-                && !/^\(/.test(trimmed)           // pas une parenthèse
-                && !/[.…]{1}$/.test(trimmed)       // pas de point/ellipse en fin
-                && trimmed.split(' ').length <= 8  // max 8 mots
-                && !/^(INT|EXT|I\.E|E\.I|SUR |DANS |AU |À |LE |LA |LES |UN |UNE )/.test(trimmed); // pas didascalie lieu
-      // Parenthèse : commence par (
-      isParenth = /^\(/.test(trimmed);
-      // Dialogue : ligne qui suit un perso ou une parenthèse
-      isDialogue = (prevType === 'perso' || prevType === 'parenth' || prevType === 'dialogue')
-                   && !isPerso && !isParenth;
-    }
+      // Sans indentation : on se base sur le contenu
+      var isParenth = /^\(/.test(trimmed) && /\)$/.test(trimmed);
+      // Perso : tout en majuscules, court, pas de verbe d'action évident
+      var upperText = isAllUpper(trimmed.replace(/[\s\d.,!?…:;'"«»()\-—]/g,''));
+      var isPerso = upperText
+        && trimmed.length < 55
+        && trimmed.split(/\s+/).length <= 7
+        && !/^\d/.test(trimmed)
+        && !/^(INT|EXT|I\.E|E\.I|SUR |DANS |AU |À |LE |LA |LES |UN |UNE |SOUS-TITRE|INSERT|RETOUR|FONDU|COUPE)/.test(trimmed)
+        && !/[.…]{1}$/.test(trimmed);
 
-    if (isPerso && prevType && prevType !== 'perso') {
-      html += '<div style="height:0.6em"></div>';
+      if (isParenth) return {type:'parenth', text:trimmed};
+      if (isPerso) return {type:'perso', text:trimmed};
+      return {type:'action', text:trimmed};
     }
+  });
 
-    if (isPerso) {
-      html += '<div style="text-align:center;font-weight:bold;font-size:12px;font-family:Courier New,Courier,monospace;line-height:1.4;letter-spacing:0.05em;margin-top:0.3em">'+escHtml(trimmed)+'</div>';
-      prevType = 'perso';
-    } else if (isParenth) {
-      html += '<div style="text-align:center;font-style:italic;font-size:11px;font-family:Courier New,Courier,monospace;line-height:1.3;color:#444">'+escHtml(trimmed)+'</div>';
-      prevType = 'parenth';
-    } else if (isDialogue) {
-      html += '<div style="margin:0 auto;width:60%;font-size:11px;font-family:Courier New,Courier,monospace;line-height:1.45">'+escHtml(trimmed)+'</div>';
-      prevType = 'dialogue';
+  // Passe 2 : si un "perso" est suivi de lignes action (pas dialogue), ce n'est pas un perso
+  // Un vrai perso est suivi d'une parenthèse ou d'un dialogue
+  for (var i = 0; i < classified.length; i++) {
+    if (classified[i].type === 'perso') {
+      // Chercher la prochaine ligne non vide
+      var next = null;
+      for (var j = i+1; j < classified.length; j++) {
+        if (classified[j].type !== 'empty') { next = classified[j]; break; }
+      }
+      // Si la suivante est une action (pas parenth/dialogue), ce "perso" est en fait une action
+      if (next && next.type === 'action') {
+        classified[i].type = 'action';
+      }
+    }
+  }
+
+  // Passe 3 : les lignes "action" après un perso/parenth sans dialogue intermédiaire → dialogue
+  var prevSig = 'action';
+  for (var i = 0; i < classified.length; i++) {
+    var c = classified[i];
+    if (c.type === 'empty') continue;
+    if (c.type === 'action' && (prevSig === 'perso' || prevSig === 'parenth' || prevSig === 'dialogue')) {
+      c.type = 'dialogue';
+    }
+    if (c.type !== 'empty') prevSig = c.type;
+  }
+
+  // Rendu HTML
+  var html = '';
+  var prevType = '';
+  classified.forEach(function(c) {
+    if (c.type === 'empty') {
+      if (prevType && prevType !== 'empty') html += '<div style="height:0.25em"></div>';
+      prevType = 'empty';
+      return;
+    }
+    if (c.type === 'perso') {
+      if (prevType && prevType !== 'empty') html += '<div style="height:0.6em"></div>';
+      html += '<div style="text-align:center;font-weight:700;font-size:11.5px;font-family:Courier New,monospace;letter-spacing:0.06em;margin-top:0.2em;text-transform:uppercase">' + escHtml(c.text) + '</div>';
+    } else if (c.type === 'parenth') {
+      html += '<div style="text-align:center;font-style:italic;font-size:11px;font-family:Courier New,monospace;color:#444;line-height:1.3">' + escHtml(c.text) + '</div>';
+    } else if (c.type === 'dialogue') {
+      html += '<div style="margin:0 12% 0 20%;font-size:11px;font-family:Courier New,monospace;line-height:1.5">' + escHtml(c.text) + '</div>';
     } else {
-      if (prevType === 'dialogue' || prevType === 'perso') html += '<div style="height:0.4em"></div>';
-      html += '<div style="font-size:11px;font-family:Courier New,Courier,monospace;line-height:1.45">'+escHtml(trimmed)+'</div>';
-      prevType = 'action';
+      // action
+      if (prevType === 'dialogue' || prevType === 'parenth') html += '<div style="height:0.5em"></div>';
+      html += '<div style="font-size:11px;font-family:Courier New,monospace;line-height:1.5">' + escHtml(c.text) + '</div>';
     }
+    prevType = c.type;
   });
   return html;
 }
-
 function jajApercu() {
   var pdtJ = getPDTData().find(function(p){return p.jdt===jajCurrentJdt;}) || null;
   var fds = (state.fds||[]).find(function(f){ return f.filmId===activeFilmId && (f.jdt===jajCurrentJdt||f.id===jajCurrentJdt); });
