@@ -612,15 +612,15 @@ textarea.form-input{resize:vertical;min-height:72px;}
         </div>
         <div style="overflow-x:auto">
           <table style="width:100%;border-collapse:collapse;font-size:11px;min-width:450px">
-            <thead><tr style="background:#f0f0f0">
-              <th style="padding:5px 4px;border:1px solid #ccc;width:55px" rowspan="2">N°</th>
-              <th style="padding:5px 4px;border:1px solid #ccc;text-align:left" rowspan="2">SILHOUETTE</th>
-              <th style="padding:5px 4px;border:1px solid #ccc;text-align:left" rowspan="2">NOM</th>
-              <th style="padding:5px 4px;border:1px solid #ccc;width:90px" rowspan="2">SÉQUENCES</th>
-              <th style="padding:5px 4px;border:1px solid #ccc;width:50px" rowspan="2">HMC</th>
-              <th style="padding:5px 4px;border:1px solid #ccc;width:45px" rowspan="2">PAT</th>
-              <th style="border:1px solid #ccc;width:26px" rowspan="2"></th>
-            </tr><tr style="background:#f0f0f0"></tr></thead>
+            <thead id="pg-thead-silhouettes"><tr style="background:#f0f0f0">
+              <th style="padding:5px 4px;border:1px solid #ccc;width:55px">N°</th>
+              <th style="padding:5px 4px;border:1px solid #ccc;text-align:left">SILHOUETTE</th>
+              <th style="padding:5px 4px;border:1px solid #ccc;text-align:left">NOM</th>
+              <th style="padding:5px 4px;border:1px solid #ccc;text-align:center">SÉQUENCES</th>
+              <th style="padding:5px 4px;border:1px solid #ccc;width:50px">HMC</th>
+              <th style="padding:5px 4px;border:1px solid #ccc;width:45px">PAT</th>
+              <th style="border:1px solid #ccc;width:26px"></th>
+            </tr></thead>
             <tbody id="pg-tbody-silhouettes"></tbody>
           </table>
           <div style="font-size:9px;font-style:italic;color:#c00;margin-top:4px">*Préparation des silhouettes à la loge figuration</div>
@@ -1242,8 +1242,14 @@ textarea.form-input{resize:vertical;min-height:72px;}
         <button type="button" onclick="setSurTel('edit-com-pat')" style="background:#f0f0f0;border:1px solid #ccc;border-radius:6px;padding:4px 8px;font-size:11px;cursor:pointer;white-space:nowrap">Sur tel</button>
       </div>
     </div>
+    <div class="form-row"><label class="form-label">MeP</label>
+      <div style="display:flex;gap:4px;align-items:center">
+        <input class="form-input" id="edit-com-mep" style="flex:1" placeholder="7H30"/>
+        <button type="button" onclick="setSurTel('edit-com-mep')" style="background:#f0f0f0;border:1px solid #ccc;border-radius:6px;padding:4px 8px;font-size:11px;cursor:pointer">Sur tel</button>
+      </div>
+    </div>
     <div class="form-row"><label class="form-label">Nbre (figurants)</label><input class="form-input" id="edit-com-nbre" type="number" min="1" value="1" style="max-width:80px"/></div>
-    <div class="form-row"><label class="form-label">Note / Loge</label><input class="form-input" id="edit-com-note" placeholder="loge rôles, loge fig..."/></div>
+    <div class="form-row"><label class="form-label" style="color:#1565c0">Note / Direction de jeu</label><input class="form-input" id="edit-com-note" placeholder="Notes en bleu sous le rôle dans l'aperçu"/></div>
     <div style="display:flex;gap:8px;margin-top:4px">
       <button class="btn btn-primary" style="flex:1" onclick="saveEditComedien()">Enregistrer</button>
       <button class="btn btn-secondary" style="color:#c00;border-color:#c00" onclick="deleteEditComedien()">Supprimer</button>
@@ -2904,8 +2910,7 @@ function renderApercu(targetEl) {
     h += '<th style="padding:2px 4px;border:1px solid #999;font-size:'+csz+'" rowspan="2">Nbre</th>';
     h += '<th style="padding:2px 4px;border:1px solid #999;font-size:'+csz+'" rowspan="2">FIGURATION ('+figurants.length+' types)</th>';
     if (nbSeqs) h += '<th style="padding:2px 4px;border:1px solid #999;font-size:'+csz+';text-align:center" colspan="'+nbSeqs+'">SÉQUENCES</th>';
-    h += '<th style="padding:2px 4px;border:1px solid #999;font-size:'+csz+'" rowspan="2">'+lblHmcF+'</th>';
-    h += '<th style="padding:2px 4px;border:1px solid #999;font-size:'+csz+'" rowspan="2">'+lblLogesF+'</th>';
+    h += '<th style="padding:2px 4px;border:1px solid #999;font-size:'+csz+'" rowspan="2">'+lblHmcF+'<br><span style="color:#1565c0;font-size:'+(parseInt(csz)-1||7)+'px">'+lblLogesF+'</span></th>';
     h += '<th style="padding:2px 4px;border:1px solid #999;font-size:'+csz+'" rowspan="2">'+lblPatF+'</th>';
     h += '<th style="border:1px solid #999" rowspan="2"></th></tr>';
     if (nbSeqs) {
@@ -2918,20 +2923,26 @@ function renderApercu(targetEl) {
       var comSeqs = (c.seqs||'').split(/[\s,]+/).map(function(s){return s.trim();}).filter(Boolean);
       h += '<tr>';
       h += td(String(c.nbre||1),'38px',true,true);
-      h += td(c.role,'',false,false);
+      // Cellule rôle + note en bleu
+      var roleCell = '<td style="padding:2px 5px;border:1px solid #999;font-size:'+csz+'">' + (c.role||'—');
+      if (c.note) roleCell += '<br><span style="color:#1565c0;font-style:italic;font-size:'+(parseInt(csz)||8-1)+'px">'+c.note+'</span>';
+      roleCell += '</td>';
+      h += roleCell;
       allSeqs.forEach(function(s){
         var sC = s.replace(/\s/g,'').toUpperCase();
         var ok = comSeqs.some(function(cs){ return cs.replace(/\s/g,'').toUpperCase()===sC; });
         h += '<td style="padding:2px;border:1px solid #999;font-size:'+csz+';text-align:center;font-weight:700">'+(ok?s:'')+'</td>';
       });
-      h += td(fmtTime(c.hmc)||'—','',false,true);
-      h += td(fmtTime(c.loges)||'—','',false,true);
+      // HMC + Départ Loges sur 2 lignes dans la même cellule
+      var hmcCell = fmtTime(c.hmc)||'—';
+      if (c.loges && fmtTime(c.loges) !== '—') hmcCell += '<br><span style="color:#1565c0;font-size:'+(parseInt(csz)||8-1)+'px">'+fmtTime(c.loges)+'</span>';
+      h += '<td style="padding:2px 4px;border:1px solid #999;font-size:'+csz+';text-align:center;font-weight:700">'+hmcCell+'</td>';
       h += td(fmtTime(c.pat)||'—','',true,true);
       h += '<td style="padding:2px;border:1px solid #999;text-align:center">'+pencilInline('openEditComedien('+fidx+')',c.role)+'</td>';
       h += '</tr>';
     });
     h += '<tr style="background:#e8e8e8"><td style="padding:3px 6px;border:1px solid #999;text-align:center;font-weight:700">'+totFig+'</td>';
-    h += '<td style="padding:3px 6px;border:1px solid #999;font-weight:700" colspan="'+(3+(nbSeqs||1))+'">TOTAL</td></tr>';
+    h += '<td style="padding:3px 6px;border:1px solid #999;font-weight:700" colspan="'+(2+(nbSeqs||1))+'">TOTAL</td></tr>';
     h += '</table>';
   }
 
@@ -3129,22 +3140,51 @@ function renderFigurationTab() {
     }
   }
 
-  // SILHOUETTES
+  // Séquences du jour (partagé silhouettes + figurants)
+  var pdtJdtF = typeof PDT_DATA !== 'undefined' ? PDT_DATA.find(function(j){ return j.jdt===f.jdt; }) : null;
+  var allSeqsF = pdtJdtF ? pdtJdtF.sequences : [];
+
+  // SILHOUETTES — colonnes séquences individuelles
   var tbS = document.getElementById('tbody-silhouettes');
+  var theadS = document.getElementById('pg-thead-silhouettes');
+  if (theadS && allSeqsF && allSeqsF.length) {
+    var thS = '<tr style="background:#f0f0f0"><th style="padding:5px 4px;border:1px solid #ccc;width:55px">N°</th>' +
+              '<th style="padding:5px 4px;border:1px solid #ccc;text-align:left">SILHOUETTE</th>' +
+              '<th style="padding:5px 4px;border:1px solid #ccc;text-align:left">NOM</th>' +
+              '<th style="padding:5px 4px;border:1px solid #ccc;text-align:center" colspan="'+allSeqsF.length+'">SÉQUENCES</th>' +
+              '<th style="padding:5px 4px;border:1px solid #ccc;width:55px">HMC</th>' +
+              '<th style="padding:5px 4px;border:1px solid #ccc;width:50px">PAT</th>' +
+              '<th style="border:1px solid #ccc;width:28px"></th></tr>' +
+              '<tr style="background:#f0f0f0">';
+    allSeqsF.forEach(function(s){ thS += '<th style="padding:2px 3px;border:1px solid #ccc;font-size:9px;text-align:center;white-space:nowrap">'+s+'</th>'; });
+    thS += '</tr>';
+    theadS.innerHTML = thS;
+  }
   if (tbS) {
     if (!silhouettes.length) {
-      tbS.innerHTML = '<tr><td colspan="7" style="padding:8px;text-align:center;color:#999;font-size:12px;border:1px solid #eee">Aucune silhouette — cliquez + pour ajouter</td></tr>';
+      tbS.innerHTML = '<tr><td colspan="'+(7+(allSeqsF&&allSeqsF.length||1))+'" style="padding:8px;text-align:center;color:#999;font-size:12px;border:1px solid #eee">Aucune silhouette — cliquez + pour ajouter</td></tr>';
     } else {
       tbS.innerHTML = silhouettes.map(function(c) {
-        var idx = all.indexOf(c);
+        var cidx = all.indexOf(c);
+        var comSeqs = (c.seqs||'').split(/[\s,]+/).map(function(s){return s.trim();}).filter(Boolean);
+        var seqCells = '';
+        if (allSeqsF && allSeqsF.length) {
+          allSeqsF.forEach(function(s){
+            var sC = s.replace(/\s/g,'').toUpperCase();
+            var ok = comSeqs.some(function(cs){ return cs.replace(/\s/g,'').toUpperCase()===sC; });
+            seqCells += '<td style="padding:2px;border:1px solid #ddd;font-size:10px;text-align:center;font-weight:700">'+(ok?s:'')+'</td>';
+          });
+        } else {
+          seqCells = '<td style="padding:4px 6px;border:1px solid #ddd;font-size:10px;text-align:center">'+(c.seqs||'')+'</td>';
+        }
         return '<tr>' +
           '<td style="padding:4px 6px;border:1px solid #ddd;font-size:11px;font-weight:600">' + (c.num||'') + '</td>' +
           '<td style="padding:4px 6px;border:1px solid #ddd;font-size:11px">' + (c.role||'') + '</td>' +
           '<td style="padding:4px 6px;border:1px solid #ddd;font-size:11px">' + (c.nom||'') + '</td>' +
-          '<td style="padding:4px 6px;border:1px solid #ddd;font-size:11px;text-align:center">' + (c.seqs||'') + '</td>' +
+          seqCells +
           '<td style="padding:4px 6px;border:1px solid #ddd;font-size:11px;text-align:center">' + fmtTime(c.hmc) + '</td>' +
           '<td style="padding:4px 6px;border:1px solid #ddd;font-size:11px;text-align:center;font-weight:700">' + fmtTime(c.pat) + '</td>' +
-          '<td style="padding:2px;border:1px solid #ddd;text-align:center">' + pencilBtn(idx) + '</td>' +
+          '<td style="padding:2px;border:1px solid #ddd;text-align:center">' + pencilBtn(cidx) + '</td>' +
           '</tr>';
       }).join('');
     }
@@ -3160,9 +3200,7 @@ function renderFigurationTab() {
   // Charger la description
   var figDescEl = document.getElementById('fig-desc');
   if (figDescEl && f.fig_desc !== undefined) figDescEl.value = f.fig_desc;
-  // Séquences du jour
-  var pdtJdtF = typeof PDT_DATA !== 'undefined' ? PDT_DATA.find(function(j){ return j.jdt===f.jdt; }) : null;
-  var allSeqsF = pdtJdtF ? pdtJdtF.sequences : [];
+  // allSeqsF déjà déclaré plus haut
   var theadF = document.getElementById('thead-figurants');
   if (theadF) {
     var thH = '<tr style="background:#f0f0f0"><th style="padding:5px 6px;border:1px solid #ccc;width:50px">Nbre</th>' +
@@ -3230,6 +3268,7 @@ function openEditComedien(idx) {
   document.getElementById('edit-com-hmc').value = c.hmc||'';
   document.getElementById('edit-com-loges').value = c.loges||'';
   document.getElementById('edit-com-pat').value = c.pat||'';
+  var mepEl = document.getElementById('edit-com-mep'); if (mepEl) mepEl.value = c.mep||'';
   document.getElementById('edit-com-nbre').value = c.nbre||1;
   var noteEl2 = document.getElementById('edit-com-note'); if (noteEl2) noteEl2.value = c.note||'';
   openModal('modal-edit-comedien');
@@ -3248,6 +3287,7 @@ function saveEditComedien() {
   c.hmc   = document.getElementById('edit-com-hmc').value;
   c.loges = document.getElementById('edit-com-loges').value;
   c.pat   = document.getElementById('edit-com-pat').value;
+  var mepEl2 = document.getElementById('edit-com-mep'); if (mepEl2) c.mep = mepEl2.value;
   c.nbre  = parseInt(document.getElementById('edit-com-nbre').value)||1;
   var noteEl = document.getElementById('edit-com-note'); if (noteEl) c.note = noteEl.value;
   closeModal('modal-edit-comedien');
@@ -6993,21 +7033,67 @@ function appliquerDepoPdf(journees) {
     // ── FIGURANTS ──
     if (optFig) {
       // Agréger tous les figurants de toutes les séquences du jour
-      var figLines = [];
+      // Construire des lignes de figurants réelles depuis le dépouillement
+      // Regrouper par description de figurant + agréger les séquences
+      var figMap = {};  // clé = description figurant, valeur = {nbre, seqNums[]}
       var totalFig = 0;
+      var figDescParts = [];
       j.sequences.forEach(function(s) {
         if (s.nbFig > 0) {
           totalFig += s.nbFig;
-          if (s.figurants) figLines.push('Sc.' + s.num + ' : ' + s.nbFig + 'F — ' + s.figurants.replace(/\n/g, ', '));
+          if (s.figurants) {
+            // Le dépouillement donne une description des figurants par séquence
+            var desc = s.figurants.replace(/\n/g,' ').trim();
+            // Essayer de trouver si une ligne similaire existe déjà
+            var found = null;
+            Object.keys(figMap).forEach(function(k){
+              // Match approximatif : 70% des mots en commun
+              var kWords = k.toLowerCase().split(/\s+/);
+              var dWords = desc.toLowerCase().split(/\s+/);
+              var common = kWords.filter(function(w){ return dWords.indexOf(w)>=0; });
+              if (common.length >= Math.min(kWords.length, dWords.length) * 0.6) found = k;
+            });
+            if (found) {
+              figMap[found].seqs.push(s.num);
+            } else {
+              figMap[desc] = { nbre: s.nbFig, seqs: [s.num], desc: desc };
+            }
+            figDescParts.push('Sc.' + s.num + ' : ' + s.nbFig + 'F — ' + desc);
+          }
         }
       });
-      if (figLines.length) {
-        var figTexte = figLines.join('\n');
-        // Injecter dans le champ FIGURATION des lieux
+
+      if (optFig && Object.keys(figMap).length) {
+        // Créer de vraies lignes de figurants dans f.comediens
+        if (!fds.comediens) fds.comediens = [];
+        Object.keys(figMap).forEach(function(desc) {
+          var fm = figMap[desc];
+          // Chercher si une ligne similaire existe déjà
+          var existFig = fds.comediens.find(function(c){
+            return c.type==='figurant' && c.role && c.role.toLowerCase().indexOf(desc.toLowerCase().substring(0,10)) >= 0;
+          });
+          if (!existFig || optEcrase) {
+            var newFig = { type:'figurant', num:'', role: desc, nom:'', seqs: fm.seqs.join(', '), nbre: fm.nbre, hmc:'', loges:'', pat:'', mep:'', note:'' };
+            if (!existFig) {
+              fds.comediens.push(newFig);
+            } else if (optEcrase) {
+              existFig.seqs = fm.seqs.join(', ');
+              existFig.nbre = fm.nbre;
+            }
+          }
+        });
+        // Mettre à jour fig_desc
+        if (totalFig > 0 && (optEcrase || !fds.fig_desc)) {
+          fds.fig_desc = 'FIGURATION : ' + totalFig + ' figurant(s)';
+        }
+      }
+
+      // Aussi mettre dans lieux FIGURATION (résumé texte)
+      if (figDescParts.length) {
+        var figTexte = figDescParts.join('\n');
         var lieuFig = (fds.lieux||[]).find(function(l){ return l.label === 'FIGURATION'; });
         if (lieuFig) {
           if (optEcrase || !lieuFig.valeur) lieuFig.valeur = figTexte;
-          else if (!lieuFig.valeur) lieuFig.valeur = figTexte;
         } else {
           if (!fds.lieux) fds.lieux = [];
           fds.lieux.push({label:'FIGURATION', valeur: figTexte});
