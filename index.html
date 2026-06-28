@@ -7518,6 +7518,28 @@ function parseDepoPdf(lines) {
       curSeq.vehicules = (curSeq.vehicules ? curSeq.vehicules + ' ' : '') + v;
     } else if (collectingField === 'cost') {
       curSeq.costumes = (curSeq.costumes ? curSeq.costumes + ' ' : '') + v;
+    } else if (collectingField === 'misen') {
+      curSeq.mise_en_scene = (curSeq.mise_en_scene ? curSeq.mise_en_scene + ' ' : '') + v;
+    } else if (collectingField === 'deco') {
+      curSeq.decoration = (curSeq.decoration ? curSeq.decoration + ' ' : '') + v;
+    } else if (collectingField === 'acces') {
+      curSeq.accessoires = (curSeq.accessoires ? curSeq.accessoires + ' ' : '') + v;
+    } else if (collectingField === 'armes') {
+      curSeq.armes = (curSeq.armes ? curSeq.armes + ' ' : '') + v;
+    } else if (collectingField === 'maq') {
+      curSeq.maquillage = (curSeq.maquillage ? curSeq.maquillage + ' ' : '') + v;
+    } else if (collectingField === 'coiff') {
+      curSeq.coiffure = (curSeq.coiffure ? curSeq.coiffure + ' ' : '') + v;
+    } else if (collectingField === 'elec') {
+      curSeq.electricite = (curSeq.electricite ? curSeq.electricite + ' ' : '') + v;
+    } else if (collectingField === 'machi') {
+      curSeq.machinerie = (curSeq.machinerie ? curSeq.machinerie + ' ' : '') + v;
+    } else if (collectingField === 'son') {
+      curSeq.son = (curSeq.son ? curSeq.son + ' ' : '') + v;
+    } else if (collectingField === 'vfx') {
+      curSeq.vfx = (curSeq.vfx ? curSeq.vfx + ' ' : '') + v;
+    } else if (collectingField === 'regie') {
+      curSeq.regie = (curSeq.regie ? curSeq.regie + ' ' : '') + v;
     }
     collectingField = null; collectBuf = '';
   }
@@ -7570,7 +7592,8 @@ function parseDepoPdf(lines) {
           i++;
         }
       }
-      curSeq = { num: numSeq, effet: effet, decor: decor, resume: resumeLine, minutage: '', pages: '', cont: '', nbRoles: 0, roles: '', nbFig: 0, figurants: '', silhouettes: '', doublures: '', cascades_phys: '', cascades_veh: '', vehicules: '', costumes: '' };
+      curSeq = { num: numSeq, effet: effet, decor: decor, resume: resumeLine, minutage: '', pages: '', cont: '', nbRoles: 0, roles: '', nbFig: 0, figurants: '', silhouettes: '', doublures: '', cascades_phys: '', cascades_veh: '', vehicules: '', costumes: '',
+        mise_en_scene: '', decoration: '', accessoires: '', armes: '', maquillage: '', coiffure: '', electricite: '', machinerie: '', son: '', vfx: '', regie: '' };
       continue;
     }
 
@@ -7614,6 +7637,39 @@ function parseDepoPdf(lines) {
 
     // Costumes
     if (reCostumes.test(line)) { flushCollect(); collectingField = 'cost'; collectBuf = line.replace(/^Costumes?\s*:\s*/i,'').trim(); continue; }
+
+    // Mise en scène
+    if (/^Mise\s+en\s+sc[eè]ne\s*:/i.test(line)) { flushCollect(); collectingField = 'misen'; collectBuf = line.replace(/^Mise\s+en\s+sc[eè]ne\s*:\s*/i,'').trim(); continue; }
+
+    // Décoration
+    if (/^D[eé]coration\s*:/i.test(line)) { flushCollect(); collectingField = 'deco'; collectBuf = line.replace(/^D[eé]coration\s*:\s*/i,'').trim(); continue; }
+
+    // Accessoires
+    if (/^Accessoires?\s*:/i.test(line)) { flushCollect(); collectingField = 'acces'; collectBuf = line.replace(/^Accessoires?\s*:\s*/i,'').trim(); continue; }
+
+    // Armes
+    if (/^Armes?\s*:/i.test(line)) { flushCollect(); collectingField = 'armes'; collectBuf = line.replace(/^Armes?\s*:\s*/i,'').trim(); continue; }
+
+    // Maquillage
+    if (/^Maquillage\s*:/i.test(line)) { flushCollect(); collectingField = 'maq'; collectBuf = line.replace(/^Maquillage\s*:\s*/i,'').trim(); continue; }
+
+    // Coiffure
+    if (/^Coiffure\s*:/i.test(line)) { flushCollect(); collectingField = 'coiff'; collectBuf = line.replace(/^Coiffure\s*:\s*/i,'').trim(); continue; }
+
+    // Électricité
+    if (/^[Ee]lectricit[eé]\s*:/i.test(line)) { flushCollect(); collectingField = 'elec'; collectBuf = line.replace(/^[Ee]lectricit[eé]\s*:\s*/i,'').trim(); continue; }
+
+    // Machinerie
+    if (/^Machinerie\s*:/i.test(line)) { flushCollect(); collectingField = 'machi'; collectBuf = line.replace(/^Machinerie\s*:\s*/i,'').trim(); continue; }
+
+    // Son
+    if (/^Son\s*:/i.test(line)) { flushCollect(); collectingField = 'son'; collectBuf = line.replace(/^Son\s*:\s*/i,'').trim(); continue; }
+
+    // VFX
+    if (/^VFX\s*:/i.test(line)) { flushCollect(); collectingField = 'vfx'; collectBuf = line.replace(/^VFX\s*:\s*/i,'').trim(); continue; }
+
+    // Régie / Production
+    if (/^R[eé]gie\s*[/]?\s*Production\s*:/i.test(line) || /^R[eé]gie\s*:/i.test(line)) { flushCollect(); collectingField = 'regie'; collectBuf = line.replace(/^R[eé]gie[^:]*:\s*/i,'').trim(); continue; }
 
     // Ligne de continuation pour les champs multi-lignes
     if (collectingField) {
@@ -8374,19 +8430,47 @@ function appliquerDepoPdf(journees) {
       }
     }
 
-    // ── COSTUMES ──
-    if (optCost) {
-      var costLines = [];
+    // ── TOUS LES DÉPARTEMENTS TECHNIQUES ──
+    // Mapping champ depSeq → clé deptNotes
+    var deptMapping = [
+      { field: 'mise_en_scene',  key: 'mise_en_scene',  opt: true },
+      { field: 'decoration',     key: 'decoration',      opt: true },
+      { field: 'accessoires',    key: 'accessoires',     opt: true },
+      { field: 'armes',          key: 'armes',           opt: true },
+      { field: 'costumes',       key: 'costumes',        opt: optCost },
+      { field: 'maquillage',     key: 'maquillage',      opt: true },
+      { field: 'coiffure',       key: 'coiffure',        opt: true },
+      { field: 'electricite',    key: 'electricite',     opt: true },
+      { field: 'machinerie',     key: 'machinerie',      opt: true },
+      { field: 'son',            key: 'son',             opt: true },
+      { field: 'vfx',            key: 'vfx',             opt: true },
+      { field: 'regie',          key: 'regie',           opt: true }
+    ];
+
+    deptMapping.forEach(function(dm) {
+      if (!dm.opt) return;
+      var lines = [];
       j.sequences.forEach(function(s) {
-        if (s.costumes) costLines.push('Sc.' + s.num + ' : ' + s.costumes);
+        var val = s[dm.field];
+        if (val && val.trim()) lines.push('Sc. ' + s.num + ' : ' + val.trim());
       });
-      if (costLines.length) {
-        var txtC = costLines.join('\n');
-        var existC = fds.deptNotes['costumes'] || '';
-        if (optEcrase) fds.deptNotes['costumes'] = txtC;
-        else fds.deptNotes['costumes'] = existC ? existC + '\n' + txtC : txtC;
+      if (!lines.length) return;
+      var txt = lines.join('\n');
+      var exist = fds.deptNotes[dm.key] || '';
+      if (optEcrase) {
+        fds.deptNotes[dm.key] = txt;
+      } else if (!exist) {
+        fds.deptNotes[dm.key] = txt;
+      } else {
+        // Compléter : ajouter seulement les séquences non déjà présentes
+        lines.forEach(function(line) {
+          var seqRef = line.match(/^Sc\.\s*(\S+)/);
+          if (!seqRef || exist.indexOf(seqRef[0]) < 0) {
+            fds.deptNotes[dm.key] = fds.deptNotes[dm.key] + '\n' + line;
+          }
+        });
       }
-    }
+    });
   });
 
   save();
