@@ -6908,8 +6908,7 @@ function parseDepoPdf(lines) {
   var reSeqHeader = /^(\d+\s*(?:BIS|TER|A|B|C|D|E|F|G|H|I|J|K|P\d*|BIS\s*[A-Z]|PT)?(?:\s*(?:PEL|\?\!?|!|\(D\)|\(EQ\.?B?\)|P\d+|POV|P\d+\s*\+\s*POV))*)\s+(I\+?E\/[JNMS]|E\/[JNMS]|I\/[JNMS]|I\+?E\/[JN]\.?Am?|E\/[JN]\.?Am?|I\/[JN]\.?Am?|E\/(?:Soir|M|Aube|Crép\.?)|I\/(?:Soir|M|Aube|Crép\.?))/;
   var reMinutage = /Minutage\s*:\s*([\d:]+)/i;
   var rePages = /Pages?\s*:\s*([\d\s\/84]+)/i;
-  var reChrono = /Chrono-jour\s*:\s*(J\d+[^
-]*)/i;
+  var reChrono = /Chrono-jour\s*:\s*(J\d+[^\r\n]*)/i;
   var reNbRoles = /^(\d+)\s+R[oô]les?\s*:/;
   var reNbFig = /^(\d+)\s+Figurants?\s*:/;
   var reNbSil = /^(\d+)\s+Silhouettes?\s*:/;
@@ -7172,7 +7171,7 @@ function depoDiag() {
 
 function fusionnerDepoPdf(input) {
   // Charge un 2e PDF de dépouillement et le fusionne avec window._depoData
-  if (!window._depoData) { toast('Chargez d'abord un dépouillement principal'); return; }
+  if (!window._depoData) { toast('Chargez d\'abord un dépouillement principal'); return; }
   if (!input.files || !input.files[0]) return;
   var statusEl = document.getElementById('depo-fusion-status');
   if (statusEl) statusEl.textContent = '⏳ Lecture du 2e PDF...';
