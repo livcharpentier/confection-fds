@@ -706,6 +706,7 @@ textarea.form-input{resize:vertical;min-height:72px;}
       <div class="card" style="border:2px solid #6a0dad">
         <div class="card-title" style="color:#6a0dad">CASCADEURS
           <button class="btn btn-sm btn-primary" style="background:#6a0dad" onclick="openComModalType('cascadeur')">+ Ajouter</button>
+          <button class="btn btn-sm btn-secondary" onclick="ouvrirCopierDepuis('cascadeur','pg-cascadeurs')" style="font-size:10px">Copier...</button>
         </div>
         <div style="margin-bottom:6px">
           <input class="form-input" id="casc-phys-coord" placeholder="Présence Régleur cascade physique : Nom (06 xx xx xx) assisté de..." style="font-size:11px;font-style:italic"/>
@@ -766,6 +767,7 @@ textarea.form-input{resize:vertical;min-height:72px;}
       <div class="card" style="margin-bottom:8px">
         <div class="card-title">Véhicules de tournage
           <button class="btn btn-sm btn-primary" onclick="ouvrirModalVehicule(-1)">+ Ajouter</button>
+          <button class="btn btn-sm btn-secondary" onclick="ouvrirCopierDepuis('vehicule','pg-vehicules')" style="font-size:10px">Copier...</button>
         </div>
         <div style="margin-bottom:6px">
           <input class="form-input" id="pg-vehicules-titre" placeholder="VÉHICULES cf Eric Grimaldi" style="font-weight:700;font-size:11px;margin-bottom:4px"/>
@@ -4330,6 +4332,89 @@ function pgRenderLieux() {
     '</div>';
   }).join('');
 }
+function ouvrirCopierDepuis(typeEl, navTarget) {
+  // typeEl = 'cascadeur' | 'cascade_vehicule' | 'chauffeur' | 'vehicule'
+  var f = activeFDS(); if (!f) return;
+  var isVehic = (typeEl === 'vehicule');
+  var types = isVehic ? null : [typeEl];
+
+  // Lister les FDS source avec des données du type demandé
+  var autres = (state.fds||[]).filter(function(x){
+    if (x.filmId !== activeFilmId || x.id === f.id) return false;
+    if (isVehic) return (x.vehicules||[]).length > 0;
+    return (x.comediens||[]).some(function(c){ return types.indexOf(c.type) >= 0; });
+  });
+  if (!autres.length) { toast('Aucune autre journée avec ces données'); return; }
+
+  var label = isVehic ? 'véhicules' : typeEl.replace('_',' ');
+  var html = '<div style="padding:12px">';
+  html += '<div style="font-weight:600;margin-bottom:8px">Copier les ' + label + ' depuis :</div>';
+  html += '<select id="copy-generic-source" style="width:100%;padding:8px;border:1px solid var(--border);border-radius:6px;margin-bottom:10px">';
+  autres.forEach(function(x) {
+    var n = isVehic ? (x.vehicules||[]).length : (x.comediens||[]).filter(function(c){ return types.indexOf(c.type)>=0; }).length;
+    html += '<option value="'+x.id+'">'+(x.infos&&x.infos.journee||'J'+x.jdt)+' — '+(x.infos&&x.infos.date||'')+' ('+n+' entrée'+(n>1?'s':'')+')</option>';
+  });
+  html += '</select>';
+  html += '<div style="display:flex;gap:8px">';
+  html += '<button onclick="executerCopierDepuis(\''+typeEl+'\',\''+navTarget+'\')" style="flex:1;padding:8px;background:var(--purple);color:#fff;border:none;border-radius:6px;cursor:pointer;font-weight:500">Copier</button>';
+  html += '<button onclick="(function(){document.getElementById(\'modal-copy-generic\').style.display=\'none\';})()" style="flex:1;padding:8px;background:none;border:1px solid var(--border);border-radius:6px;cursor:pointer">Annuler</button>';
+  html += '</div></div>';
+
+  var modal = document.getElementById('modal-copy-generic');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id = 'modal-copy-generic';
+    modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:1000;display:flex;align-items:center;justify-content:center';
+    modal.onclick = function(e){ if(e.target===modal) modal.style.display='none'; };
+    document.body.appendChild(modal);
+  }
+  modal.innerHTML = '<div style="background:var(--bg);border-radius:12px;max-width:380px;width:90%">'+html+'</div>';
+  modal.style.display = 'flex';
+}
+
+function executerCopierDepuis(typeEl, navTarget) {
+  var f = activeFDS(); if (!f) return;
+  var sel = document.getElementById('copy-generic-source');
+  if (!sel) return;
+  var src = (state.fds||[]).find(function(x){ return x.id===sel.value; });
+  if (!src) return;
+  var isVehic = (typeEl === 'vehicule');
+
+  if (isVehic) {
+    // Copier les véhicules
+    var srcVeh = (src.vehicules||[]);
+    if (!srcVeh.length) { toast('Aucun véhicule'); return; }
+    if (!f.vehicules) f.vehicules = [];
+    srcVeh.forEach(function(v) {
+      var exist = f.vehicules.find(function(x){
+        return (x.nom||'').toLowerCase() === (v.nom||'').toLowerCase();
+      });
+      if (!exist) f.vehicules.push({nom:v.nom,nbre:v.nbre,seqs:v.seqs,sp:'',pat:'',note:v.note||''});
+    });
+    if (!f.vehicules_titre && src.vehicules_titre) f.vehicules_titre = src.vehicules_titre;
+    if (!f.vehicules_coord && src.vehicules_coord) f.vehicules_coord = src.vehicules_coord;
+  } else {
+    // Copier les comédiens du type demandé
+    var types = [typeEl];
+    var srcCom = (src.comediens||[]).filter(function(c){ return types.indexOf(c.type)>=0; });
+    if (!srcCom.length) { toast('Aucune entrée de ce type'); return; }
+    if (!f.comediens) f.comediens = [];
+    srcCom.forEach(function(c) {
+      var exist = f.comediens.find(function(x){ return x.type===c.type && x.role===c.role; });
+      if (!exist) f.comediens.push({type:c.type,num:c.num,role:c.role,nom:'',seqs:c.seqs,hmc:'',loges:'',pat:'',mep:'',nbre:c.nbre,note:c.note||''});
+    });
+    // Copier aussi les coords
+    if (!f.casc_phys_coord && src.casc_phys_coord && typeEl==='cascadeur') f.casc_phys_coord = src.casc_phys_coord;
+    if (!f.casc_veh_coord && src.casc_veh_coord && typeEl==='cascade_vehicule') f.casc_veh_coord = src.casc_veh_coord;
+  }
+
+  document.getElementById('modal-copy-generic').style.display = 'none';
+  save();
+  if (navTarget === 'pg-vehicules') pgRenderVehicules();
+  else pgRenderCascadeurs();
+  toast('Copié depuis '+(src.infos&&src.infos.journee||'J'+src.jdt)+' ✓');
+}
+
 function ouvrirCopierFiguration() {
   var f = activeFDS(); if (!f) return;
   // Lister toutes les FDS du film qui ont de la figuration
@@ -7895,43 +7980,124 @@ function appliquerDepoPdf(journees) {
         }
       });
 
-      // 3. Cascadeurs depuis le dépouillement
-      var cascIndex = {};
+      // 3. Cascadeurs et cascades véhicules depuis le dépouillement
+      function normaliserCascKey(s) {
+        return s.toLowerCase().replace(/[^a-zàâäéèêëîïôöùûüç0-9\s]/g,'').replace(/\s+/g,' ').trim();
+      }
+      function findSimilar(map, key) {
+        var kW = key.split(' ');
+        var found = null;
+        Object.keys(map).forEach(function(k) {
+          var mW = k.split(' ');
+          var common = kW.filter(function(w){ return w.length>3 && mW.indexOf(w)>=0; });
+          if (common.length >= Math.max(1, Math.min(kW.length, mW.length) * 0.5)) found = k;
+        });
+        return found;
+      }
+
+      var cascPhysMap = {}; // key → {label, seqs[], nbre}
+      var cascVehMap  = {};
+
       j.sequences.forEach(function(depSeq) {
-        var numClean = String(depSeq.num||'').trim();
-        // Cascades physiques
+        var seqNum = String(depSeq.num||'').trim();
+
+        // ── Cascades physiques ──
         if (depSeq.cascades_phys) {
-          depSeq.cascades_phys.split(/,|;/).forEach(function(casc) {
-            casc = casc.trim();
-            if (!casc || /^R[eé]gleur/i.test(casc)) return; // skip régleur générique
-            var key = 'CASC_' + casc.slice(0,15).replace(/\s+/g,'_');
-            if (!cascIndex[key]) cascIndex[key] = {label: casc, seqs: [], type: 'cascadeur'};
-            if (numClean && cascIndex[key].seqs.indexOf(numClean) < 0) cascIndex[key].seqs.push(numClean);
+          var lines = depSeq.cascades_phys.split(/\n|,|;/).map(function(l){return l.trim();}).filter(Boolean);
+          lines.forEach(function(line) {
+            if (/^R[eé]gleur/i.test(line)) return; // régleur = entrée coordinateur, pas une ligne cascadeur
+            var mN = line.match(/^(\d+)\s+(.+)$/);
+            var nbre = mN ? parseInt(mN[1]) : 1;
+            var desc = mN ? mN[2].trim() : line;
+            var key = normaliserCascKey(desc);
+            var found = findSimilar(cascPhysMap, key);
+            if (found) {
+              if (seqNum && cascPhysMap[found].seqs.indexOf(seqNum)<0) cascPhysMap[found].seqs.push(seqNum);
+              if (nbre > cascPhysMap[found].nbre) cascPhysMap[found].nbre = nbre;
+            } else {
+              cascPhysMap[key] = { label: desc, seqs: seqNum?[seqNum]:[], nbre: nbre };
+            }
           });
         }
-        // Cascades véhicules
+
+        // ── Cascades véhicules ──
         if (depSeq.cascades_veh) {
-          depSeq.cascades_veh.split(/,|;/).forEach(function(casc) {
-            casc = casc.trim();
-            if (!casc || /^R[eé]gleur/i.test(casc)) return;
-            var key = 'CASCV_' + casc.slice(0,15).replace(/\s+/g,'_');
-            if (!cascIndex[key]) cascIndex[key] = {label: casc, seqs: [], type: 'cascade_vehicule'};
-            if (numClean && cascIndex[key].seqs.indexOf(numClean) < 0) cascIndex[key].seqs.push(numClean);
+          var linesV = depSeq.cascades_veh.split(/\n|,|;/).map(function(l){return l.trim();}).filter(Boolean);
+          linesV.forEach(function(line) {
+            if (/^R[eé]gleur|^Coordinateur/i.test(line)) return;
+            var mN = line.match(/^(\d+)\s+(.+)$/);
+            var nbre = mN ? parseInt(mN[1]) : 1;
+            var desc = mN ? mN[2].trim() : line;
+            var key = normaliserCascKey(desc);
+            var found = findSimilar(cascVehMap, key);
+            if (found) {
+              if (seqNum && cascVehMap[found].seqs.indexOf(seqNum)<0) cascVehMap[found].seqs.push(seqNum);
+              if (nbre > cascVehMap[found].nbre) cascVehMap[found].nbre = nbre;
+            } else {
+              cascVehMap[key] = { label: desc, seqs: seqNum?[seqNum]:[], nbre: nbre };
+            }
           });
         }
       });
-      // Ajouter les régleurs si cascades présentes
-      var hasPhys = j.sequences.some(function(s){ return s.cascades_phys; });
-      var hasVeh = j.sequences.some(function(s){ return s.cascades_veh; });
-      if (hasPhys && !(fds.comediens||[]).find(function(c){ return c.num==='REGL_PHYS'; })) {
+
+      // Appliquer cascadeurs physiques dans fds.comediens
+      if (optCasc) {
         if (!fds.comediens) fds.comediens = [];
-        var seqsPhys = j.sequences.filter(function(s){return s.cascades_phys;}).map(function(s){return String(s.num||'');});
-        fds.comediens.push({type:'cascadeur',num:'REGL_PHYS',role:'Régleur cascade physique',nom:'',seqs:seqsPhys.join(', '),hmc:'',loges:'',pat:'',nbre:1});
-      }
-      if (hasVeh && !(fds.comediens||[]).find(function(c){ return c.num==='REGL_VEH'; })) {
-        if (!fds.comediens) fds.comediens = [];
-        var seqsVeh = j.sequences.filter(function(s){return s.cascades_veh;}).map(function(s){return String(s.num||'');});
-        fds.comediens.push({type:'cascade_vehicule',num:'REGL_VEH',role:'Régleur cascade véhicule',nom:'',seqs:seqsVeh.join(', '),hmc:'',loges:'',pat:'',nbre:1});
+
+        // Cascadeurs physiques
+        Object.keys(cascPhysMap).forEach(function(key) {
+          var cm = cascPhysMap[key];
+          var existC = fds.comediens.find(function(c){
+            if (c.type !== 'cascadeur') return false;
+            return normaliserCascKey(c.role||'').indexOf(key.slice(0,10)) >= 0;
+          });
+          if (!existC) {
+            fds.comediens.push({type:'cascadeur',num:'',role:cm.label,nom:'',seqs:cm.seqs.join(', '),hmc:'',loges:'',pat:'',mep:'',nbre:cm.nbre,note:''});
+          } else if (optEcrase) {
+            existC.seqs = cm.seqs.join(', '); existC.nbre = cm.nbre;
+          } else {
+            var ex = existC.seqs ? existC.seqs.split(/[,\s]+/).map(function(s){return s.trim();}).filter(Boolean) : [];
+            cm.seqs.forEach(function(sq){ if (ex.indexOf(sq)<0) ex.push(sq); });
+            existC.seqs = ex.join(', ');
+          }
+        });
+
+        // Cascades véhicules
+        Object.keys(cascVehMap).forEach(function(key) {
+          var cm = cascVehMap[key];
+          var existC = fds.comediens.find(function(c){
+            if (c.type !== 'cascade_vehicule') return false;
+            return normaliserCascKey(c.role||'').indexOf(key.slice(0,10)) >= 0;
+          });
+          if (!existC) {
+            fds.comediens.push({type:'cascade_vehicule',num:'',role:cm.label,nom:'',seqs:cm.seqs.join(', '),hmc:'',loges:'',pat:'',mep:'',nbre:cm.nbre,note:''});
+          } else if (optEcrase) {
+            existC.seqs = cm.seqs.join(', '); existC.nbre = cm.nbre;
+          } else {
+            var ex2 = existC.seqs ? existC.seqs.split(/[,\s]+/).map(function(s){return s.trim();}).filter(Boolean) : [];
+            cm.seqs.forEach(function(sq){ if (ex2.indexOf(sq)<0) ex2.push(sq); });
+            existC.seqs = ex2.join(', ');
+          }
+        });
+
+        // Notes coordinateur dans les champs dédiés
+        var hasPhys = j.sequences.some(function(s){ return s.cascades_phys; });
+        var hasVeh  = j.sequences.some(function(s){ return s.cascades_veh; });
+        if (hasPhys && !fds.casc_phys_coord) {
+          // Extraire ligne Régleur du dépouillement
+          j.sequences.forEach(function(s) {
+            if (!s.cascades_phys || fds.casc_phys_coord) return;
+            var m = s.cascades_phys.match(/R[eé]gleur[^\n]*/i);
+            if (m) fds.casc_phys_coord = 'Présence ' + m[0].trim();
+          });
+        }
+        if (hasVeh && !fds.casc_veh_coord) {
+          j.sequences.forEach(function(s) {
+            if (!s.cascades_veh || fds.casc_veh_coord) return;
+            var m = s.cascades_veh.match(/(?:Coordinateur|R[eé]gleur)[^\n]*/i);
+            if (m) fds.casc_veh_coord = 'Présence Coordinateur ' + m[0].trim();
+          });
+        }
       }
     }
 
@@ -8073,17 +8239,86 @@ function appliquerDepoPdf(journees) {
       }
     }
 
-    // ── VÉHICULES ──
+    // ── VÉHICULES : créer vraies lignes dans f.vehicules ──
     if (optVehic) {
-      var vehicLines = [];
-      j.sequences.forEach(function(s) {
-        if (s.vehicules) vehicLines.push('Sc.' + s.num + ' : ' + s.vehicules);
+      var vehMap = {}; // key → {nom, seqs[], nbre, titre}
+
+      j.sequences.forEach(function(depSeq) {
+        if (!depSeq.vehicules) return;
+        var seqNum = String(depSeq.num||'').trim();
+        var lines = depSeq.vehicules.split(/\n/).map(function(l){return l.trim();}).filter(Boolean);
+
+        lines.forEach(function(line) {
+          // Format "1 Voiture Bonnefoy (Renault primaquatre)" ou "Voiture Bonnefoy"
+          var mN = line.match(/^(\d+)\s+(.+)$/);
+          var nbre = mN ? parseInt(mN[1]) : 1;
+          var desc = mN ? mN[2].trim() : line;
+
+          // Extraire titre du ref (cf Eric Grimaldi) si présent
+          var titre = '';
+          var mTitre = desc.match(/^(.+?)\s+cf\s+(.+)$/i);
+          if (mTitre) { desc = mTitre[1].trim(); titre = mTitre[2].trim(); }
+
+          var key = desc.toLowerCase().replace(/[^a-zàâäéèêëîïôöùûüç0-9\s]/g,'').replace(/\s+/g,' ').trim();
+
+          // Regroupement
+          var found = null;
+          Object.keys(vehMap).forEach(function(k) {
+            var kW = k.split(' '); var dW = key.split(' ');
+            var common = kW.filter(function(w){ return w.length>3 && dW.indexOf(w)>=0; });
+            if (common.length >= Math.max(1, Math.min(kW.length, dW.length) * 0.5)) found = k;
+          });
+
+          if (found) {
+            if (seqNum && vehMap[found].seqs.indexOf(seqNum)<0) vehMap[found].seqs.push(seqNum);
+            if (nbre > vehMap[found].nbre) vehMap[found].nbre = nbre;
+          } else {
+            vehMap[key] = { nom: desc, seqs: seqNum?[seqNum]:[], nbre: nbre, titre: titre };
+          }
+        });
       });
-      if (vehicLines.length) {
-        var txtV = vehicLines.join('\n');
-        var existV = fds.deptNotes['vehicules'] || '';
-        if (optEcrase) fds.deptNotes['vehicules'] = txtV;
-        else fds.deptNotes['vehicules'] = existV ? existV + '\n\nVÉHICULES :\n' + txtV : 'VÉHICULES :\n' + txtV;
+
+      if (Object.keys(vehMap).length) {
+        if (!fds.vehicules) fds.vehicules = [];
+        Object.keys(vehMap).forEach(function(key) {
+          var vm = vehMap[key];
+          var existV = fds.vehicules.find(function(v){
+            var vKey = (v.nom||'').toLowerCase().replace(/[^a-zàâäéèêëîïôöùûüç0-9\s]/g,'').replace(/\s+/g,' ').trim();
+            var kW = key.split(' '); var vW = vKey.split(' ');
+            var common = kW.filter(function(w){ return w.length>3 && vW.indexOf(w)>=0; });
+            return common.length >= Math.max(1, Math.min(kW.length, vW.length) * 0.5);
+          });
+          if (!existV) {
+            fds.vehicules.push({ nom: vm.nom, nbre: vm.nbre, seqs: vm.seqs.join(', '), sp:'', pat:'', note:'' });
+            // Si titre coordinateur
+            if (vm.titre && !fds.vehicules_titre) fds.vehicules_titre = 'VÉHICULES cf ' + vm.titre;
+          } else if (optEcrase) {
+            existV.seqs = vm.seqs.join(', '); existV.nbre = vm.nbre;
+          } else {
+            var ex = existV.seqs ? existV.seqs.split(/[,\s]+/).map(function(s){return s.trim();}).filter(Boolean) : [];
+            vm.seqs.forEach(function(sq){ if (ex.indexOf(sq)<0) ex.push(sq); });
+            existV.seqs = ex.join(', ');
+          }
+        });
+
+        // Chercher le coordinateur (ligne "cf Eric Grimaldi" ou "Présence Benjamin...")
+        if (!fds.vehicules_coord) {
+          j.sequences.forEach(function(s) {
+            if (!s.vehicules || fds.vehicules_coord) return;
+            var m = s.vehicules.match(/Pr[eé]sence\s+([^\n]+)/i);
+            if (m) fds.vehicules_coord = 'Présence ' + m[1].trim();
+          });
+        }
+      }
+
+      // Aussi garder une note texte dans deptNotes pour référence
+      var vehicTextParts = [];
+      j.sequences.forEach(function(s) {
+        if (s.vehicules) vehicTextParts.push('Sc.' + s.num + ' : ' + s.vehicules);
+      });
+      if (vehicTextParts.length) {
+        var noteTxt = vehicTextParts.join('\n');
+        if (optEcrase || !fds.deptNotes['vehicules']) fds.deptNotes['vehicules'] = noteTxt;
       }
     }
 
