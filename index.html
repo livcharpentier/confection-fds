@@ -999,19 +999,26 @@ textarea.form-input{resize:vertical;min-height:72px;}
 
       <!-- IMPORT PDT -->
       <div class="card" style="margin-bottom:12px">
-        <div class="card-title">📋 Import PDT Excel
+        <div class="card-title">📋 Plan de travail (PDT)
           <span style="font-size:11px;font-weight:400;color:var(--text-muted)">(.xlsx / .csv)</span>
         </div>
-        <div style="font-size:12px;color:var(--text-muted);margin-bottom:10px">
-          L'app détecte les colonnes et te demande de confirmer le mapping avant d'importer.
-        </div>
-        <div id="import-pdt-status" style="margin-bottom:8px;font-size:12px"></div>
-        <label class="btn btn-secondary btn-block" style="cursor:pointer;text-align:center">
-          📂 Choisir un fichier PDT
+
+        <!-- Versions existantes -->
+        <div id="pdt-versions-list" style="margin-bottom:10px"></div>
+
+        <!-- Import nouveau PDT -->
+        <label class="btn btn-secondary btn-block" style="cursor:pointer;text-align:center;margin-bottom:6px">
+          📂 Importer un nouveau PDT
           <input type="file" accept=".xlsx,.xls,.csv" id="import-pdt-file" style="display:none" onchange="importPDTFile(this)"/>
         </label>
+        <div id="import-pdt-status" style="margin-bottom:8px;font-size:12px"></div>
         <div id="import-pdt-preview" style="margin-top:10px"></div>
-        <button class="btn btn-sm" style="margin-top:6px;color:#c00;border-color:#c00;border:1px solid" onclick="resetPDTImport()">🗑 Réinitialiser PDT</button>
+
+        <!-- Bouton comparaison -->
+        <div id="pdt-comparer-zone" style="display:none;margin-top:8px">
+          <button class="btn btn-sm" style="background:#1565c0;color:#fff;border:none" onclick="ouvrirComparaisonPDT()">🔍 Comparer les versions PDT</button>
+        </div>
+        <div id="pdt-comparaison-panel" style="display:none;margin-top:10px"></div>
       </div>
 
       <!-- IMPORT DÉPOUILLEMENT -->
@@ -6611,20 +6618,93 @@ function renderImportPage() {
   if (typeof renderImportPageFdsModeleStatus !== 'undefined') renderImportPageFdsModeleStatus();
 }
 
+function getPDTVersions() {
+  if (!activeFilmId) return [];
+  try {
+    var v = localStorage.getItem('pdt_versions_' + activeFilmId);
+    return v ? JSON.parse(v) : [];
+  } catch(e) { return []; }
+}
+
+function savePDTVersions(versions) {
+  if (!activeFilmId) return;
+  localStorage.setItem('pdt_versions_' + activeFilmId, JSON.stringify(versions));
+}
+
+function getActivePDTVersion() {
+  var versions = getPDTVersions();
+  var activeId = localStorage.getItem('pdt_active_' + activeFilmId);
+  if (activeId) {
+    var v = versions.find(function(v){ return v.id === activeId; });
+    if (v) return v;
+  }
+  return versions[versions.length - 1] || null; // dernière version par défaut
+}
+
 function renderImportPagePDTStatus() {
   if (!activeFilmId) return;
-  try {
-    var stored = localStorage.getItem('pdt_' + activeFilmId);
-    var statusEl = document.getElementById('import-pdt-status');
-    if (!statusEl) return;
-    if (stored) {
-      var pdt = JSON.parse(stored);
-      statusEl.innerHTML = '<div style="background:#d1fae5;padding:8px 10px;border-radius:6px;color:#065f46">'+
-        '✓ PDT importé : <b>'+pdt.length+' journées</b></div>';
-    } else {
-      statusEl.innerHTML = '<div style="color:#888;font-style:italic;font-size:12px">Aucun PDT importé — utilisation du PDT LEDR2 intégré</div>';
+  var versions = getPDTVersions();
+  var listEl = document.getElementById('pdt-versions-list');
+  var comparerZone = document.getElementById('pdt-comparer-zone');
+
+  if (!listEl) return;
+
+  if (!versions.length) {
+    listEl.innerHTML = '<div style="color:#888;font-style:italic;font-size:12px;padding:6px 0">Aucun PDT importé — utilisation du PDT LEDR2 intégré</div>';
+    if (comparerZone) comparerZone.style.display = 'none';
+    return;
+  }
+
+  var activeId = localStorage.getItem('pdt_active_' + activeFilmId) || versions[versions.length-1].id;
+  var html = '<div style="font-size:11px;font-weight:600;margin-bottom:4px">Versions importées (' + versions.length + ') :</div>';
+  versions.forEach(function(v, idx) {
+    var isActive = v.id === activeId;
+    html += '<div style="display:flex;align-items:center;gap:6px;padding:5px 8px;border-radius:6px;margin-bottom:4px;background:' + (isActive?'#ede9fe':'var(--surface-1)') + ';border:1px solid ' + (isActive?'var(--purple)':'var(--border)') + '">';
+    html += '<div style="flex:1">';
+    html += '<span style="font-weight:' + (isActive?'700':'400') + ';font-size:12px">' + escHtml(v.nom) + '</span>';
+    html += '<span style="font-size:10px;color:var(--text-muted);margin-left:6px">' + v.jours + ' jours · ' + v.date_import + '</span>';
+    if (isActive) html += ' <span style="font-size:9px;background:var(--purple);color:#fff;border-radius:99px;padding:1px 6px">ACTIVE</span>';
+    html += '</div>';
+    if (!isActive) {
+      html += '<button onclick="activerPDTVersion(this.dataset.id)" data-id="' + escHtml(v.id) + '" style="font-size:10px;padding:3px 8px;border:1px solid var(--purple);color:var(--purple);background:none;border-radius:4px;cursor:pointer">Activer</button>';
     }
-  } catch(e) {}
+    html += '<button onclick="supprimerPDTVersion(this.dataset.id)" data-id="' + escHtml(v.id) + '" style="font-size:10px;padding:3px 6px;border:1px solid #c00;color:#c00;background:none;border-radius:4px;cursor:pointer">🗑</button>';
+    html += '</div>';
+  });
+  listEl.innerHTML = html;
+  if (comparerZone) comparerZone.style.display = versions.length >= 2 ? 'block' : 'none';
+}
+
+function activerPDTVersion(id) {
+  localStorage.setItem('pdt_active_' + activeFilmId, id);
+  // Mettre à jour localStorage 'pdt_FILMID' pour compatibilité
+  var versions = getPDTVersions();
+  var v = versions.find(function(v){ return v.id === id; });
+  if (v && v.data) {
+    localStorage.setItem('pdt_' + activeFilmId, JSON.stringify(v.data));
+  }
+  renderImportPagePDTStatus();
+  toast('PDT v' + (versions.findIndex(function(v){return v.id===id;})+1) + ' activé ✓');
+}
+
+function supprimerPDTVersion(id) {
+  var versions = getPDTVersions();
+  var idx = versions.findIndex(function(v){ return v.id===id; });
+  if (idx < 0) return;
+  var nom = versions[idx].nom;
+  if (!confirm('Supprimer "' + nom + '" ?')) return;
+  versions.splice(idx, 1);
+  savePDTVersions(versions);
+  // Si c'était l'active, activer la dernière
+  var activeId = localStorage.getItem('pdt_active_' + activeFilmId);
+  if (activeId === id && versions.length > 0) {
+    activerPDTVersion(versions[versions.length-1].id);
+  } else if (!versions.length) {
+    localStorage.removeItem('pdt_active_' + activeFilmId);
+    localStorage.removeItem('pdt_' + activeFilmId);
+  }
+  renderImportPagePDTStatus();
+  toast('"' + nom + '" supprimé');
 }
 
 // Charge SheetJS à la demande
@@ -6823,9 +6903,10 @@ function resetImport(type) {
 
 function resetPDTImport() {
   if (!activeFilmId) return;
-  if (!confirm('Supprimer le PDT importé et revenir au PDT LEDR2 intégré ?')) return;
+  if (!confirm('Supprimer tout l\'historique PDT de ce film ?')) return;
   localStorage.removeItem('pdt_' + activeFilmId);
-  PDT_DATA = getPDTData();
+  localStorage.removeItem('pdt_versions_' + activeFilmId);
+  localStorage.removeItem('pdt_active_' + activeFilmId);
   renderImportPagePDTStatus();
   toast('PDT réinitialisé');
 }
@@ -6940,11 +7021,156 @@ function executerImportPDT(dataRows) {
       };
     });
     localStorage.setItem('pdt_' + activeFilmId, JSON.stringify(pdtData));
-    PDT_DATA = pdtData; // Mettre à jour la variable globale immédiatement
+    PDT_DATA = pdtData;
+
+    // Sauvegarder dans les versions
+    var versions = getPDTVersions();
+    var newId = 'pdt_v' + Date.now();
+    var now = new Date();
+    var dateStr = now.toLocaleDateString('fr-FR') + ' ' + now.toLocaleTimeString('fr-FR', {hour:'2-digit',minute:'2-digit'});
+    versions.push({
+      id: newId,
+      nom: 'PDT v' + (versions.length + 1),
+      jours: pdtData.length,
+      date_import: dateStr,
+      data: pdtData
+    });
+    savePDTVersions(versions);
+    localStorage.setItem('pdt_active_' + activeFilmId, newId);
+
   } catch(e) { console.warn('PDT localStorage save failed:', e); }
 
-  document.getElementById('import-pdt-preview').innerHTML = '<div style="background:#d1fae5;padding:10px;border-radius:6px;color:#065f46;font-weight:600">✓ '+count+' journée(s) importée(s) !</div>';
+  renderImportPagePDTStatus();
+  document.getElementById('import-pdt-preview').innerHTML = '<div style="background:#d1fae5;padding:10px;border-radius:6px;color:#065f46;font-weight:600">✓ '+count+' journée(s) importée(s) ! Version PDT ajoutée à l\'historique.</div>';
   toast(count + ' journées importées');
+}
+
+// ── COMPARAISON PDT ─────────────────────────────────────────────────────────
+function ouvrirComparaisonPDT() {
+  var versions = getPDTVersions();
+  if (versions.length < 2) { toast('Il faut au moins 2 versions PDT pour comparer'); return; }
+
+  var panel = document.getElementById('pdt-comparaison-panel');
+  if (!panel) return;
+  panel.style.display = 'block';
+
+  // Sélecteur des 2 versions à comparer
+  var opts = versions.map(function(v, i) {
+    return '<option value="' + i + '">' + escHtml(v.nom) + ' (' + v.date_import + ')</option>';
+  }).join('');
+
+  var html = '<div style="background:var(--surface-1);border:1px solid var(--border);border-radius:8px;padding:12px">';
+  html += '<div style="font-weight:600;font-size:13px;margin-bottom:10px">🔍 Comparaison de 2 versions PDT</div>';
+  html += '<div style="display:flex;gap:8px;align-items:center;margin-bottom:10px;flex-wrap:wrap">';
+  html += '<select id="pdt-cmp-v1" style="flex:1;padding:6px;border:1px solid var(--border);border-radius:6px;font-size:12px"><option value="">-- Version A --</option>' + opts + '</select>';
+  html += '<span style="font-size:14px;color:var(--text-muted)">vs</span>';
+  html += '<select id="pdt-cmp-v2" style="flex:1;padding:6px;border:1px solid var(--border);border-radius:6px;font-size:12px"><option value="">-- Version B --</option>' + opts + '</select>';
+  html += '<button onclick="lancerComparaisonPDT()" style="padding:6px 14px;background:var(--purple);color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:12px">Comparer</button>';
+  html += '</div>';
+  html += '<div id="pdt-cmp-result"></div>';
+  html += '</div>';
+  panel.innerHTML = html;
+}
+
+function lancerComparaisonPDT() {
+  var versions = getPDTVersions();
+  var i1 = parseInt(document.getElementById('pdt-cmp-v1').value);
+  var i2 = parseInt(document.getElementById('pdt-cmp-v2').value);
+  if (isNaN(i1) || isNaN(i2) || i1 === i2) { toast('Sélectionnez 2 versions différentes'); return; }
+
+  var v1 = versions[i1]; var v2 = versions[i2];
+  var d1 = v1.data || []; var d2 = v2.data || [];
+
+  // Indexer par numéro de journée
+  var map1 = {}; d1.forEach(function(j){ map1[j.jdt] = j; });
+  var map2 = {}; d2.forEach(function(j){ map2[j.jdt] = j; });
+  var allJdts = Object.keys(Object.assign({}, map1, map2)).map(Number).sort(function(a,b){return a-b;});
+
+  var html = '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:11px">';
+  html += '<tr style="background:#e8e8e8">';
+  html += '<th style="padding:4px 6px;border:1px solid #ccc;width:40px">J</th>';
+  html += '<th style="padding:4px 6px;border:1px solid #ccc">Date</th>';
+  html += '<th style="padding:4px 6px;border:1px solid #ccc">Séquences ' + escHtml(v1.nom) + '</th>';
+  html += '<th style="padding:4px 6px;border:1px solid #ccc">Séquences ' + escHtml(v2.nom) + '</th>';
+  html += '<th style="padding:4px 6px;border:1px solid #ccc">Différences</th>';
+  html += '<th style="padding:4px 6px;border:1px solid #ccc;width:80px">Action</th>';
+  html += '</tr>';
+
+  allJdts.forEach(function(jdt) {
+    var j1 = map1[jdt]; var j2 = map2[jdt];
+    var seqs1 = j1 ? (j1.sequences || []).join(', ') : '—';
+    var seqs2 = j2 ? (j2.sequences || []).join(', ') : '—';
+    var date1 = j1 ? (j1.date || '') : '';
+    var date2 = j2 ? (j2.date || '') : '';
+
+    var changed = seqs1 !== seqs2 || date1 !== date2;
+    var onlyIn1 = j1 && !j2;
+    var onlyIn2 = !j1 && j2;
+
+    var rowBg = onlyIn1 ? '#fff3cd' : onlyIn2 ? '#d4edda' : changed ? '#fce4ec' : '';
+    var diff = '';
+    if (onlyIn1) diff = '⚠️ Supprimée dans v2';
+    else if (onlyIn2) diff = '🆕 Nouvelle dans v2';
+    else if (changed) {
+      if (date1 !== date2) diff += '📅 Date ';
+      if (seqs1 !== seqs2) diff += '📋 Séquences ';
+    } else diff = '✓ Identique';
+
+    html += '<tr style="background:' + rowBg + '">';
+    html += '<td style="padding:3px 6px;border:1px solid #ddd;font-weight:700;text-align:center">J' + jdt + '</td>';
+    html += '<td style="padding:3px 6px;border:1px solid #ddd;font-size:10px">' + (date2 || date1 || '—') + '</td>';
+    html += '<td style="padding:3px 6px;border:1px solid #ddd;font-size:10px;color:#555">' + escHtml(seqs1) + '</td>';
+    html += '<td style="padding:3px 6px;border:1px solid #ddd;font-size:10px">' + escHtml(seqs2) + '</td>';
+    html += '<td style="padding:3px 6px;border:1px solid #ddd;font-size:10px">' + diff + '</td>';
+    if (changed && !onlyIn1 && j2) {
+      html += '<td style="padding:2px;border:1px solid #ddd;text-align:center"><button onclick="appliquerJourneePDT(' + i2 + ',' + jdt + ')" style="font-size:10px;padding:2px 6px;background:var(--purple);color:#fff;border:none;border-radius:4px;cursor:pointer">Appliquer v2</button></td>';
+    } else {
+      html += '<td style="padding:3px 6px;border:1px solid #ddd;text-align:center;color:#888;font-size:10px">—</td>';
+    }
+    html += '</tr>';
+  });
+
+  html += '</table></div>';
+  html += '<div style="margin-top:8px;display:flex;gap:6px">';
+  html += '<button onclick="appliquerToutPDT(' + i2 + ')" style="padding:6px 12px;background:var(--purple);color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:12px">Appliquer toutes les différences de ' + escHtml(v2.nom) + '</button>';
+  html += '<button onclick="document.getElementById(\'pdt-comparaison-panel\').style.display=\'none\'" style="padding:6px 12px;background:none;border:1px solid var(--border);border-radius:6px;cursor:pointer;font-size:12px">Fermer</button>';
+  html += '</div>';
+
+  document.getElementById('pdt-cmp-result').innerHTML = html;
+}
+
+function appliquerJourneePDT(versionIdx, jdt) {
+  var versions = getPDTVersions();
+  var v = versions[versionIdx];
+  if (!v || !v.data) return;
+  var j = v.data.find(function(j){ return j.jdt === jdt; });
+  if (!j) return;
+
+  // Mettre à jour le PDT actif pour cette journée
+  var activePDT = JSON.parse(localStorage.getItem('pdt_' + activeFilmId) || '[]');
+  var idx = activePDT.findIndex(function(d){ return d.jdt === jdt; });
+  if (idx >= 0) activePDT[idx] = j; else activePDT.push(j);
+  localStorage.setItem('pdt_' + activeFilmId, JSON.stringify(activePDT));
+  toast('J' + jdt + ' mise à jour depuis ' + v.nom + ' ✓');
+  lancerComparaisonPDT(); // Rafraîchir la comparaison
+}
+
+function appliquerToutPDT(versionIdx) {
+  var versions = getPDTVersions();
+  var v = versions[versionIdx];
+  if (!v || !v.data) return;
+  if (!confirm('Appliquer toutes les journées modifiées de "' + v.nom + '" dans le PDT actif ?')) return;
+
+  var activePDT = JSON.parse(localStorage.getItem('pdt_' + activeFilmId) || '[]');
+  v.data.forEach(function(j) {
+    var idx = activePDT.findIndex(function(d){ return d.jdt === j.jdt; });
+    if (idx >= 0) activePDT[idx] = j; else activePDT.push(j);
+  });
+  localStorage.setItem('pdt_' + activeFilmId, JSON.stringify(activePDT));
+  // Activer cette version
+  activerPDTVersion(v.id);
+  toast('PDT mis à jour depuis ' + v.nom + ' ✓');
+  document.getElementById('pdt-comparaison-panel').style.display = 'none';
 }
 
 // ── IMPORT DÉPOUILLEMENT PDF ───────────────────────────────────────────────
