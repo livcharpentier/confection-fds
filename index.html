@@ -1044,12 +1044,17 @@ textarea.form-input{resize:vertical;min-height:72px;}
         <div style="font-size:12px;color:var(--text-muted);margin-bottom:8px">
           Importe le dépouillement PDF (format standard Movie Magic / EP Scheduling) et pré-remplit les séquences, effets, décors, durées, rôles, figurants, cascades et véhicules de chaque journée.
         </div>
+        <div id="depo-versions-list" style="margin-bottom:8px"></div>
         <div id="import-depo-pdf-status" style="margin-bottom:8px;font-size:12px"></div>
         <label class="btn btn-block" style="cursor:pointer;text-align:center;background:#f1f8e9;border:2px solid #2e7d32;color:#2e7d32">
           📂 Choisir le PDF Dépouillement
           <input type="file" accept=".pdf" id="import-depo-pdf-file" style="display:none" onchange="importDepoPdfFile(this)"/>
         </label>
         <button class="btn btn-sm" style="margin-top:6px;color:#c00;border:1px solid #c00" onclick="resetImport('depo_pdf')">🗑 Effacer le dépouillement importé</button>
+        <div id="depo-comparer-zone" style="display:none;margin-top:6px">
+          <button onclick="ouvrirComparaisonDoc('depo','depo-comparer-panel','#2e7d32')" style="font-size:12px;padding:5px 12px;background:#2e7d32;color:#fff;border:none;border-radius:6px;cursor:pointer">🔍 Comparer les versions dépouillement</button>
+        </div>
+        <div id="depo-comparer-panel" style="margin-top:8px"></div>
         <div id="import-depo-pdf-preview" style="margin-top:10px"></div>
       </div>
 
@@ -1061,12 +1066,16 @@ textarea.form-input{resize:vertical;min-height:72px;}
         <div style="font-size:12px;color:var(--text-muted);margin-bottom:8px">
           Extrait automatiquement chaque séquence avec son texte. Lié au film actif, utilisé pour le Jour à Jour.
         </div>
+        <div id="scenario-versions-list" style="margin-bottom:8px"></div>
         <div id="import-scenario-status" style="margin-bottom:8px;font-size:12px"></div>
         <label class="btn btn-block" style="cursor:pointer;text-align:center;background:#fff8f0;border:2px solid #e65100;color:#e65100">
-          📂 Choisir le PDF du scénario
+          📂 Importer un nouveau scénario PDF
           <input type="file" accept=".pdf" id="import-scenario-file" style="display:none" onchange="importScenarioFile(this)"/>
         </label>
-        <button class="btn btn-sm" style="margin-top:6px;color:#c00;border:1px solid #c00" onclick="resetImport('scenario')">🗑 Effacer le scénario importé</button>
+        <div id="scenario-comparer-zone" style="display:none;margin-top:6px">
+          <button onclick="ouvrirComparaisonDoc('scenario','scenario-comparer-panel','#e65100')" style="font-size:12px;padding:5px 12px;background:#e65100;color:#fff;border:none;border-radius:6px;cursor:pointer">🔍 Comparer les versions scénario</button>
+        </div>
+        <div id="scenario-comparer-panel" style="margin-top:8px"></div>
         <div id="import-scenario-preview" style="margin-top:10px"></div>
       </div>
 
@@ -1757,7 +1766,8 @@ function showPage(name) {
   if (name === 'apercu-nav') { renderApercuNav(); }
   if (name === 'resume-convoc') { renderResumeConvoc(); }
   if (name === 'bilan') { renderBilan(); }
-  if (name === 'import') { renderImportPage(); }
+  if (name === 'import') {
+    setTimeout(initVersionsLists, 50); renderImportPage(); }
   if (name === 'jourAjour') {
     renderJourAJour();
     // Si pas de scénario encore, réessayer après chargement Supabase
@@ -6462,10 +6472,17 @@ function importScenarioFile(input) {
           // Stocker dans localStorage lié au film
           try {
             localStorage.setItem('scenario_' + activeFilmId, JSON.stringify(scenes));
+            // Ajouter aux versions
+            var verNum = getVersions('scenario').length + 1;
+            addVersion('scenario', 'Scénario v' + verNum, scenes, {seqs: scenes.length});
+            renderVersionsList('scenario','scenario-versions-list','#e65100');
+            var cz = document.getElementById('scenario-comparer-zone');
+            if (cz) cz.style.display = getVersions('scenario').length >= 2 ? 'block' : 'none';
           } catch(e) {
-            // Si trop lourd, stocker sans les textes longs
             var light = scenes.map(function(s){return Object.assign({},s,{texte:s.texte.slice(0,2000)});});
             localStorage.setItem('scenario_' + activeFilmId, JSON.stringify(light));
+            var verNum2 = getVersions('scenario').length + 1;
+            addVersion('scenario', 'Scénario v' + verNum2, light, {seqs: light.length});
           }
           // Synchroniser immédiatement vers Supabase (pas de délai)
           (function() {
@@ -7045,6 +7062,88 @@ function executerImportPDT(dataRows) {
   toast(count + ' journées importées');
 }
 
+// ── SYSTÈME DE VERSIONS GÉNÉRIQUE ──────────────────────────────────────────
+function getVersions(type) {
+  // type = 'pdt' | 'scenario' | 'depo'
+  if (!activeFilmId) return [];
+  try {
+    var v = localStorage.getItem(type + '_versions_' + activeFilmId);
+    return v ? JSON.parse(v) : [];
+  } catch(e) { return []; }
+}
+function saveVersions(type, versions) {
+  if (!activeFilmId) return;
+  try { localStorage.setItem(type + '_versions_' + activeFilmId, JSON.stringify(versions)); } catch(e) {}
+}
+function addVersion(type, nom, data, meta) {
+  var versions = getVersions(type);
+  var id = type + '_v' + Date.now();
+  var now = new Date();
+  var dateStr = now.toLocaleDateString('fr-FR') + ' ' + now.toLocaleTimeString('fr-FR', {hour:'2-digit',minute:'2-digit'});
+  versions.push(Object.assign({ id: id, nom: nom, date_import: dateStr, data: data }, meta||{}));
+  saveVersions(type, versions);
+  localStorage.setItem(type + '_active_' + activeFilmId, id);
+  return id;
+}
+function activerVersion(type, id) {
+  var versions = getVersions(type);
+  var v = versions.find(function(v){ return v.id === id; });
+  if (!v) return;
+  localStorage.setItem(type + '_active_' + activeFilmId, id);
+  // Mettre à jour le localStorage principal pour compatibilité
+  if (type === 'scenario') {
+    try { localStorage.setItem('scenario_' + activeFilmId, JSON.stringify(v.data)); } catch(e) {}
+  } else if (type === 'pdt') {
+    try { localStorage.setItem('pdt_' + activeFilmId, JSON.stringify(v.data)); } catch(e) {}
+  } else if (type === 'depo') {
+    window._depoDataPersisted = v.data;
+  }
+}
+function supprimerVersion(type, id) {
+  var versions = getVersions(type);
+  var idx = versions.findIndex(function(v){ return v.id === id; });
+  if (idx < 0) return;
+  var nom = versions[idx].nom;
+  if (!confirm('Supprimer "' + nom + '" ?')) return;
+  versions.splice(idx, 1);
+  saveVersions(type, versions);
+  var activeId = localStorage.getItem(type + '_active_' + activeFilmId);
+  if (activeId === id && versions.length > 0) {
+    activerVersion(type, versions[versions.length-1].id);
+    localStorage.setItem(type + '_active_' + activeFilmId, versions[versions.length-1].id);
+  } else if (!versions.length) {
+    localStorage.removeItem(type + '_active_' + activeFilmId);
+  }
+  return nom;
+}
+
+function renderVersionsList(type, containerId, color) {
+  var el = document.getElementById(containerId);
+  if (!el) return;
+  var versions = getVersions(type);
+  var activeId = localStorage.getItem(type + '_active_' + activeFilmId) || (versions.length ? versions[versions.length-1].id : '');
+  if (!versions.length) {
+    el.innerHTML = '<div style="color:#888;font-style:italic;font-size:12px;padding:4px 0">Aucune version importée</div>';
+    return;
+  }
+  var html = '<div style="font-size:11px;font-weight:600;margin-bottom:4px">Versions (' + versions.length + ') :</div>';
+  versions.forEach(function(v) {
+    var isActive = v.id === activeId;
+    var meta = v.seqs ? v.seqs + ' séq.' : v.jours ? v.jours + ' jours' : '';
+    html += '<div style="display:flex;align-items:center;gap:5px;padding:4px 8px;border-radius:6px;margin-bottom:3px;background:' + (isActive?'#ede9fe':'var(--surface-1)') + ';border:1px solid ' + (isActive?color:'var(--border)') + '">';
+    html += '<div style="flex:1;min-width:0">';
+    html += '<span style="font-weight:' + (isActive?'700':'400') + ';font-size:12px">' + escHtml(v.nom) + '</span>';
+    if (meta) html += '<span style="font-size:10px;color:var(--text-muted);margin-left:4px">(' + meta + ')</span>';
+    html += '<span style="font-size:10px;color:var(--text-muted);margin-left:4px">' + v.date_import + '</span>';
+    if (isActive) html += ' <span style="font-size:9px;background:' + color + ';color:#fff;border-radius:99px;padding:1px 5px">ACTIVE</span>';
+    html += '</div>';
+    if (!isActive) html += '<button onclick="activerVersionBtn(this)" data-type="' + type + '" data-id="' + escHtml(v.id) + '" data-container="' + containerId + '" data-color="' + escHtml(color) + '" style="font-size:10px;padding:2px 7px;border:1px solid ' + color + ';color:' + color + ';background:none;border-radius:4px;cursor:pointer;white-space:nowrap">Activer</button>';
+    html += '<button onclick="supprimerVersionBtn(this)" data-type="' + type + '" data-id="' + escHtml(v.id) + '" data-container="' + containerId + '" data-color="' + escHtml(color) + '" style="font-size:10px;padding:2px 5px;border:1px solid #c00;color:#c00;background:none;border-radius:4px;cursor:pointer">🗑</button>';
+    html += '</div>';
+  });
+  el.innerHTML = html;
+}
+
 // ── COMPARAISON PDT ─────────────────────────────────────────────────────────
 function ouvrirComparaisonPDT() {
   var versions = getPDTVersions();
@@ -7497,839 +7596,164 @@ function afficherDepoPdfPreview(journees, preview) {
 
   preview.innerHTML = html;
   window._depoData = journees;
+  // Ajouter aux versions dépouillement
+  if (activeFilmId) {
+    var verNumD = getVersions('depo').length + 1;
+    addVersion('depo', 'Dépouillement v' + verNumD, journees, {jours: journees.length});
+    renderVersionsList('depo','depo-versions-list','#2e7d32');
+    var czD = document.getElementById('depo-comparer-zone');
+    if (czD) czD.style.display = getVersions('depo').length >= 2 ? 'block' : 'none';
+  }
 }
 
-function depoDiag() {
-  var fds = (state.fds||[]).filter(function(f){return f.filmId===activeFilmId;});
-  var msg = 'FDS dans state pour ce film : ' + fds.length + '\n\n';
-  // Lister les jdt existants
-  var jdts = fds.map(function(f){return f.jdt;}).sort(function(a,b){return a-b;});
-  msg += 'jdt présents : ' + jdts.join(', ') + '\n\n';
-  // Compter les FDS vides (sans comédiens ni séquences remplies)
-  var vides = fds.filter(function(f){return !(f.comediens&&f.comediens.length)&&!(f.sequences&&f.sequences.length);});
-  msg += 'FDS vides (sans comédiens ni séquences) : ' + vides.length + '\n';
-  alert(msg);
+function supprimerVersionBtn(btn) {
+  var type = btn.dataset.type, id = btn.dataset.id;
+  var containerId = btn.dataset.container, color = btn.dataset.color;
+  var nom = supprimerVersion(type, id);
+  if (nom) { renderVersionsList(type, containerId, color); toast('"' + nom + '" supprimé'); }
 }
 
-function fusionnerDepoPdf(input) {
-  // Charge un 2e PDF de dépouillement et le fusionne avec window._depoData
-  if (!window._depoData) { toast('Chargez d\'abord un dépouillement principal'); return; }
-  if (!input.files || !input.files[0]) return;
-  var statusEl = document.getElementById('depo-fusion-status');
-  if (statusEl) statusEl.textContent = '⏳ Lecture du 2e PDF...';
+function activerVersionBtn(btn) {
+  var type = btn.dataset.type, id = btn.dataset.id;
+  var containerId = btn.dataset.container, color = btn.dataset.color;
+  activerVersion(type, id);
+  renderVersionsList(type, containerId, color);
+  toast('Version activée ✓');
+}
 
-  function loadPdfJs(cb) {
-    if (window.pdfjsLib) { cb(); return; }
-    var s = document.createElement('script');
-    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
-    s.onload = function() { pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js'; cb(); };
-    document.head.appendChild(s);
+function ouvrirComparaisonDoc(type, panelId, color) {
+  var versions = getVersions(type);
+  if (versions.length < 2) { toast('Il faut au moins 2 versions pour comparer'); return; }
+  var panel = document.getElementById(panelId);
+  if (!panel) return;
+  panel.style.display = panel.style.display === 'none' || !panel.style.display ? 'block' : 'none';
+  if (panel.style.display === 'none') return;
+
+  var opts = versions.map(function(v,i){ return '<option value="'+i+'">'+escHtml(v.nom)+' ('+v.date_import+')</option>'; }).join('');
+  var html = '<div style="background:var(--surface-1);border:1px solid var(--border);border-radius:8px;padding:10px;margin-top:4px">';
+  html += '<div style="display:flex;gap:6px;align-items:center;margin-bottom:8px;flex-wrap:wrap">';
+  html += '<select id="'+type+'-cmp-v1" style="flex:1;padding:5px;border:1px solid var(--border);border-radius:5px;font-size:11px"><option value="">-- Version A --</option>'+opts+'</select>';
+  html += '<span style="color:var(--text-muted)">vs</span>';
+  html += '<select id="'+type+'-cmp-v2" style="flex:1;padding:5px;border:1px solid var(--border);border-radius:5px;font-size:11px"><option value="">-- Version B --</option>'+opts+'</select>';
+  html += '<button onclick="lancerComparaisonDocBtn(this)" data-type="' + type + '" data-color="' + escHtml(color) + '" style="padding:5px 12px;background:' + color + ';color:#fff;border:none;border-radius:5px;cursor:pointer;font-size:11px">Comparer</button>';
+  html += '</div><div id="'+type+'-cmp-result"></div></div>';
+  panel.innerHTML = html;
+}
+
+function lancerComparaisonDocBtn(btn) {
+  lancerComparaisonDoc(btn.dataset.type, btn.dataset.color);
+}
+
+function lancerComparaisonDoc(type, color) {
+  var versions = getVersions(type);
+  var i1 = parseInt(document.getElementById(type+'-cmp-v1').value);
+  var i2 = parseInt(document.getElementById(type+'-cmp-v2').value);
+  if (isNaN(i1)||isNaN(i2)||i1===i2) { toast('Sélectionnez 2 versions différentes'); return; }
+  var v1 = versions[i1]; var v2 = versions[i2];
+  var d1 = v1.data||[]; var d2 = v2.data||[];
+
+  var html = '';
+
+  if (type === 'scenario') {
+    // Comparaison par numéro de séquence
+    var map1={}; d1.forEach(function(s){ map1[s.num]=s; });
+    var map2={}; d2.forEach(function(s){ map2[s.num]=s; });
+    var allNums = Object.keys(Object.assign({},map1,map2)).sort(function(a,b){
+      var na=parseFloat(a)||0, nb=parseFloat(b)||0; return na-nb;
+    });
+    var changes = allNums.filter(function(n){
+      var s1=map1[n], s2=map2[n];
+      if (!s1||!s2) return true;
+      return (s1.decor||'')!==(s2.decor||'') || (s1.effet||'')!==(s2.effet||'') || (s1.texte||'').slice(0,100)!==(s2.texte||'').slice(0,100);
+    });
+    if (!changes.length) { document.getElementById(type+'-cmp-result').innerHTML = '<div style="color:#2e7d32;padding:8px">✓ Aucune différence entre les 2 versions</div>'; return; }
+    html += '<div style="font-size:11px;color:'+color+';margin-bottom:6px;font-weight:600">'+changes.length+' séquence(s) différente(s) :</div>';
+    html += '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:10px">';
+    html += '<tr style="background:#e8e8e8"><th style="padding:3px 6px;border:1px solid #ccc">Séq.</th><th style="border:1px solid #ccc;padding:3px 6px">'+escHtml(v1.nom)+'</th><th style="border:1px solid #ccc;padding:3px 6px">'+escHtml(v2.nom)+'</th><th style="border:1px solid #ccc;padding:3px 6px;width:70px">Action</th></tr>';
+    changes.forEach(function(n) {
+      var s1=map1[n], s2=map2[n];
+      var bg = !s1?'#d4edda':!s2?'#fff3cd':'#fce4ec';
+      var info1 = s1 ? ((s1.effet||'')+(s1.decor?' – '+s1.decor.slice(0,30):'')) : '—';
+      var info2 = s2 ? ((s2.effet||'')+(s2.decor?' – '+s2.decor.slice(0,30):'')) : '—';
+      html += '<tr style="background:'+bg+'"><td style="padding:3px 6px;border:1px solid #ddd;font-weight:700">'+escHtml(n)+'</td>';
+      html += '<td style="padding:3px 6px;border:1px solid #ddd;color:#555">'+escHtml(info1)+'</td>';
+      html += '<td style="padding:3px 6px;border:1px solid #ddd">'+escHtml(info2)+'</td>';
+      if (s2) html += '<td style="padding:2px;border:1px solid #ddd;text-align:center"><button onclick="appliquerSeqVersionBtn(this)" data-type="' + type + '" data-vidx="' + i2 + '" data-seq="' + escHtml(n) + '" style="font-size:9px;padding:2px 5px;background:' + color + ';color:#fff;border:none;border-radius:3px;cursor:pointer">v2</button></td>';
+      else html += '<td style="padding:3px;border:1px solid #ddd;text-align:center;color:#888">—</td>';
+      html += '</tr>';
+    });
+    html += '</table></div>';
+    html += '<div style="margin-top:6px;display:flex;gap:6px"><button onclick="appliquerToutDoc(this)" data-type="' + type + '" data-vidx="' + i2 + '" style="padding:5px 10px;background:' + color + ';color:#fff;border:none;border-radius:5px;cursor:pointer;font-size:11px">Appliquer toutes les diff. de ' + escHtml(v2.nom) + '</button></div>';
+
+  } else if (type === 'depo') {
+    // Comparaison par numéro de journée
+    var map1={}; d1.forEach(function(j){ map1[j.numJour||j.jdt]=j; });
+    var map2={}; d2.forEach(function(j){ map2[j.numJour||j.jdt]=j; });
+    var allJdts = Object.keys(Object.assign({},map1,map2)).sort(function(a,b){return parseInt(a)-parseInt(b);});
+    var changes = allJdts.filter(function(jdt){
+      var j1=map1[jdt], j2=map2[jdt]; if(!j1||!j2) return true;
+      var s1=(j1.sequences||[]).map(function(s){return s.num||s;}).sort().join(',');
+      var s2=(j2.sequences||[]).map(function(s){return s.num||s;}).sort().join(',');
+      return s1 !== s2;
+    });
+    if (!changes.length) { document.getElementById(type+'-cmp-result').innerHTML = '<div style="color:#2e7d32;padding:8px">✓ Aucune différence</div>'; return; }
+    html += '<div style="font-size:11px;color:'+color+';margin-bottom:6px;font-weight:600">'+changes.length+' journée(s) différente(s) :</div>';
+    html += '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:10px">';
+    html += '<tr style="background:#e8e8e8"><th style="padding:3px 6px;border:1px solid #ccc">J</th><th style="border:1px solid #ccc;padding:3px 6px">Séq. '+escHtml(v1.nom)+'</th><th style="border:1px solid #ccc;padding:3px 6px">Séq. '+escHtml(v2.nom)+'</th><th style="border:1px solid #ccc;width:60px;padding:3px">Action</th></tr>';
+    changes.forEach(function(jdt) {
+      var j1=map1[jdt], j2=map2[jdt];
+      var bg = !j1?'#d4edda':!j2?'#fff3cd':'#fce4ec';
+      var seqs1 = j1 ? (j1.sequences||[]).map(function(s){return s.num||s;}).join(', ') : '—';
+      var seqs2 = j2 ? (j2.sequences||[]).map(function(s){return s.num||s;}).join(', ') : '—';
+      html += '<tr style="background:'+bg+'"><td style="padding:3px 6px;border:1px solid #ddd;font-weight:700">J'+jdt+'</td>';
+      html += '<td style="padding:3px 6px;border:1px solid #ddd;color:#555">'+escHtml(seqs1)+'</td>';
+      html += '<td style="padding:3px 6px;border:1px solid #ddd">'+escHtml(seqs2)+'</td>';
+      html += '<td style="padding:2px;border:1px solid #ddd;text-align:center">—</td></tr>';
+    });
+    html += '</table></div>';
+    html += '<div style="margin-top:6px"><button onclick="appliquerToutDoc(this)" data-type="' + type + '" data-vidx="' + i2 + '" style="padding:5px 10px;background:' + color + ';color:#fff;border:none;border-radius:5px;cursor:pointer;font-size:11px">Utiliser ' + escHtml(v2.nom) + ' comme dépouillement actif</button></div>';
   }
 
-  loadPdfJs(function() {
-    var reader = new FileReader();
-    reader.onload = function(e) {
-      pdfjsLib.getDocument({data: e.target.result}).promise.then(function(pdf) {
-        var promises = [];
-        for (var p = 1; p <= pdf.numPages; p++) {
-          promises.push(pdf.getPage(p).then(function(page) {
-            return page.getTextContent().then(function(tc) {
-              var items = tc.items, lines = [], lastY = null, curLine = '';
-              items.forEach(function(it) {
-                var y = it.transform ? Math.round(it.transform[5]) : 0;
-                if (lastY !== null && Math.abs(y - lastY) > 3) { if (curLine.trim()) lines.push(curLine.trim()); curLine = ''; }
-                curLine += it.str; lastY = y;
-              });
-              if (curLine.trim()) lines.push(curLine.trim());
-              return lines;
-            });
-          }));
-        }
-        Promise.all(promises).then(function(pagesLines) {
-          var allLines = [];
-          pagesLines.forEach(function(l) { allLines = allLines.concat(l); });
-          var nouvJournees = parseDepoPdf(allLines);
-          // Fusionner avec _depoData existant
-          var nbFusion = 0, nbNouvelles = 0;
-          nouvJournees.forEach(function(nj) {
-            var existing = window._depoData.find(function(j){ return j.numJour === nj.numJour; });
-            if (existing) {
-              // Fusionner séquence par séquence
-              nj.sequences.forEach(function(ns) {
-                var se = existing.sequences.find(function(s){ return jajNumMatch(s.num, ns.num); });
-                if (se) {
-                  // Compléter les champs vides
-                  if (!se.decor && ns.decor) { se.decor = ns.decor; nbFusion++; }
-                  if (!se.roles && ns.roles) { se.roles = ns.roles; nbFusion++; }
-                  if (!se.resume && ns.resume) { se.resume = ns.resume; }
-                  if (!se.effet && ns.effet) { se.effet = ns.effet; }
-                  if (!se.minutage && ns.minutage) { se.minutage = ns.minutage; }
-                  if (!se.cont && ns.cont) { se.cont = ns.cont; }
-                } else {
-                  existing.sequences.push(ns);
-                  nbNouvelles++;
-                }
-              });
-            } else {
-              window._depoData.push(nj);
-              nbNouvelles += nj.sequences.length;
-            }
-          });
-          input.value = '';
-          if (statusEl) statusEl.textContent = '✅ Fusionné : ' + nbFusion + ' champs complétés, ' + nbNouvelles + ' séquences ajoutées';
-          toast('Fusion réussie : ' + nbFusion + ' champs mis à jour');
-        });
-      }).catch(function(err) {
-        if (statusEl) statusEl.textContent = '❌ Erreur : ' + err.message;
-        input.value = '';
-      });
-    };
-    reader.readAsArrayBuffer(input.files[0]);
-  });
+  document.getElementById(type+'-cmp-result').innerHTML = html;
 }
 
-function jajReremplirResumes() {
-  // Reremplir les résumés manquants depuis le dépouillement PDF stocké
-  var nbMaj = 0;
-  if (!window._depoData || !window._depoData.length) {
-    toast('Réimportez le dépouillement PDF d\'abord'); return;
+function appliquerSeqVersionBtn(btn) {
+  appliquerSeqVersion(btn.dataset.type, parseInt(btn.dataset.vidx), btn.dataset.seq);
+}
+function appliquerSeqVersion(type, versionIdx, seqNum) {
+  // Applique une séquence spécifique de la version choisie dans le scénario actif
+  var versions = getVersions(type); var v = versions[versionIdx];
+  if (!v||!v.data) return;
+  var seq = v.data.find(function(s){ return s.num === seqNum; });
+  if (!seq) { toast('Séquence introuvable'); return; }
+  var sc = getScenarioForFilm();
+  var idx = sc.findIndex(function(s){ return s.num === seqNum; });
+  if (idx >= 0) sc[idx] = seq; else sc.push(seq);
+  try { localStorage.setItem('scenario_' + activeFilmId, JSON.stringify(sc)); save(); } catch(e) {}
+  toast('Séquence ' + seqNum + ' mise à jour ✓');
+  lancerComparaisonDoc(type, '#e65100');
+}
+
+function appliquerToutDoc(btnOrType, versionIdx) {
+  var type, idx;
+  if (typeof btnOrType === 'string') { type=btnOrType; idx=versionIdx; }
+  else { type=btnOrType.dataset.type; idx=parseInt(btnOrType.dataset.vidx); }
+  versionIdx = idx;
+  var versions = getVersions(type); var v = versions[versionIdx];
+  if (!v||!v.data) return;
+  if (!confirm('Appliquer toutes les modifications de "'+v.nom+'" ?')) return;
+  if (type === 'scenario') {
+    var sc = getScenarioForFilm();
+    v.data.forEach(function(seq) {
+      var sidx = sc.findIndex(function(s){ return s.num === seq.num; });
+      if (sidx >= 0) sc[sidx] = seq; else sc.push(seq);
+    });
+    try { localStorage.setItem('scenario_' + activeFilmId, JSON.stringify(sc)); save(); } catch(e) {}
+    toast('Scénario mis à jour depuis '+v.nom+' ✓');
+  } else if (type === 'depo') {
+    window._depoData = v.data;
+    toast('Dépouillement activé : '+v.nom+' — cliquer ✅ Importer pour appliquer aux FDS');
   }
-  var fdsExistantes = (state.fds||[]).filter(function(f){ return f.filmId===activeFilmId; });
-  window._depoData.forEach(function(j) {
-    var fds = fdsExistantes.find(function(f){ return f.jdt===j.numJour; });
-    if (!fds) return;
-    j.sequences.forEach(function(s) {
-      var seqExist = (fds.sequences||[]).find(function(se){ return jajNumMatch(se.num, s.num); });
-      if (seqExist) {
-        if (s.resume && !seqExist.resume) { seqExist.resume = s.resume; nbMaj++; }
-        if (s.effet && !seqExist.effet) seqExist.effet = s.effet;
-        if (s.decor && !seqExist.decor) seqExist.decor = s.decor;
-        if (s.minutage && !seqExist.duree) seqExist.duree = s.minutage;
-        if (s.cont && !seqExist.cont) seqExist.cont = s.cont;
-      }
-    });
-  });
-  save();
-  toast(nbMaj + ' résumés mis à jour ✓');
+  activerVersion(type, v.id);
+  renderVersionsList(type, type+'-versions-list', type==='scenario'?'#e65100':'#2e7d32');
 }
-
-function appliquerDepoPdf(journees) {
-  if (!journees || !journees.length) return;
-  var optSeqs = document.getElementById('depo-opt-seqs') && document.getElementById('depo-opt-seqs').checked;
-  var optFig  = document.getElementById('depo-opt-fig')  && document.getElementById('depo-opt-fig').checked;
-  var optCasc = document.getElementById('depo-opt-casc') && document.getElementById('depo-opt-casc').checked;
-  var optVehic= document.getElementById('depo-opt-vehic')&& document.getElementById('depo-opt-vehic').checked;
-  var optCost = document.getElementById('depo-opt-cost') && document.getElementById('depo-opt-cost').checked;
-  var optEcrase= document.getElementById('depo-opt-ecrase')&&document.getElementById('depo-opt-ecrase').checked;
-
-  var optCreer = document.getElementById('depo-opt-creer') && document.getElementById('depo-opt-creer').checked;
-
-  // Créer les FDS manquantes si option cochée
-  if (!state.fds) state.fds = [];
-  var nbCrees = 0;
-  if (optCreer) {
-    var pdtAll = typeof PDT_DATA !== 'undefined' ? PDT_DATA : [];
-    for (var ji = 0; ji < journees.length; ji++) {
-      var j = journees[ji];
-      var existe = null;
-      for (var fi = 0; fi < state.fds.length; fi++) {
-        if (state.fds[fi].filmId === activeFilmId && state.fds[fi].jdt === j.numJour) { existe = state.fds[fi]; break; }
-      }
-      if (!existe) {
-        nbCrees++;
-        var pdt2 = null;
-        for (var pi = 0; pi < pdtAll.length; pi++) { if (pdtAll[pi].jdt === j.numJour) { pdt2 = pdtAll[pi]; break; } }
-        var decor0 = pdt2 ? (pdt2.decors&&pdt2.decors[0]||pdt2.lieu||'') : '';
-        var seqNums = pdt2 ? (pdt2.sequences||[]) : [];
-        var roleNums = pdt2 ? (pdt2.roles||[]).map(function(r){return r.num;}).join(', ') : '';
-        var fds = {
-          id: 'fds_'+Date.now()+'_'+j.numJour+'_'+Math.random().toString(36).slice(2,5),
-          filmId: activeFilmId,
-          jdt: j.numJour,
-          infos: {
-            journee: pdt2?pdt2.journee:'J'+j.numJour,
-            date: pdt2?pdt2.date:'',
-            pat: pdt2?pdt2.pat||'':'',
-            debut: pdt2?pdt2.debut||'':'',
-            fin: pdt2?pdt2.fin||'':'',
-            repas:'', meteo:'', lever:'', coucher:'', crep_m:'', crep_s:'', note:''
-          },
-          lieux: [{label:'Décor 1',valeur:decor0},{label:'HMC',valeur:''},{label:'Loge comédiens',valeur:''},{label:'Loge figuration',valeur:''},{label:'FIGURATION',valeur:''},{label:'CANTINE',valeur:''},{label:'STATIONNEMENT VÉHIC. TECHNIQUES',valeur:''},{label:'STATIONNEMENT VÉHIC. PERSONNELS',valeur:''},{label:'PRODUCTION',valeur:''}],
-          sequences: seqNums.map(function(s){ return {num:s,effet:'',decor:decor0,resume:'',roles:roleNums,duree:'',cont:''}; }),
-          comediens: (function() {
-            if (!pdt2) return [];
-            // Construire index rôle→séquences depuis dépouillement + scénario
-            var roleSeqs = {};
-            // 1. Depuis le dépouillement
-            j.sequences.forEach(function(depSeq) {
-              if (!depSeq.roles) return;
-              depSeq.roles.split(/[,;]+/).forEach(function(r) {
-                var rNum = r.trim().replace(/^\s*(\d+).*/, '$1');
-                if (!rNum) return;
-                if (!roleSeqs[rNum]) roleSeqs[rNum] = [];
-                var n = String(depSeq.num||'').trim();
-                if (n && roleSeqs[rNum].indexOf(n) < 0) roleSeqs[rNum].push(n);
-              });
-            });
-            // 2. Depuis le scénario
-            try {
-              var sc = getScenarioForFilm() || [];
-              sc.forEach(function(scSeq) {
-                var matchJ = seqNums.find(function(sn){ return jajNumMatch(sn, scSeq.num); });
-                if (!matchJ || !scSeq.roles) return;
-                String(scSeq.roles).split(/[,;]+/).forEach(function(r) {
-                  var rNum = r.trim().replace(/^\s*(\d+).*/, '$1');
-                  if (!rNum) return;
-                  if (!roleSeqs[rNum]) roleSeqs[rNum] = [];
-                  var n = String(scSeq.num||'').trim();
-                  if (n && roleSeqs[rNum].indexOf(n) < 0) roleSeqs[rNum].push(n);
-                });
-              });
-            } catch(e) {}
-            return pdt2.roles.map(function(r) {
-              var mySeqs = roleSeqs[r.num] && roleSeqs[r.num].length ? roleSeqs[r.num] : seqNums;
-              return {type:'comedien',num:r.num,role:r.role,nom:r.comedien,seqs:mySeqs.join(', '),hmc:'',loges:'',pat:'',nbre:1};
-            });
-          })(),
-          deptNotes: {}, equipe: {}, transports: [], previsions: []
-        };
-        state.fds.push(fds);
-      }
-    } // fin for ji
-    state.fds.sort(function(a,b){return (a.jdt||0)-(b.jdt||0);});
-  }
-
-  var fdsExistantes = (state.fds||[]).filter(function(f){ return f.filmId === activeFilmId; });
-  var nbMaj = 0;
-  var nbSeqs = 0;
-
-  journees.forEach(function(j) {
-    var fds = fdsExistantes.find(function(f){ return f.jdt === j.numJour; });
-    if (!fds) return;
-
-    nbMaj++;
-    if (!fds.deptNotes) fds.deptNotes = {};
-
-    // ── SÉQUENCES ──
-    // Construire index rôle→séquences en croisant dépouillement + scénario
-    var roleSeqsDepo = {};
-
-    // 1. Depuis le dépouillement PDF
-    j.sequences.forEach(function(depSeq) {
-      if (!depSeq.roles) return;
-      var roleList = depSeq.roles.split(/[,;]+/).map(function(r){return r.trim().replace(/^\s*(\d+).*/,'$1');}).filter(Boolean);
-      roleList.forEach(function(rNum) {
-        if (!roleSeqsDepo[rNum]) roleSeqsDepo[rNum] = [];
-        var numClean = String(depSeq.num||'').trim();
-        if (numClean && roleSeqsDepo[rNum].indexOf(numClean) < 0) roleSeqsDepo[rNum].push(numClean);
-      });
-    });
-
-    // 2. Depuis le scénario importé — croiser les séquences de la journée
-    var scAll = [];
-    try { scAll = getScenarioForFilm() || []; } catch(e) {}
-    var seqNumsJour = j.sequences.map(function(s){ return String(s.num||'').trim(); });
-    scAll.forEach(function(scSeq) {
-      // Vérifier si cette séquence scénario appartient à la journée (matching souple)
-      var matchJour = seqNumsJour.find(function(jn){ return jajNumMatch(jn, scSeq.num); });
-      if (!matchJour) return;
-      // Extraire les rôles du texte scénario (noms en MAJUSCULES = personnages)
-      // On utilise aussi le champ roles si présent
-      if (scSeq.roles) {
-        var scRoles = String(scSeq.roles).split(/[,;]+/).map(function(r){return r.trim().replace(/^\s*(\d+).*/,'$1');}).filter(Boolean);
-        scRoles.forEach(function(rNum) {
-          if (!roleSeqsDepo[rNum]) roleSeqsDepo[rNum] = [];
-          var numClean = String(scSeq.num||'').trim();
-          if (numClean && roleSeqsDepo[rNum].indexOf(numClean) < 0) roleSeqsDepo[rNum].push(numClean);
-        });
-      }
-    });
-
-    // Décors PDT de la journée (valeurs génériques à remplacer si possible)
-    var pdtJour = (typeof PDT_DATA !== 'undefined') ? PDT_DATA.find(function(p){return p.jdt===fds.jdt;}) : null;
-    var pdtDecors = pdtJour ? (pdtJour.decors||[]) : [];
-    var optDecors = document.getElementById('depo-opt-decors') && document.getElementById('depo-opt-decors').checked;
-
-    if (optSeqs) {
-      j.sequences.forEach(function(s) {
-        var seqExist = (fds.sequences||[]).find(function(se){ return jajNumMatch(se.num, s.num); });
-        if (seqExist) {
-          if (optEcrase || !seqExist.effet) seqExist.effet = s.effet || seqExist.effet;
-          // Décor : remplacer si option cochée OU si le décor existant est une valeur PDT générique
-          var decorExistEstPDT = pdtDecors.indexOf(seqExist.decor) >= 0;
-          if (optEcrase || optDecors || !seqExist.decor || decorExistEstPDT) {
-            if (s.decor) seqExist.decor = s.decor;
-          }
-          if (optEcrase || !seqExist.resume) seqExist.resume = s.resume || seqExist.resume;
-          if (optEcrase || !seqExist.duree) seqExist.duree = s.minutage || seqExist.duree;
-          if (optEcrase || !seqExist.cont) seqExist.cont = s.cont || seqExist.cont;
-          // Rôles : remplacer si option cochée OU si les rôles viennent du PDT (toutes les séquences ont les mêmes rôles = tous les rôles du jour)
-          var pdtRoles = pdtJour ? (pdtJour.roles||[]).map(function(r){return r.num;}) : [];
-          var rolesExist = (seqExist.roles||'').split(/[,\s]+/).map(function(r){return r.trim();}).filter(Boolean).sort().join(',');
-          var rolesFromPdt = pdtRoles.slice().sort().join(',');
-          var rolesEstPDT = rolesExist === rolesFromPdt;
-          if (optEcrase || optDecors || !seqExist.roles || rolesEstPDT) {
-            if (s.roles) seqExist.roles = s.roles;
-          }
-        } else {
-          if (!fds.sequences) fds.sequences = [];
-          fds.sequences.push({ num: s.num, effet: s.effet, decor: s.decor, resume: s.resume, roles: s.roles || '', duree: s.minutage, cont: s.cont });
-          nbSeqs++;
-        }
-      });
-    }
-
-    // ── SÉQUENCES PAR COMÉDIEN + DOUBLURES + SILHOUETTES + CASCADEURS ──
-    if (optSeqs) {
-
-      // 1. Mettre à jour les seqs des comédiens existants
-      (fds.comediens||[]).forEach(function(c) {
-        var rNum = String(c.num||'').trim();
-        if (roleSeqsDepo[rNum] && roleSeqsDepo[rNum].length) {
-          c.seqs = roleSeqsDepo[rNum].join(', ');
-        }
-        // Doublures image : mêmes séquences que le personnage doublé
-        if (c.type === 'doublure') {
-          var refMatch = (c.role||'').match(/Doublure(?:\s+image)?\s+(.+)/i);
-          if (refMatch) {
-            var refName = refMatch[1].trim().toUpperCase();
-            var refCom = (fds.comediens||[]).find(function(x){ return x.role && x.role.toUpperCase() === refName && x.type === 'comedien'; });
-            if (refCom && refCom.seqs) c.seqs = refCom.seqs;
-          }
-        }
-      });
-
-      // 2. Ajouter/mettre à jour silhouettes depuis le dépouillement
-      var silIndex = {}; // "S3 - Pilote Avion" → [séquences]
-      j.sequences.forEach(function(depSeq) {
-        if (!depSeq.silhouettes) return;
-        var numClean = String(depSeq.num||'').trim();
-        depSeq.silhouettes.split(/\n/).forEach(function(sil) {
-          sil = sil.trim();
-          if (!sil) return;
-          // Format: "S3 - Pilote Avion (Parlante)"
-          var mS = sil.match(/^(S\d+)\s*[-–]\s*(.+?)(?:\s*\(Parlante\))?\s*$/i);
-          var key = mS ? mS[1] : sil.slice(0,20);
-          var label = mS ? sil : sil;
-          if (!silIndex[key]) silIndex[key] = {label: label, seqs: [], parlante: /parlante/i.test(sil)};
-          if (numClean && silIndex[key].seqs.indexOf(numClean) < 0) silIndex[key].seqs.push(numClean);
-        });
-      });
-      Object.keys(silIndex).forEach(function(key) {
-        var si = silIndex[key];
-        var exist = (fds.comediens||[]).find(function(c){ return c.num === key; });
-        if (exist) {
-          exist.seqs = si.seqs.join(', ');
-        } else {
-          if (!fds.comediens) fds.comediens = [];
-          fds.comediens.push({type: si.parlante ? 'silhouette_parlante' : 'silhouette', num: key, role: si.label, nom: '', seqs: si.seqs.join(', '), hmc:'', loges:'', pat:'', nbre:1});
-        }
-      });
-
-      // 3. Cascadeurs depuis le dépouillement
-      var cascIndex = {};
-      j.sequences.forEach(function(depSeq) {
-        var numClean = String(depSeq.num||'').trim();
-        // Cascades physiques
-        if (depSeq.cascades_phys) {
-          depSeq.cascades_phys.split(/,|;/).forEach(function(casc) {
-            casc = casc.trim();
-            if (!casc || /^R[eé]gleur/i.test(casc)) return; // skip régleur générique
-            var key = 'CASC_' + casc.slice(0,15).replace(/\s+/g,'_');
-            if (!cascIndex[key]) cascIndex[key] = {label: casc, seqs: [], type: 'cascadeur'};
-            if (numClean && cascIndex[key].seqs.indexOf(numClean) < 0) cascIndex[key].seqs.push(numClean);
-          });
-        }
-        // Cascades véhicules
-        if (depSeq.cascades_veh) {
-          depSeq.cascades_veh.split(/,|;/).forEach(function(casc) {
-            casc = casc.trim();
-            if (!casc || /^R[eé]gleur/i.test(casc)) return;
-            var key = 'CASCV_' + casc.slice(0,15).replace(/\s+/g,'_');
-            if (!cascIndex[key]) cascIndex[key] = {label: casc, seqs: [], type: 'cascade_vehicule'};
-            if (numClean && cascIndex[key].seqs.indexOf(numClean) < 0) cascIndex[key].seqs.push(numClean);
-          });
-        }
-      });
-      // Ajouter les régleurs si cascades présentes
-      var hasPhys = j.sequences.some(function(s){ return s.cascades_phys; });
-      var hasVeh = j.sequences.some(function(s){ return s.cascades_veh; });
-      if (hasPhys && !(fds.comediens||[]).find(function(c){ return c.num==='REGL_PHYS'; })) {
-        if (!fds.comediens) fds.comediens = [];
-        var seqsPhys = j.sequences.filter(function(s){return s.cascades_phys;}).map(function(s){return String(s.num||'');});
-        fds.comediens.push({type:'cascadeur',num:'REGL_PHYS',role:'Régleur cascade physique',nom:'',seqs:seqsPhys.join(', '),hmc:'',loges:'',pat:'',nbre:1});
-      }
-      if (hasVeh && !(fds.comediens||[]).find(function(c){ return c.num==='REGL_VEH'; })) {
-        if (!fds.comediens) fds.comediens = [];
-        var seqsVeh = j.sequences.filter(function(s){return s.cascades_veh;}).map(function(s){return String(s.num||'');});
-        fds.comediens.push({type:'cascade_vehicule',num:'REGL_VEH',role:'Régleur cascade véhicule',nom:'',seqs:seqsVeh.join(', '),hmc:'',loges:'',pat:'',nbre:1});
-      }
-    }
-
-    // ── FIGURANTS ──
-    if (optFig) {
-      // Agréger tous les figurants de toutes les séquences du jour
-      // Construire des lignes de figurants réelles depuis le dépouillement
-      // Regrouper par description de figurant + agréger les séquences
-      var figMap = {};  // clé = description figurant, valeur = {nbre, seqNums[]}
-      var totalFig = 0;
-      var figDescParts = [];
-      j.sequences.forEach(function(s) {
-        if (s.nbFig > 0) {
-          totalFig += s.nbFig;
-          if (s.figurants) {
-            // Le dépouillement donne une description des figurants par séquence
-            var desc = s.figurants.replace(/\n/g,' ').trim();
-            // Essayer de trouver si une ligne similaire existe déjà
-            var found = null;
-            Object.keys(figMap).forEach(function(k){
-              // Match approximatif : 70% des mots en commun
-              var kWords = k.toLowerCase().split(/\s+/);
-              var dWords = desc.toLowerCase().split(/\s+/);
-              var common = kWords.filter(function(w){ return dWords.indexOf(w)>=0; });
-              if (common.length >= Math.min(kWords.length, dWords.length) * 0.6) found = k;
-            });
-            if (found) {
-              figMap[found].seqs.push(s.num);
-            } else {
-              figMap[desc] = { nbre: s.nbFig, seqs: [s.num], desc: desc };
-            }
-            figDescParts.push('Sc.' + s.num + ' : ' + s.nbFig + 'F — ' + desc);
-          }
-        }
-      });
-
-      if (optFig && Object.keys(figMap).length) {
-        // Créer de vraies lignes de figurants dans f.comediens
-        if (!fds.comediens) fds.comediens = [];
-        Object.keys(figMap).forEach(function(desc) {
-          var fm = figMap[desc];
-          // Chercher si une ligne similaire existe déjà
-          var existFig = fds.comediens.find(function(c){
-            return c.type==='figurant' && c.role && c.role.toLowerCase().indexOf(desc.toLowerCase().substring(0,10)) >= 0;
-          });
-          if (!existFig || optEcrase) {
-            var newFig = { type:'figurant', num:'', role: desc, nom:'', seqs: fm.seqs.join(', '), nbre: fm.nbre, hmc:'', loges:'', pat:'', mep:'', note:'' };
-            if (!existFig) {
-              fds.comediens.push(newFig);
-            } else if (optEcrase) {
-              existFig.seqs = fm.seqs.join(', ');
-              existFig.nbre = fm.nbre;
-            }
-          }
-        });
-        // Mettre à jour fig_desc
-        if (totalFig > 0 && (optEcrase || !fds.fig_desc)) {
-          fds.fig_desc = 'FIGURATION : ' + totalFig + ' figurant(s)';
-        }
-      }
-
-      // Aussi mettre dans lieux FIGURATION (résumé texte)
-      if (figDescParts.length) {
-        var figTexte = figDescParts.join('\n');
-        var lieuFig = (fds.lieux||[]).find(function(l){ return l.label === 'FIGURATION'; });
-        if (lieuFig) {
-          if (optEcrase || !lieuFig.valeur) lieuFig.valeur = figTexte;
-        } else {
-          if (!fds.lieux) fds.lieux = [];
-          fds.lieux.push({label:'FIGURATION', valeur: figTexte});
-        }
-      }
-    }
-
-    // ── CASCADES ──
-    if (optCasc) {
-      var cascPhysLines = [];
-      var cascVehLines = [];
-      j.sequences.forEach(function(s) {
-        if (s.cascades_phys) cascPhysLines.push('Sc.' + s.num + ' : ' + s.cascades_phys);
-        if (s.cascades_veh)  cascVehLines.push('Sc.' + s.num + ' : ' + s.cascades_veh);
-      });
-      if (cascPhysLines.length) {
-        var txt = cascPhysLines.join('\n');
-        if (optEcrase || !fds.deptNotes['mise_en_scene']) fds.deptNotes['cascadeurs_phys'] = txt;
-        // On met dans coach_enfants ou mise_en_scene selon besoin — ici on enrichit vehicules
-        var existNote = fds.deptNotes['machinerie'] || '';
-        if (optEcrase) fds.deptNotes['machinerie'] = txt;
-        else if (!existNote) fds.deptNotes['machinerie'] = txt;
-      }
-      if (cascVehLines.length) {
-        var txt2 = cascVehLines.join('\n');
-        var existVeh = fds.deptNotes['vehicules'] || '';
-        if (optEcrase) fds.deptNotes['vehicules'] = txt2;
-        else fds.deptNotes['vehicules'] = existVeh ? existVeh + '\n' + txt2 : txt2;
-      }
-    }
-
-    // ── VÉHICULES ──
-    if (optVehic) {
-      var vehicLines = [];
-      j.sequences.forEach(function(s) {
-        if (s.vehicules) vehicLines.push('Sc.' + s.num + ' : ' + s.vehicules);
-      });
-      if (vehicLines.length) {
-        var txtV = vehicLines.join('\n');
-        var existV = fds.deptNotes['vehicules'] || '';
-        if (optEcrase) fds.deptNotes['vehicules'] = txtV;
-        else fds.deptNotes['vehicules'] = existV ? existV + '\n\nVÉHICULES :\n' + txtV : 'VÉHICULES :\n' + txtV;
-      }
-    }
-
-    // ── COSTUMES ──
-    if (optCost) {
-      var costLines = [];
-      j.sequences.forEach(function(s) {
-        if (s.costumes) costLines.push('Sc.' + s.num + ' : ' + s.costumes);
-      });
-      if (costLines.length) {
-        var txtC = costLines.join('\n');
-        var existC = fds.deptNotes['costumes'] || '';
-        if (optEcrase) fds.deptNotes['costumes'] = txtC;
-        else fds.deptNotes['costumes'] = existC ? existC + '\n' + txtC : txtC;
-      }
-    }
-  });
-
-  save();
-
-  var totalFds = (state.fds||[]).filter(function(f){return f.filmId===activeFilmId;}).length;
-  var preview = document.getElementById('import-depo-pdf-preview');
-  preview.innerHTML = '<div style="background:#e8f5e9;border:1px solid #2e7d32;border-radius:8px;padding:12px">' +
-    '<div style="font-weight:700;color:#2e7d32;font-size:14px">✅ Import terminé</div>' +
-    '<div style="font-size:12px;margin-top:4px">' + nbCrees + ' FDS créées · ' + nbMaj + ' mises à jour · ' + nbSeqs + ' séquences · ' + totalFds + ' FDS au total</div>' +
-    '</div>';
-
-  var status = document.getElementById('import-depo-pdf-status');
-  if (status) status.innerHTML = '<div style="color:#2e7d32;font-size:12px">✓ ' + totalFds + ' FDS — ' + nbCrees + ' créées · ' + nbMaj + ' mises à jour</div>';
-
-  toast(nbCrees + ' FDS créées · ' + totalFds + ' au total ✓');
-  window._depoData = null;
-
-  if (activeFdsId) renderAll();
-  renderFilms();
-}
-
-// ── IMPORT DÉPOUILLEMENT ───────────────────────────────────────────────────
-function importDepoFile(input) {
-  if (!input.files || !input.files[0]) return;
-  var file = input.files[0];
-  var preview = document.getElementById('import-depo-preview');
-  preview.innerHTML = '<div style="color:#888;padding:8px">Lecture en cours...</div>';
-  loadSheetJS(function() {
-    var reader = new FileReader();
-    reader.onload = function(e) {
-      try {
-        var wb = XLSX.read(e.target.result, {type:'binary'});
-        var sheetNames = wb.SheetNames;
-        if (sheetNames.length > 1) {
-          var html = '<div style="margin-bottom:8px"><label style="font-size:12px;font-weight:600">Onglet à utiliser :</label><br>';
-          html += '<select id="depo-sheet-select" class="form-input" style="margin-top:4px">';
-          sheetNames.forEach(function(n){ html += '<option value="'+n+'">'+n+'</option>'; });
-          html += '</select></div>';
-          html += '<button class="btn btn-secondary btn-sm" onclick="parseDepoSheet(window._wbDepo, document.getElementById(\'depo-sheet-select\').value)">Analyser →</button>';
-          preview.innerHTML = html;
-          window._wbDepo = wb;
-        } else {
-          parseDepoSheet(wb, sheetNames[0]);
-        }
-      } catch(err) {
-        preview.innerHTML = '<div style="color:#c00">Erreur : ' + err.message + '</div>';
-      }
-    };
-    reader.readAsBinaryString(file);
-    input.value = '';
-  });
-}
-
-var COL_LABELS_DEPO = {
-  sequence: 'N° Séquence',
-  effet: 'Effet (I/J, E/J…)',
-  decor: 'Décor / Lieu',
-  resume: 'Résumé de la scène',
-  roles: 'Rôles présents',
-  duree: 'Durée (min)',
-  cont: 'Continuité (J1, J2…)',
-  journee: 'Journée de tournage'
-};
-
-function parseDepoSheet(wb, sheetName) {
-  var preview = document.getElementById('import-depo-preview');
-  var ws = wb.Sheets[sheetName];
-  var rows = XLSX.utils.sheet_to_json(ws, {header:1, defval:''});
-  if (!rows || rows.length < 2) { preview.innerHTML = '<div style="color:#c00">Feuille vide</div>'; return; }
-
-  var headerRowIdx = 0;
-  for (var r = 0; r < Math.min(10, rows.length); r++) {
-    if (rows[r].filter(function(c){ return String(c).trim()!==''; }).length >= 3) { headerRowIdx = r; break; }
-  }
-  var headers = rows[headerRowIdx].map(function(h){ return String(h).trim(); });
-  var dataRows = rows.slice(headerRowIdx+1).filter(function(r){ return r.some(function(c){ return String(c).trim()!==''; }); });
-
-  // Auto-détection
-  var hints = {
-    sequence: ['séquence','sequence','seq','sc','scène','scene','n°'],
-    effet: ['effet','int','ext','i/j','e/j','int/jour','ext/nuit'],
-    decor: ['décor','decor','lieu','location','set'],
-    resume: ['résumé','resume','synopsis','description','action','contenu'],
-    roles: ['rôle','role','personnage','acteur','cast','comédien'],
-    duree: ['durée','duree','duration','min','tps','temps'],
-    cont: ['continuité','continuite','chronologie','cont','date','période'],
-    journee: ['journée','journee','jour','jdt','shooting day']
-  };
-  var colMap = {};
-  headers.forEach(function(h, i) {
-    var hl = h.toLowerCase().trim();
-    Object.keys(hints).forEach(function(field) {
-      if (colMap[field] !== undefined) return;
-      hints[field].forEach(function(hint) {
-        if (hl.indexOf(hint) !== -1 && colMap[field] === undefined) colMap[field] = i;
-      });
-    });
-  });
-
-  var sample = dataRows.slice(0, 3);
-  var html = '<div style="font-size:12px;font-weight:700;margin-bottom:6px;color:var(--purple)">Mapping des colonnes dépouillement :</div>';
-  html += '<div style="font-size:10px;color:#888;margin-bottom:8px">'+dataRows.length+' séquences détectées.</div>';
-  html += '<table style="width:100%;border-collapse:collapse;font-size:11px;margin-bottom:10px">';
-  Object.keys(COL_LABELS_DEPO).forEach(function(field) {
-    html += '<tr><td style="padding:4px 6px;border:1px solid #ddd;font-weight:600;width:150px">'+COL_LABELS_DEPO[field]+'</td>';
-    html += '<td style="padding:4px 2px;border:1px solid #ddd"><select id="depo-col-'+field+'" class="form-input" style="font-size:11px;padding:3px 6px">';
-    html += '<option value="">— Ignorer —</option>';
-    headers.forEach(function(h, i) {
-      html += '<option value="'+i+'"'+(colMap[field]===i?' selected':'')+'>'+( h||'Col '+(i+1))+'</option>';
-    });
-    html += '</select></td>';
-    var pv = colMap[field]!==undefined && sample[0] ? String(sample[0][colMap[field]]||'') : '';
-    html += '<td style="padding:4px 6px;border:1px solid #ddd;color:#888;font-size:10px;max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+pv+'</td></tr>';
-  });
-  html += '</table>';
-  html += '<div style="overflow-x:auto"><table style="border-collapse:collapse;font-size:10px;min-width:400px">';
-  html += '<tr style="background:#f0f0f0">'+headers.map(function(h){ return '<th style="padding:3px 5px;border:1px solid #ccc;white-space:nowrap">'+h+'</th>'; }).join('')+'</tr>';
-  sample.forEach(function(row) {
-    html += '<tr>'+headers.map(function(_,i){ return '<td style="padding:2px 5px;border:1px solid #ddd;white-space:nowrap;max-width:120px;overflow:hidden;text-overflow:ellipsis">'+String(row[i]||'')+'</td>'; }).join('')+'</tr>';
-  });
-  html += '</table></div>';
-  html += '<div style="margin-top:10px;display:flex;gap:8px">';
-  html += '<button class="btn btn-primary" style="flex:1" onclick="executerImportDepo(window._depoDataRows)">✓ Importer '+dataRows.length+' séquences</button>';
-  html += '<button class="btn btn-secondary btn-sm" onclick="document.getElementById(\'import-depo-preview\').innerHTML=\'\'">Annuler</button>';
-  html += '</div>';
-
-  preview.innerHTML = html;
-  window._depoDataRows = dataRows;
-}
-
-function executerImportDepo(dataRows) {
-  if (!activeFilmId) { toast('Sélectionnez un film d\'abord'); return; }
-  var fields = Object.keys(COL_LABELS_DEPO);
-  var colMap = {};
-  fields.forEach(function(f) {
-    var el = document.getElementById('depo-col-'+f);
-    if (el && el.value !== '') colMap[f] = parseInt(el.value);
-  });
-
-  if (colMap.sequence === undefined) { toast('Associe la colonne "N° Séquence"'); return; }
-
-  // Construire un index séquence→données
-  var depoIndex = {};
-  dataRows.forEach(function(row) {
-    var seq = String(row[colMap.sequence]||'').trim();
-    if (!seq) return;
-    depoIndex[seq] = {
-      effet:    colMap.effet  !== undefined ? String(row[colMap.effet]||'').trim() : '',
-      decor:    colMap.decor  !== undefined ? String(row[colMap.decor]||'').trim() : '',
-      resume:   colMap.resume !== undefined ? String(row[colMap.resume]||'').trim() : '',
-      roles:    colMap.roles  !== undefined ? String(row[colMap.roles]||'').trim() : '',
-      duree:    colMap.duree  !== undefined ? String(row[colMap.duree]||'').trim() : '',
-      cont:     colMap.cont   !== undefined ? String(row[colMap.cont]||'').trim() : '',
-      journee:  colMap.journee!== undefined ? String(row[colMap.journee]||'').trim() : ''
-    };
-  });
-
-  // Mettre à jour toutes les FDS du film actif
-  var count = 0;
-  (state.fds||[]).filter(function(f){ return f.filmId===activeFilmId; }).forEach(function(fds) {
-    (fds.sequences||[]).forEach(function(s) {
-      var key = String(s.num||'').trim().toUpperCase().replace(/\s+/g,'');
-      var depoMatch = depoIndex[key] || depoIndex[String(s.num||'').trim()];
-      // Cherche aussi avec espaces normalisés
-      if (!depoMatch) {
-        Object.keys(depoIndex).forEach(function(dk) {
-          if (dk.toUpperCase().replace(/\s+/g,'') === key) depoMatch = depoIndex[dk];
-        });
-      }
-      if (depoMatch) { var d = depoMatch;
-        if (d.effet && !s.effet) { s.effet = d.effet; count++; }
-        if (d.decor && !s.decor) s.decor = d.decor;
-        if (d.resume && !s.resume) s.resume = d.resume;
-        if (d.roles && !s.roles) s.roles = d.roles;
-        if (d.duree && !s.duree) s.duree = d.duree;
-        if (d.cont && !s.cont) s.cont = d.cont;
-      }
-    });
-  });
-
-  save();
-  document.getElementById('import-depo-preview').innerHTML = '<div style="background:#d1fae5;padding:10px;border-radius:6px;color:#065f46;font-weight:600">✓ '+Object.keys(depoIndex).length+' séquences importées, '+count+' champs renseignés !</div>';
-  toast('Dépouillement importé');
-}
-
-// ═══════════════════════ UTILS ═══════════════════════
-function fmtTime(t) {
-  if (!t) return '—';
-  return t.replace(':', 'H');
-}
-
-// ═══════════════════════ PDT DATA ═══════════════════════
-// PDT_DATA : données LEDR2 par défaut (fallback si pas d'import pour le film actif)
-const PDT_DATA_LEDR2 = [{"jdt":1,"journee":"J1","date":"Mardi 2 juin 2026","pat":"09:","debut":"09:","fin":"18:","lieu":"PARIS 15ème / 14ème","decors":["PARIS 11 - Epicerie André/Arrière Boutique","PARIS 11 - Epicerie André","PARIS 11 - Rue épicerie","EPICERIE ANDRE - Arrière boutique"],"sequences":["55 B","55 A","106","107"],"roles":[{"num":"1","role":"FRANÇOIS","comedien":"Lucas HECTOR"},{"num":"7","role":"ANDRÉ (ONCLE)","comedien":"François Xavier DEMAISON"},{"num":"15","role":"VIVIANE","comedien":"Marion CREUSVAUX"},{"num":"26","role":"NOTABLE EPICERIE","comedien":"Christophe FAVRE"},{"num":"27","role":"PÈRE SAMUEL","comedien":"Samuel BRAFMAN"},{"num":"28","role":"MÈRE SAMUEL","comedien":"Marie ZABUKOVEC"},{"num":"29","role":"SAMUEL (7/8 ans)","comedien":"Jules MARIOT"}]},{"jdt":2,"journee":"J2","date":"Mercredi 3 juin 2026","pat":"09:","debut":"09:","fin":"18:","lieu":"PARIS 15ème / 14ème","decors":["PARIS 11 - Epicerie André"],"sequences":["108"],"roles":[{"num":"1","role":"FRANÇOIS","comedien":"Lucas HECTOR"},{"num":"7","role":"ANDRÉ (ONCLE)","comedien":"François Xavier DEMAISON"},{"num":"27","role":"PÈRE SAMUEL","comedien":"Samuel BRAFMAN"},{"num":"28","role":"MÈRE SAMUEL","comedien":"Marie ZABUKOVEC"},{"num":"29","role":"SAMUEL (7/8 ans)","comedien":"Jules MARIOT"},{"num":"38","role":"COMMISSAIRE","comedien":"Philippe BEAUTIER"}]},{"jdt":3,"journee":"J3","date":"Jeudi 4 juin 2026","pat":"09:","debut":"09:","fin":"18:","lieu":"PARIS 15ème / 14ème","decors":["PARIS 11 - Rue","LONDRES - Bureau BCRA","LONDRES – Siège Du BCRA"],"sequences":["105","3","143","2"],"roles":[{"num":"1","role":"FRANÇOIS","comedien":"Lucas HECTOR"},{"num":"9","role":"PÉGASE","comedien":"Axel AURIANT"},{"num":"24","role":"OFFICIER DU RENSEIGNEMENT (EX EVADE 1)","comedien":"Romain RONDEAU"},{"num":"32","role":"CAMIONNEUR","comedien":"Jean-Marie LECOQ"}]},{"jdt":4,"journee":"J4","date":"Vendredi 5 juin 2026","pat":"09:","debut":"09:","fin":"18:","lieu":"MELUN","decors":["PONTAIN-LECLUSE - Salle de classe","AVION ANGLAIS"],"sequences":["11 BIS B","49 A","26","28"],"roles":[{"num":"1","role":"FRANÇOIS","comedien":"Lucas HECTOR"},{"num":"2","role":"LISA","comedien":"Nina FILBRANDT"},{"num":"3","role":"EUSÈBE","comedien":"Octave GERBI"},{"num":"9","role":"PÉGASE","comedien":"Axel AURIANT"},{"num":"17","role":"JEAN","comedien":"Paul DUCLOUX"},{"num":"18","role":"LUC","comedien":"Oscar BOISSIÈRE"},{"num":"22","role":"SBIRE LUC 1","comedien":"Pierre LETELLIER"},{"num":"23","role":"SBIRE LUC 2","comedien":"Clovis MOINAT"}]},{"jdt":5,"journee":"J5","date":"Lundi 8 juin 2026","pat":"09:","debut":"09:","fin":"18:","lieu":"MAILLY LE CHÂTEAU","decors":["PONTAIN-LECLUSE - Mairie/Impasse/Ecole/Ruelle épicerie","CAMPAGNE","PONTAIN-LECLUSE - Café","PONTAIN-LECLUSE - Mairie/Impasse/Ecole/Ruelle épicerie"],"sequences":["23","26 BIS","33","75 C","31 PT A \n(équ. Réduite)"],"roles":[{"num":"1","role":"FRANÇOIS","comedien":"Lucas HECTOR"},{"num":"2","role":"LISA","comedien":"Nina FILBRANDT"},{"num":"3","role":"EUSÈBE","comedien":"Octave GERBI"},{"num":"8","role":"GERMAIN","comedien":"Julien ARRUTI"},{"num":"14","role":"FREDO","comedien":"Olivier BARTHÉLÉMY"},{"num":"21","role":"HENRIETTE (Femme Germain)","comedien":"Julie FOURNIER"}]},{"jdt":6,"journee":"J6","date":"Mardi 9 juin 2026","pat":"12:","debut":"12:","fin":"19:30","lieu":"MAILLY LE CHÂTEAU","decors":["PONTAIN-LECLUSE - Café","PONTAIN-L'ECLUSE - Marchand de cycles"],"sequences":["16","4 BIS","111"],"roles":[{"num":"1","role":"FRANÇOIS","comedien":"Lucas HECTOR"},{"num":"7","role":"ANDRÉ (ONCLE)","comedien":"François Xavier DEMAISON"},{"num":"8","role":"GERMAIN","comedien":"Julien ARRUTI"},{"num":"14","role":"FREDO","comedien":"Olivier BARTHÉLÉMY"},{"num":"16","role":"JAEGER","comedien":"Stefan KONARSKE"},{"num":"21","role":"HENRIETTE (Femme Germain)","comedien":"Julie FOURNIER"},{"num":"37","role":"MARCHAND DE CYCLE","comedien":"Jacques PIOTROWSKA"}]},{"jdt":7,"journee":"J7","date":"Mercredi 10 juin 2026","pat":"16:","debut":"16:","fin":"01:","lieu":"MAILLY LE CHÂTEAU","decors":["PONTAIN-LECLUSE - Place du village","PONTAIN-L'ECLUSE - Marchand de cycles","PONTAIN-LECLUSE - Café","PONTAIN-L'ECLUSE - Devant café"],"sequences":["15 C","102","112","99"],"roles":[{"num":"1","role":"FRANÇOIS","comedien":"Lucas HECTOR"},{"num":"3","role":"EUSÈBE","comedien":"Octave GERBI"},{"num":"6","role":"PERE PROSLIER (CURÉ)","comedien":"Gérard JUGNOT"},{"num":"7","role":"ANDRÉ (ONCLE)","comedien":"François Xavier DEMAISON"},{"num":"8","role":"GERMAIN","comedien":"Julien ARRUTI"},{"num":"14","role":"FREDO","comedien":"Olivier BARTHÉLÉMY"},{"num":"19","role":"POLICIER GESTAPO 1","comedien":"Jannis HAIN"},{"num":"20","role":"POLICIER GESTAPO 2","comedien":"Dominique  ENGELHARDT"},{"num":"21","role":"HENRIETTE (Femme Germain)","comedien":"Julie FOURNIER"},{"num":"37","role":"MARCHAND DE CYCLE","comedien":"Jacques PIOTROWSKA"}]},{"jdt":8,"journee":"J8","date":"Jeudi 11 juin 2026","pat":"15:","debut":"15:","fin":"00:","lieu":"MAILLY LE CHÂTEAU","decors":["PONTAIN-LECLUSE - Epicerie","ROUTE USINE","PONTAIN-LECLUSE - Café"],"sequences":["15 B","59 A","51","98"],"roles":[{"num":"1","role":"FRANÇOIS","comedien":"Lucas HECTOR"},{"num":"3","role":"EUSÈBE","comedien":"Octave GERBI"},{"num":"8","role":"GERMAIN","comedien":"Julien ARRUTI"},{"num":"14","role":"FREDO","comedien":"Olivier BARTHÉLÉMY"},{"num":"19","role":"POLICIER GESTAPO 1","comedien":"Jannis HAIN"},{"num":"20","role":"POLICIER GESTAPO 2","comedien":"Dominique  ENGELHARDT"},{"num":"21","role":"HENRIETTE (Femme Germain)","comedien":"Julie FOURNIER"}]},{"jdt":9,"journee":"J9","date":"Vendredi 12 juin 2026","pat":"13:","debut":"13:","fin":"19:30","lieu":"MAILLY LE CHÂTEAU","decors":["PONTAIN-LECLUSE - Café","PONTAIN-LECLUSE - Place du village"],"sequences":["68","88","133","131 PT"],"roles":[{"num":"8","role":"GERMAIN","comedien":"Julien ARRUTI"},{"num":"9","role":"PÉGASE","comedien":"Axel AURIANT"},{"num":"14","role":"FREDO","comedien":"Olivier BARTHÉLÉMY"},{"num":"18","role":"LUC","comedien":"Oscar BOISSIÈRE"},{"num":"19","role":"POLICIER GESTAPO 1","comedien":"Jannis HAIN"},{"num":"20","role":"POLICIER GESTAPO 2","comedien":"Dominique  ENGELHARDT"},{"num":"21","role":"HENRIETTE (Femme Germain)","comedien":"Julie FOURNIER"}]},{"jdt":10,"journee":"J10","date":"Lundi 15 juin 2026","pat":"09:30","debut":"09:30","fin":"18:30","lieu":"MAILLY LE CHÂTEAU","decors":["MAISON INSTITUTEUR - Devant","MAISON INSTITUTEUR - Fenêtre / Devant","PONTAIN-LECLUSE - Bureau maire"],"sequences":["15 A","114","12 BIS E","87","75 B","17"],"roles":[{"num":"1","role":"FRANÇOIS","comedien":"Lucas HECTOR"},{"num":"3","role":"EUSÈBE","comedien":"Octave GERBI"},{"num":"11","role":"JULIENNE","comedien":"Vanessa GUIDE"},{"num":"12","role":"LE MAIRE","comedien":"Pierre DELADONCHAMPS"},{"num":"13","role":"MAÎTRE BONNEFOY","comedien":"Franz LANG"},{"num":"16","role":"JAEGER","comedien":"Stefan KONARSKE"}]},{"jdt":11,"journee":"J11","date":"Mardi 16 juin 2026","pat":"11:","debut":"11:","fin":"20:","lieu":"MAILLY LE CHÂTEAU /  / FORT DE MÉZILLES","decors":["PONTAIN-LECLUSE - Eglise/Crypte","PONTAIN-L'ECLUSE - Presbytère","PONTAIN-L'ECLUSE - Jardin presbytère","ROUTE DE CAMPAGNE - Sous-bois"],"sequences":["21","118","120","130","91 P2 (EQ.B)"],"roles":[{"num":"1","role":"FRANÇOIS","comedien":"Lucas HECTOR"},{"num":"6","role":"PERE PROSLIER (CURÉ)","comedien":"Gérard JUGNOT"},{"num":"12","role":"LE MAIRE","comedien":"Pierre DELADONCHAMPS"},{"num":"14","role":"FREDO","comedien":"Olivier BARTHÉLÉMY"},{"num":"30","role":"HOMME FORÊT","comedien":"Léopold BERTAUD"},{"num":"31","role":"FEMME FORËT","comedien":"Sarah O'BEIRNE"}]},{"jdt":12,"journee":"J12","date":"Mercredi 17 juin 2026","pat":"13:","debut":"13:","fin":"22:","lieu":"MAILLY LE CHÂTEAU /  / DRUIYES","decors":["FORÊT","FORÊT - Rivière","ROUTE DE CAMPAGNE","CHEMIN DE CAMPAGNE","AQUEDUC"],"sequences":["125","127","123","84","24 (EQ.B)"],"roles":[{"num":"1","role":"FRANÇOIS","comedien":"Lucas HECTOR"},{"num":"2","role":"LISA","comedien":"Nina FILBRANDT"},{"num":"3","role":"EUSÈBE","comedien":"Octave GERBI"},{"num":"6","role":"PERE PROSLIER (CURÉ)","comedien":"Gérard JUGNOT"},{"num":"30","role":"HOMME FORÊT","comedien":"Léopold BERTAUD"},{"num":"31","role":"FEMME FORËT","comedien":"Sarah O'BEIRNE"}]},{"jdt":13,"journee":"J13","date":"Jeudi 18 juin 2026","pat":"10:","debut":"10:","fin":"19:","lieu":"MAILLY LE CHÂTEAU / SURGY","decors":["ESPLANADE","PONTAIN-LECLUSE - Belvédère","MASSIF ROCHEUX - Grotte"],"sequences":["77","31 PT B","12 BIS D","52"],"roles":[{"num":"1","role":"FRANÇOIS","comedien":"Lucas HECTOR"},{"num":"2","role":"LISA","comedien":"Nina FILBRANDT"},{"num":"3","role":"EUSÈBE","comedien":"Octave GERBI"},{"num":"6","role":"PERE PROSLIER (CURÉ)","comedien":"Gérard JUGNOT"},{"num":"9","role":"PÉGASE","comedien":"Axel AURIANT"}]},{"jdt":14,"journee":"J14","date":"Vendredi 19 juin 2026","pat":"12:","debut":"12:","fin":"18:","lieu":"TOUCY","decors":["KOMMANDANTUR - Cellule","ETUDE NOTARIALE - Devant"],"sequences":["47","54","39","38 A"],"roles":[{"num":"1","role":"FRANÇOIS","comedien":"Lucas HECTOR"},{"num":"5","role":"JULES (16 ans)","comedien":"Gaspard LACORNE"},{"num":"7","role":"ANDRÉ (ONCLE)","comedien":"François Xavier DEMAISON"},{"num":"13","role":"MAÎTRE BONNEFOY","comedien":"Franz LANG"},{"num":"15","role":"VIVIANE","comedien":"Marion CREUSVAUX"},{"num":"17","role":"JEAN","comedien":"Paul DUCLOUX"},{"num":"19","role":"POLICIER GESTAPO 1","comedien":"Jannis HAIN"}]},{"jdt":15,"journee":"J15","date":"Lundi 22 juin 2026","pat":"09:","debut":"09:","fin":"18:","lieu":"FORT DE MÉZILLES","decors":["CALVAIRE (EN FORÊT)","ETANG"],"sequences":["78","65","95","65 TER","72"],"roles":[{"num":"1","role":"FRANÇOIS","comedien":"Lucas HECTOR"},{"num":"9","role":"PÉGASE","comedien":"Axel AURIANT"},{"num":"18","role":"LUC","comedien":"Oscar BOISSIÈRE"},{"num":"19","role":"POLICIER GESTAPO 1","comedien":"Jannis HAIN"},{"num":"20","role":"POLICIER GESTAPO 2","comedien":"Dominique  ENGELHARDT"},{"num":"22","role":"SBIRE LUC 1","comedien":"Pierre LETELLIER"},{"num":"23","role":"SBIRE LUC 2","comedien":"Clovis MOINAT"}]},{"jdt":16,"journee":"J16","date":"Mardi 23 juin 2026","pat":"","debut":"","fin":"","lieu":"FORT DE MÉZILLES","decors":["ROUTE DE CAMPAGNE - Sous-bois","FORËT","CALVAIRE (EN FORÊT)","CAMPAGNE - Chêne","PONTAIN-L'ECLUSE - Campagne + Divers Estas"],"sequences":["91 P1","93","139","142","144","145","4 (EQ.Droniste)","+ divers Estas"],"roles":[{"num":"1","role":"FRANÇOIS","comedien":"Lucas HECTOR"},{"num":"2","role":"LISA","comedien":"Nina FILBRANDT"},{"num":"3","role":"EUSÈBE","comedien":"Octave GERBI"},{"num":"9","role":"PÉGASE","comedien":"Axel AURIANT"},{"num":"19","role":"POLICIER GESTAPO 1","comedien":"Jannis HAIN"},{"num":"20","role":"POLICIER GESTAPO 2","comedien":"Dominique  ENGELHARDT"}]},{"jdt":17,"journee":"J17","date":"Mercredi 24 juin 2026","pat":"09:","debut":"09:","fin":"18:","lieu":"FORT DE MÉZILLES","decors":["RELAIS DES VOYAGEURS - Chambre Pégase","RELAIS DES VOYAGEURS - Chambre/Fenêtre","FORÊT - Arbre foudroyé.","AUTRE FERME","BENNE CAMION A BOIS"],"sequences":["41 A","89","79","103","103 BIS"],"roles":[{"num":"1","role":"FRANÇOIS","comedien":"Lucas HECTOR"},{"num":"2","role":"LISA","comedien":"Nina FILBRANDT"},{"num":"3","role":"EUSÈBE","comedien":"Octave GERBI"},{"num":"9","role":"PÉGASE","comedien":"Axel AURIANT"},{"num":"32","role":"CAMIONNEUR","comedien":"Jean-Marie LECOQ"}]},{"jdt":18,"journee":"J18","date":"Jeudi 25 juin 2026","pat":"09:","debut":"09:","fin":"18:","lieu":"FORT DE MÉZILLES","decors":["ETUDE NOTARIALE - Bureau","ETUDE NOTARIALE","RELAIS DES VOYAGEURS - Chambre/Fenêtre","CHAMPS"],"sequences":["38 B","44","90 B","50"],"roles":[{"num":"1","role":"FRANÇOIS","comedien":"Lucas HECTOR"},{"num":"4","role":"MARCELINE","comedien":"Leslie MEDINA"},{"num":"5","role":"JULES (16 ans)","comedien":"Gaspard LACORNE"},{"num":"7","role":"ANDRÉ (ONCLE)","comedien":"François Xavier DEMAISON"},{"num":"13","role":"MAÎTRE BONNEFOY","comedien":"Franz LANG"},{"num":"15","role":"VIVIANE","comedien":"Marion CREUSVAUX"},{"num":"17","role":"JEAN","comedien":"Paul DUCLOUX"},{"num":"19","role":"POLICIER GESTAPO 1","comedien":"Jannis HAIN"},{"num":"20","role":"POLICIER GESTAPO 2","comedien":"Dominique  ENGELHARDT"}]},{"jdt":19,"journee":"J19","date":"Vendredi 26 juin 2026","pat":"08:","debut":"08:","fin":"17:","lieu":"TOUCY","decors":["GUERCHAIN - Kommandantur/Hotel","KOMMANDANTUR - Devant","RELAIS DES VOYAGEURS - Fenêtre/Rue Kommandantur"],"sequences":["32","45","90 A"],"roles":[{"num":"9","role":"PÉGASE","comedien":"Axel AURIANT"},{"num":"13","role":"MAÎTRE BONNEFOY","comedien":"Franz LANG"},{"num":"17","role":"JEAN","comedien":"Paul DUCLOUX"},{"num":"19","role":"POLICIER GESTAPO 1","comedien":"Jannis HAIN"},{"num":"20","role":"POLICIER GESTAPO 2","comedien":"Dominique  ENGELHARDT"}]},{"jdt":20,"journee":"J20","date":"Lundi 29 juin 2026","pat":"08:","debut":"08:","fin":"17:","lieu":"TOUCY","decors":["RELAIS DES VOYAGEURS - Chambre/Rue","KOMMANDANTUR - Devant","KOMMANDANTUR - Couloir/Bureau","CHEMIN/CHAMP/SOUS-BOIS","CHEMIN DE CAMPAGNE"],"sequences":["89 PEL","41 B PEL","62","46","30","29"],"roles":[{"num":"6","role":"PERE PROSLIER (CURÉ)","comedien":"Gérard JUGNOT"},{"num":"9","role":"PÉGASE","comedien":"Axel AURIANT"},{"num":"13","role":"MAÎTRE BONNEFOY","comedien":"Franz LANG"},{"num":"14","role":"FREDO","comedien":"Olivier BARTHÉLÉMY"},{"num":"17","role":"JEAN","comedien":"Paul DUCLOUX"},{"num":"19","role":"POLICIER GESTAPO 1","comedien":"Jannis HAIN"},{"num":"20","role":"POLICIER GESTAPO 2","comedien":"Dominique  ENGELHARDT"}]},{"jdt":21,"journee":"J21","date":"Mardi 30 juin 2026","pat":"09:30","debut":"09:30","fin":"18:30","lieu":"AUXERRE / CRAVANT","decors":["CATHEDRALE","PONTAIN-LECLUSE - Salle de classe"],"sequences":["58","11 BIS C","49 B"],"roles":[{"num":"6","role":"PERE PROSLIER (CURÉ)","comedien":"Gérard JUGNOT"},{"num":"10","role":"MARNIER (INSTITUTEUR)","comedien":"Julien PESTEL"},{"num":"13","role":"MAÎTRE BONNEFOY","comedien":"Franz LANG"},{"num":"34","role":"CARDINAL","comedien":""}]},{"jdt":22,"journee":"J22","date":"Mercredi 1 juin 2026","pat":"10:","debut":"10:","fin":"19:","lieu":"MAILLY LE CHÂTEAU","decors":["MAISON INSTITUTEUR - Entrée/Cuisine","MAISON INSTITUTEUR - Escalier/Cuisine","LIEU INDETERMINÉ"],"sequences":["137","42","40 (EQ.B)"],"roles":[{"num":"9","role":"PÉGASE","comedien":"Axel AURIANT"},{"num":"10","role":"MARNIER (INSTITUTEUR)","comedien":"Julien PESTEL"},{"num":"11","role":"JULIENNE","comedien":"Vanessa GUIDE"},{"num":"33","role":"HOMME (Envoyé de De Gaulle)","comedien":"Nicolas MAFFRE"}]},{"jdt":23,"journee":"J23","date":"Jeudi 2 juillet 2026","pat":"09:","debut":"09:","fin":"18:","lieu":"MAILLY LE CHÂTEAU","decors":["MAISON INSTITUTEUR - Chambre Eusèbe","MAISON INSTITUTEUR - Chbre Eusèbe/Palier","MAISON INSTITUTEUR - Escalier/Cuisine","MAISON INSTITUTEUR - Boîte aux lettres/Cuisine","MAISON INSTITUTEUR - Cave","MAISON INSTITUTEUR - Escalier cave"],"sequences":["116","42 PT","119/122 PT","122","137 PT","75 A","140","85"],"roles":[{"num":"3","role":"EUSÈBE","comedien":"Octave GERBI"},{"num":"10","role":"MARNIER (INSTITUTEUR)","comedien":"Julien PESTEL"},{"num":"11","role":"JULIENNE","comedien":"Vanessa GUIDE"},{"num":"30","role":"HOMME FORÊT","comedien":"Léopold BERTAUD"},{"num":"31","role":"FEMME FORËT","comedien":"Sarah O'BEIRNE"}]},{"jdt":24,"journee":"J24","date":"Vendredi 3 juillet 2026","pat":"09:","debut":"09:","fin":"18:","lieu":"MAILLY LE CHÂTEAU","decors":["PONTAIN-L'ECLUSE - Rue","PONTAIN-LECLUSE - PLace de la mairie","PONTAIN-LECLUSE - Place du village"],"sequences":["31 P1","31 P2","131"],"roles":[{"num":"1","role":"FRANÇOIS","comedien":"Lucas HECTOR"},{"num":"2","role":"LISA","comedien":"Nina FILBRANDT"},{"num":"3","role":"EUSÈBE","comedien":"Octave GERBI"},{"num":"4","role":"MARCELINE","comedien":"Leslie MEDINA"},{"num":"5","role":"JULES (16 ans)","comedien":"Gaspard LACORNE"},{"num":"6","role":"PERE PROSLIER (CURÉ)","comedien":"Gérard JUGNOT"},{"num":"7","role":"ANDRÉ (ONCLE)","comedien":"François Xavier DEMAISON"},{"num":"10","role":"MARNIER (INSTITUTEUR)","comedien":"Julien PESTEL"},{"num":"11","role":"JULIENNE","comedien":"Vanessa GUIDE"},{"num":"12","role":"LE MAIRE","comedien":"Pierre DELADONCHAMPS"},{"num":"13","role":"MAÎTRE BONNEFOY","comedien":"Franz LANG"},{"num":"14","role":"FREDO","comedien":"Olivier BARTHÉLÉMY"},{"num":"15","role":"VIVIANE","comedien":"Marion CREUSVAUX"},{"num":"16","role":"JAEGER","comedien":"Stefan KONARSKE"},{"num":"17","role":"JEAN","comedien":"Paul DUCLOUX"},{"num":"18","role":"LUC","comedien":"Oscar BOISSIÈRE"},{"num":"19","role":"POLICIER GESTAPO 1","comedien":"Jannis HAIN"},{"num":"20","role":"POLICIER GESTAPO 2","comedien":"Dominique  ENGELHARDT"},{"num":"22","role":"SBIRE LUC 1","comedien":"Pierre LETELLIER"},{"num":"23","role":"SBIRE LUC 2","comedien":"Clovis MOINAT"},{"num":"25","role":"AUTRE HOMME VILLAGE (VILLAGEOIS 1)","comedien":"Jean François FARIGOUX"}]},{"jdt":25,"journee":"J25","date":"Lundi 6 juillet 2026","pat":"08:","debut":"08:","fin":"17:","lieu":"CHÂTEL CENSOIR","decors":["PONTAIN-LECLUSE - Cimetière","PONTAIN-L'ECLUSE - Sortie Cimetière"],"sequences":["4 TER","5"],"roles":[{"num":"1","role":"FRANÇOIS","comedien":"Lucas HECTOR"},{"num":"2","role":"LISA","comedien":"Nina FILBRANDT"},{"num":"3","role":"EUSÈBE","comedien":"Octave GERBI"},{"num":"4","role":"MARCELINE","comedien":"Leslie MEDINA"},{"num":"5","role":"JULES (16 ans)","comedien":"Gaspard LACORNE"},{"num":"6","role":"PERE PROSLIER (CURÉ)","comedien":"Gérard JUGNOT"},{"num":"7","role":"ANDRÉ (ONCLE)","comedien":"François Xavier DEMAISON"},{"num":"10","role":"MARNIER (INSTITUTEUR)","comedien":"Julien PESTEL"},{"num":"11","role":"JULIENNE","comedien":"Vanessa GUIDE"},{"num":"12","role":"LE MAIRE","comedien":"Pierre DELADONCHAMPS"},{"num":"13","role":"MAÎTRE BONNEFOY","comedien":"Franz LANG"},{"num":"15","role":"VIVIANE","comedien":"Marion CREUSVAUX"},{"num":"16","role":"JAEGER","comedien":"Stefan KONARSKE"},{"num":"17","role":"JEAN","comedien":"Paul DUCLOUX"}]},{"jdt":26,"journee":"J26","date":"Mardi 7 juillet 2026","pat":"08:","debut":"08:","fin":"17:","lieu":"CHÂTEL CENSOIR","decors":["PONTAIN-L'ECLUSE - Presbytère","PONTAIN-LECLUSE - Cimetière","PONTAIN-L'ECLUSE - Pente"],"sequences":["118 DEB.","19","20","8","15 D"],"roles":[{"num":"1","role":"FRANÇOIS","comedien":"Lucas HECTOR"},{"num":"3","role":"EUSÈBE","comedien":"Octave GERBI"},{"num":"12","role":"LE MAIRE","comedien":"Pierre DELADONCHAMPS"},{"num":"16","role":"JAEGER","comedien":"Stefan KONARSKE"}]},{"jdt":27,"journee":"J27","date":"Mercredi 8 juillet 2026","pat":"09:","debut":"09:","fin":"18:","lieu":"MAILLY LE CHÂTEAU /  / Port de GURGY","decors":["PONTAIN-LECLUSE - Cour d'école","FERME FRANCOIS - Champ","CANAL - Berges"],"sequences":["11 BIS A","69 BIS","70","81 (EQ.B)","59 C P1 (EQ.B)"],"roles":[{"num":"1","role":"FRANÇOIS","comedien":"Lucas HECTOR"},{"num":"2","role":"LISA","comedien":"Nina FILBRANDT"},{"num":"3","role":"EUSÈBE","comedien":"Octave GERBI"},{"num":"10","role":"MARNIER (INSTITUTEUR)","comedien":"Julien PESTEL"},{"num":"17","role":"JEAN","comedien":"Paul DUCLOUX"},{"num":"18","role":"LUC","comedien":"Oscar BOISSIÈRE"},{"num":"22","role":"SBIRE LUC 1","comedien":"Pierre LETELLIER"},{"num":"23","role":"SBIRE LUC 2","comedien":"Clovis MOINAT"}]},{"jdt":28,"journee":"J28","date":"Jeudi 9 juillet 2026","pat":"13:","debut":"13:","fin":"22:","lieu":"SAUSSOIS","decors":["PROMENADE","ROUTE DE CAMPAGNE"],"sequences":["56","61"],"roles":[{"num":"1","role":"FRANÇOIS","comedien":"Lucas HECTOR"},{"num":"2","role":"LISA","comedien":"Nina FILBRANDT"},{"num":"3","role":"EUSÈBE","comedien":"Octave GERBI"},{"num":"9","role":"PÉGASE","comedien":"Axel AURIANT"},{"num":"40","role":"TYPE PROMENADE","comedien":""}]},{"jdt":29,"journee":"J29","date":"Vendredi 10 juillet 2026","pat":"","debut":"","fin":"","lieu":"MAILLY LE CHÂTEAU / Lieu à trouver","decors":["PONTAIN-L'ECLUSE - Pont","ROUTE DE CAMPAGNE"],"sequences":["64","66","77 BIS","12 BIS C","94"],"roles":[{"num":"1","role":"FRANÇOIS","comedien":"Lucas HECTOR"},{"num":"32","role":"CAMIONNEUR","comedien":"Jean-Marie LECOQ"},{"num":"36","role":"GENDARME 2","comedien":"Jean-Remi MARTINEZ"},{"num":"41","role":"FELDGENDARME ALLEMAND","comedien":""}]},{"jdt":30,"journee":"J30","date":"Lundi 13 juillet 2026","pat":"10:","debut":"10:","fin":"19:","lieu":"MEZILLES","decors":["MAISON MARTIN","IMPRESSION MESSAGES"],"sequences":["22","53","97","22 PT"],"roles":[{"num":"1","role":"FRANÇOIS","comedien":"Lucas HECTOR"},{"num":"2","role":"LISA","comedien":"Nina FILBRANDT"},{"num":"3","role":"EUSÈBE","comedien":"Octave GERBI"}]},{"jdt":31,"journee":"J31","date":"Mardi 14 juillet 2026","pat":"10:","debut":"10:","fin":"19:","lieu":"MEZILLES","decors":["RIVIÈRE","MAISON MARTIN"],"sequences":["43","65 BIS","71 B","60","71 A"],"roles":[{"num":"1","role":"FRANÇOIS","comedien":"Lucas HECTOR"},{"num":"2","role":"LISA","comedien":"Nina FILBRANDT"},{"num":"3","role":"EUSÈBE","comedien":"Octave GERBI"}]},{"jdt":32,"journee":"J32","date":"Mercredi 15 juillet 2026","pat":"09:","debut":"09:","fin":"18:","lieu":"SAINTS EN PUISAYE","decors":["FERME FRANÇOIS - Arrière cour","FERME FRANÇOIS - Cour","FERME FRANCOIS - Chambre garçons","FERME FRANCOIS - Cuisine"],"sequences":["10 A","10 B","11 A","11 B"],"roles":[{"num":"1","role":"FRANÇOIS","comedien":"Lucas HECTOR"},{"num":"2","role":"LISA","comedien":"Nina FILBRANDT"},{"num":"4","role":"MARCELINE","comedien":"Leslie MEDINA"},{"num":"5","role":"JULES (16 ans)","comedien":"Gaspard LACORNE"},{"num":"7","role":"ANDRÉ (ONCLE)","comedien":"François Xavier DEMAISON"},{"num":"15","role":"VIVIANE","comedien":"Marion CREUSVAUX"}]},{"jdt":33,"journee":"J33","date":"Jeudi 16 juillet 2026","pat":"09:","debut":"09:","fin":"18:","lieu":"SAINTS EN PUISAYE","decors":["FERME FRANCOIS - Cuisine"],"sequences":["34","35"],"roles":[{"num":"1","role":"FRANÇOIS","comedien":"Lucas HECTOR"},{"num":"2","role":"LISA","comedien":"Nina FILBRANDT"},{"num":"4","role":"MARCELINE","comedien":"Leslie MEDINA"},{"num":"5","role":"JULES (16 ans)","comedien":"Gaspard LACORNE"},{"num":"10","role":"MARNIER (INSTITUTEUR)","comedien":"Julien PESTEL"}]},{"jdt":34,"journee":"J34","date":"Vendredi 17 juillet 2026","pat":"09:","debut":"09:","fin":"18:","lieu":"SAINTS EN PUISAYE","decors":["FERME FRANÇOIS - Cour","FERME FRANCOIS - Champ","FERME FRANÇOIS - Chemin ruisseau","FERME FRANCOIS - Cuisine","FERME FRANÇOIS - Divers Establishing"],"sequences":["36 D","36 C","36 A","36 B","36 G","12 B","36 I","12 A"],"roles":[{"num":"1","role":"FRANÇOIS","comedien":"Lucas HECTOR"},{"num":"2","role":"LISA","comedien":"Nina FILBRANDT"},{"num":"4","role":"MARCELINE","comedien":"Leslie MEDINA"},{"num":"5","role":"JULES (16 ans)","comedien":"Gaspard LACORNE"},{"num":"7","role":"ANDRÉ (ONCLE)","comedien":"François Xavier DEMAISON"},{"num":"15","role":"VIVIANE","comedien":"Marion CREUSVAUX"}]},{"jdt":35,"journee":"J35","date":"Lundi 20 juillet 2026","pat":"09:","debut":"09:","fin":"18:","lieu":"SAINTS EN PUISAYE","decors":["FERME FRANÇOIS - Cuisine/Chambre","FERME FRANCOIS - Etable/Cour"],"sequences":["48","36 H"],"roles":[{"num":"1","role":"FRANÇOIS","comedien":"Lucas HECTOR"},{"num":"2","role":"LISA","comedien":"Nina FILBRANDT"},{"num":"4","role":"MARCELINE","comedien":"Leslie MEDINA"},{"num":"5","role":"JULES (16 ans)","comedien":"Gaspard LACORNE"},{"num":"12","role":"LE MAIRE","comedien":"Pierre DELADONCHAMPS"},{"num":"13","role":"MAÎTRE BONNEFOY","comedien":"Franz LANG"}]},{"jdt":36,"journee":"J36","date":"Mardi 21 juillet 2026","pat":"09:","debut":"09:","fin":"18:","lieu":"SAINTS EN PUISAYE","decors":["FERME FRANCOIS - Cour/Basse cour","FERME FRANÇOIS - Ruisseau/Tunnel","FERME FRANCOIS - Champ","FERME FRANÇOIS - Arrière cour","CHAMP - Etang","FERME FRANCOIS - Cuisine"],"sequences":["12 BIS A","36 F","134","36 E","12 BIS B","104","97 BIS (EX100)"],"roles":[{"num":"1","role":"FRANÇOIS","comedien":"Lucas HECTOR"},{"num":"2","role":"LISA","comedien":"Nina FILBRANDT"},{"num":"3","role":"EUSÈBE","comedien":"Octave GERBI"},{"num":"4","role":"MARCELINE","comedien":"Leslie MEDINA"},{"num":"5","role":"JULES (16 ans)","comedien":"Gaspard LACORNE"}]},{"jdt":37,"journee":"J37","date":"Mercredi 22 juillet 2026","pat":"09:","debut":"09:","fin":"18:","lieu":"SAINTS EN PUISAYE","decors":["FERME FRANCOIS - Cuisine","FERME FRANÇOIS - Cour","FERME FRANÇOIS - Chemin ruisseau"],"sequences":["110","109","132","113"],"roles":[{"num":"1","role":"FRANÇOIS","comedien":"Lucas HECTOR"},{"num":"2","role":"LISA","comedien":"Nina FILBRANDT"},{"num":"4","role":"MARCELINE","comedien":"Leslie MEDINA"},{"num":"5","role":"JULES (16 ans)","comedien":"Gaspard LACORNE"},{"num":"7","role":"ANDRÉ (ONCLE)","comedien":"François Xavier DEMAISON"}]},{"jdt":38,"journee":"J38","date":"Jeudi 23 juillet 2026","pat":"07:","debut":"07:","fin":"16:","lieu":"SAINTS EN PUISAYE / / CRAIN","decors":["FERME FRANÇOIS - Cour","FERME FRANÇOIS","FERME FRANÇOIS - Arrière cour","FERME FRANÇOIS - Remise/Cuisine","USINE EN ALLEMAGNE","USINE -  \"La Générale De Métaux\""],"sequences":["97 TER (EX101)","128","37","92","117","82","80 BIS B"],"roles":[{"num":"1","role":"FRANÇOIS","comedien":"Lucas HECTOR"},{"num":"2","role":"LISA","comedien":"Nina FILBRANDT"},{"num":"5","role":"JULES (16 ans)","comedien":"Gaspard LACORNE"},{"num":"7","role":"ANDRÉ (ONCLE)","comedien":"François Xavier DEMAISON"}]},{"jdt":39,"journee":"J39","date":"Vendredi 24 juillet 2026","pat":"10:","debut":"10:","fin":"19:","lieu":"SURGY / CRAIN","decors":["CHAPELLE ABANDONNÉE","USINE -  \"La Générale De Métaux\"","USINE \"La générale de Métaux\" - Champ devant"],"sequences":["121","80","124 P2  (EQ. B)","59 B P1 PoV","59 B P3 PoV","59 B P4 PoV"],"roles":[{"num":"1","role":"FRANÇOIS","comedien":"Lucas HECTOR"},{"num":"2","role":"LISA","comedien":"Nina FILBRANDT"},{"num":"3","role":"EUSÈBE","comedien":"Octave GERBI"},{"num":"9","role":"PÉGASE","comedien":"Axel AURIANT"}]},{"jdt":40,"journee":"J40","date":"Lundi 27 juillet 2026","pat":"09:","debut":"09:","fin":"18:","lieu":"SURGY / CRAIN","decors":["PROMENADE - Chemin","CHAPELLE ABANDONNÉE","USINE -  \"La Générale De Métaux\""],"sequences":["57","83","80 PT","121 PT","124 P3 (EQ.B)"],"roles":[{"num":"1","role":"FRANÇOIS","comedien":"Lucas HECTOR"},{"num":"2","role":"LISA","comedien":"Nina FILBRANDT"},{"num":"3","role":"EUSÈBE","comedien":"Octave GERBI"},{"num":"9","role":"PÉGASE","comedien":"Axel AURIANT"}]},{"jdt":41,"journee":"J41","date":"Mardi 28 juillet 2026","pat":"07:","debut":"07:","fin":"16:","lieu":"CRAIN","decors":["USINE -  \"La Générale De Métaux\"","USINE \"La générale de Métaux\" - Champ devant","USINE - Devant","USINE - Alentours","CANAL - Berges"],"sequences":["27","59 B P1","59 B P2","59 B P3","59 B P4","59 B P5","59 B P6","59 C P2"],"roles":[{"num":"1","role":"FRANÇOIS","comedien":"Lucas HECTOR"},{"num":"2","role":"LISA","comedien":"Nina FILBRANDT"},{"num":"3","role":"EUSÈBE","comedien":"Octave GERBI"},{"num":"14","role":"FREDO","comedien":"Olivier BARTHÉLÉMY"},{"num":"39","role":"SOLDAT BALLON USINE","comedien":"François GOESKE"}]},{"jdt":42,"journee":"J42","date":"Mercredi 29 juillet 2026","pat":"07:","debut":"07:","fin":"16:","lieu":"CRAIN","decors":["USINE -  \"La Générale De Métaux\""],"sequences":["124 P1","124 P 3 PT","124 P2"],"roles":[{"num":"1","role":"FRANÇOIS","comedien":"Lucas HECTOR"},{"num":"2","role":"LISA","comedien":"Nina FILBRANDT"},{"num":"3","role":"EUSÈBE","comedien":"Octave GERBI"},{"num":"39","role":"SOLDAT BALLON USINE","comedien":"François GOESKE"}]},{"jdt":43,"journee":"J43","date":"Jeudi 30 juillet 2026","pat":"07:","debut":"07:","fin":"16:","lieu":"CRAIN","decors":["USINE -  \"La Générale De Métaux\""],"sequences":["124 P4 - 1","124 P1 à P2"],"roles":[{"num":"1","role":"FRANÇOIS","comedien":"Lucas HECTOR"},{"num":"2","role":"LISA","comedien":"Nina FILBRANDT"},{"num":"3","role":"EUSÈBE","comedien":"Octave GERBI"}]},{"jdt":44,"journee":"J44","date":"Vendredi 31 juillet 2026","pat":"07:","debut":"07:","fin":"16:","lieu":"CRAIN","decors":["USINE -  \"La Générale De Métaux\""],"sequences":["124 P4 - 2","126","124 P3 à P4"],"roles":[{"num":"1","role":"FRANÇOIS","comedien":"Lucas HECTOR"},{"num":"2","role":"LISA","comedien":"Nina FILBRANDT"},{"num":"3","role":"EUSÈBE","comedien":"Octave GERBI"}]}];
-
-function getPDTData() {
-  // Essayer de charger le PDT importé pour le film actif
-  if (typeof activeFilmId !== 'undefined' && activeFilmId) {
-    try {
-      var stored = localStorage.getItem('pdt_' + activeFilmId);
-      if (stored) return JSON.parse(stored);
-    } catch(e) {}
-  }
-  // Fallback : PDT LEDR2 codé en dur
-  return PDT_DATA_LEDR2;
-}
-
-
-// PDT_DATA est maintenant dynamique : recharge depuis localStorage à chaque accès
-// Cela permet de changer de film sans rechargement de page
-Object.defineProperty(window, 'PDT_DATA', {
-  get: function() { return getPDTData(); },
-  configurable: true
-});
-
-// reloadPDTData garde la compatibilité mais n'est plus nécessaire
-function reloadPDTData() { /* PDT_DATA est maintenant toujours à jour via getter */ }
-
-
-
-function ouvrirModalImportPDT() {
-  if (!activeFilmId) { toast('Sélectionnez d\'abord un film'); return; }
-  const existingJdt = new Set((state.fds||[]).filter(f=>f.filmId===activeFilmId).map(f=>f.jdt));
-  const el = document.getElementById('pdt-journees-select');
-  el.innerHTML = PDT_DATA.map(j => {
-    const dejà = existingJdt.has(j.jdt);
-    return `<label style="display:flex;align-items:center;gap:8px;padding:6px 4px;border-bottom:1px solid var(--border);cursor:pointer">
-      <input type="checkbox" value="${j.jdt}" ${dejà?'disabled title="Déjà importée"':''} ${!dejà?'checked':''}>
-      <span style="flex:1;font-size:13px"><b>${j.journee}</b> — ${j.date}</span>
-      <span style="font-size:11px;color:var(--text-muted)">${j.lieu}</span>
-      ${dejà?'<span style="font-size:10px;font-weight:700;color:var(--green)">✓ déjà importée</span>':''}
-    </label>`;
-  }).join('');
-  openModal('modal-import-pdt');
-}
-
-function pdtSelectAll() {
-  document.querySelectorAll('#pdt-journees-select input[type=checkbox]:not([disabled])').forEach(cb => cb.checked=true);
-}
-function pdtSelectNone() {
-  document.querySelectorAll('#pdt-journees-select input[type=checkbox]:not([disabled])').forEach(cb => cb.checked=false);
-}
-
-function importerPDT() {
-  if (!activeFilmId) return;
-  const selected = [...document.querySelectorAll('#pdt-journees-select input[type=checkbox]:checked')].map(cb=>parseInt(cb.value));
-  if (!selected.length) { toast('Sélectionnez au moins une journée'); return; }
-  
-  let count = 0;
-  for (const jdt_num of selected) {
-    const pdt = PDT_DATA.find(j => j.jdt === jdt_num);
-    if (!pdt) continue;
-    
-    // Construire les lieux depuis le PDT
-    var lieux = [];
-    pdt.decors.forEach(function(d, i) { lieux.push({label: 'D\u00e9cor ' + (i+1), valeur: d}); });
-    if (!lieux.length) lieux.push({label: 'D\u00e9cor 1', valeur: pdt.lieu||''});
-    lieux.push(
-      {label:'HMC', valeur: ''},
-      {label:'Loge comédiens', valeur: ''},
-      {label:'Loge figuration', valeur: ''},
-      {label:'FIGURATION', valeur: ''},
-      {label:'CANTINE', valeur: ''},
-      {label:'STATIONNEMENT V\u00c9HIC. TECHNIQUES', valeur: ''},
-      {label:'STATIONNEMENT V\u00c9HIC. PERSONNELS', valeur: ''},
-      {label:'PRODUCTION', valeur: ''}
-    );
-    
-    // Construire les comédiens depuis le PDT - pré-remplis avec num, rôle, nom, séquences du jour
-    // HMC, Loges, PAT restent vides à remplir
-    var comediens = pdt.roles.map(function(r) {
-      return {type:'comedien',num:r.num,role:r.role,nom:r.comedien,seqs:pdt.sequences.join(', '),hmc:'',loges:'',pat:'',nbre:1};
-    });
-    var DOUBLURES_FIXES2 = [
-      {type:'doublure',num:'DBIFR',role:'Doublure image François',nom:'Céline LAURENTIE',seqs:pdt.sequences.join(', '),hmc:'',loges:'',pat:''},
-      {type:'doublure',num:'DBILI',role:'Doublure image Lisa',nom:'Prune LEMAIRE',seqs:'',hmc:'',loges:'',pat:''},
-      {type:'doublure',num:'DBIE',role:'Doublure image Eusèbe',nom:'Venance CASTANET PARCOT',seqs:'',hmc:'',loges:'',pat:''},
-      {type:'doublure',num:'DBIP',role:'Doublure image Proslier',nom:'Michel BIZOT',seqs:'',hmc:'',loges:'',pat:''}
-    ];
-    pdt.roles.forEach(function(r){
-      if (r.role==='FRANÇOIS') comediens.push(DOUBLURES_FIXES2[0]);
-      if (r.role==='LISA') comediens.push(DOUBLURES_FIXES2[1]);
-      if ((r.role==='EUSÈBE'||r.role==='EUSEBE')) comediens.push(DOUBLURES_FIXES2[2]);
-      if (r.role==='PERE PROSLIER') comediens.push(DOUBLURES_FIXES2[3]);
-    });
-    
-    // Construire les séquences avec effet et décor depuis le PDT
-    const sequences = pdt.sequences.map(function(s) {
-      return {
-        num: s,
-        effet: pdt.decors && pdt.decors.length ? '' : '',
-        decor: pdt.decors && pdt.decors.length ? pdt.decors[0] : '',
-        resume: '',
-        roles: pdt.roles.map(function(r){ return r.num; }).join(', '),
-        duree: '',
-        cont: ''
-      };
-    });
-    
-    const fds = {
-      id: 'fds_' + Date.now() + '_' + jdt_num,
-      filmId: activeFilmId,
-      jdt: jdt_num,
-      infos: {
-        journee: pdt.journee,
-        date: pdt.date,
-        pat: pdt.pat || '',
-        debut: pdt.debut || '',
-        fin: pdt.fin || '',
-        repas: '',
-        meteo: '',
-        lever: '',
-        coucher: '',
-        crep_m: '',
-        crep_s: '',
-        note: ''
-      },
-      lieux,
-      sequences,
-      comediens,
-      deptNotes: {},
-      equipe: JSON.parse(JSON.stringify(EQUIPE_FIXE)),
-      transports: [],
-      previsions: []
-    };
-    
-    if (!state.fds) state.fds = [];
-    state.fds.push(fds);
-    count++;
-  }
-  
-  // Trier les FDS par numéro de journée
-  state.fds.sort((a,b) => (a.jdt||0) - (b.jdt||0));
-  
-  save();
-  closeModal('modal-import-pdt');
-  renderJournees();
-  toast(`${count} journée${count>1?'s':''} importée${count>1?'s':''} !`);
-}
-
-// ═══════════════════════ INIT ═══════════════════════
-autoLogin();
-</script>
-</body>
-</html>
