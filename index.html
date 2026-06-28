@@ -370,10 +370,12 @@ textarea.form-input{resize:vertical;min-height:72px;}
                 <th style="padding:5px 6px;border:1px solid #ccc;width:30px"></th>
               </tr></thead>
               <tbody id="tbody-figurants"></tbody>
-              <tr id="tr-total-fig" style="background:#e8e8e8">
-                <td style="padding:4px 6px;border:1px solid #ccc;text-align:center;font-weight:700" id="fig-total">0</td>
-                <td style="padding:4px 6px;border:1px solid #ccc;font-weight:700" colspan="6">TOTAL</td>
-              </tr>
+              <tfoot id="tfoot-figurants">
+                <tr style="background:#e8e8e8">
+                  <td style="padding:4px 6px;border:1px solid #ccc;text-align:center;font-weight:700" id="fig-total">0</td>
+                  <td style="padding:4px 6px;border:1px solid #ccc;font-weight:700" id="td-total-fig-label">TOTAL</td>
+                </tr>
+              </tfoot>
             </table>
           </div>
           <button class="btn btn-sm btn-secondary btn-block" onclick="saveFigDesc()" style="margin-top:6px">Enregistrer description figuration</button>
@@ -662,9 +664,9 @@ textarea.form-input{resize:vertical;min-height:72px;}
               <th style="padding:5px 6px;border:1px solid #ccc;width:28px"></th>
             </tr></thead>
             <tbody id="pg-tbody-figurants"></tbody>
-            <tfoot><tr style="background:#e8e8e8">
+            <tfoot id="pg-tfoot-figurants"><tr style="background:#e8e8e8">
               <td style="padding:4px 6px;border:1px solid #ccc;text-align:center;font-weight:700" id="pg-fig-total">0</td>
-              <td style="padding:4px 6px;border:1px solid #ccc;font-weight:700" colspan="6">TOTAL</td>
+              <td style="padding:4px 6px;border:1px solid #ccc;font-weight:700" id="pg-td-total-fig-label" colspan="6">TOTAL</td>
             </tr></tfoot>
           </table>
         </div>
@@ -3518,6 +3520,12 @@ function renderFigurationTab() {
       thH += '</tr>';
     }
     theadF.innerHTML = thH;
+    // Mettre à jour le colspan du total
+    var tfootLabel = document.getElementById('td-total-fig-label');
+    if (tfootLabel) {
+      var nCols = 1 + allSeqsF.length + 3 + 1; // FIGURATION + séqs + HMC+Loges+PAT + crayon
+      tfootLabel.setAttribute('colspan', nCols);
+    }
   }
   if (tbF) {
     if (!figurants.length) {
@@ -4855,19 +4863,63 @@ function pgRenderComplements() {
   var total = figurants.reduce(function(s,c){ return s+(parseInt(c.nbre)||1); },0);
   if (totalEl) totalEl.textContent = total;
   if (titleEl) titleEl.childNodes[0].textContent = 'Figuration ('+(total||0)+' figurant(s)) ';
+
+  // Reconstruire le thead avec les bonnes colonnes de séquences
+  var pgTheadF = document.getElementById('pg-thead-figurants');
+  if (pgTheadF) {
+    var thH2 = '<tr style="background:#f0f0f0">'+
+      '<th style="padding:5px 6px;border:1px solid #ccc;width:50px">Nbre</th>'+
+      '<th style="padding:5px 6px;border:1px solid #ccc;text-align:left">FIGURATION</th>';
+    if (allSeqs.length) {
+      thH2 += '<th style="padding:5px 6px;border:1px solid #ccc;text-align:center" colspan="'+allSeqs.length+'">SÉQUENCES</th>';
+    } else {
+      thH2 += '<th style="padding:5px 6px;border:1px solid #ccc;text-align:center">SÉQUENCES</th>';
+    }
+    thH2 += '<th style="padding:5px 6px;border:1px solid #ccc;width:55px">HMC</th>'+
+             '<th style="padding:5px 6px;border:1px solid #ccc;width:65px">Dép. Loges/MeP</th>'+
+             '<th style="padding:5px 6px;border:1px solid #ccc;width:50px">PAT</th>'+
+             '<th style="width:28px;border:1px solid #ccc"></th></tr>';
+    if (allSeqs.length) {
+      thH2 += '<tr style="background:#f0f0f0">';
+      allSeqs.forEach(function(s){ thH2 += '<th style="padding:2px 3px;border:1px solid #ccc;font-size:9px;text-align:center;white-space:nowrap">'+s+'</th>'; });
+      thH2 += '</tr>';
+    }
+    pgTheadF.innerHTML = thH2;
+    var pgTotLabel = document.getElementById('pg-td-total-fig-label');
+    if (pgTotLabel) pgTotLabel.setAttribute('colspan', 1+(allSeqs.length||1)+3+1);
+  }
+
   if (tbF) {
-    if (!figurants.length) { tbF.innerHTML='<tr><td colspan="6" style="padding:10px;text-align:center;color:#999;font-size:12px">Aucun figurant</td></tr>'; }
-    else tbF.innerHTML = figurants.map(function(c){
-      var idx=all.indexOf(c);
-      return '<tr>'+
-        '<td style="padding:4px;border:1px solid #ddd;text-align:center;font-weight:700;color:var(--purple)">'+(c.nbre||1)+'</td>'+
-        '<td style="padding:4px;border:1px solid #ddd">'+(c.role||'')+(c.nom?' <i style="color:#999">('+c.nom+')</i>':'')+'</td>'+
-        seqCols(c)+
-        '<td style="padding:4px;border:1px solid #ddd;text-align:center">'+(fmtTime(c.hmc)||'—')+'</td>'+
-        '<td style="padding:4px;border:1px solid #ddd;text-align:center;font-weight:700">'+(fmtTime(c.pat)||'—')+'</td>'+
-        '<td style="padding:2px;border:1px solid #ddd;text-align:center">'+pencilBtn(idx)+'</td>'+
-      '</tr>';
-    }).join('');
+    var nCols2 = 5 + (allSeqs.length||1) + 1;
+    if (!figurants.length) {
+      tbF.innerHTML='<tr><td colspan="'+nCols2+'" style="padding:10px;text-align:center;color:#999;font-size:12px">Aucun figurant</td></tr>';
+    } else {
+      tbF.innerHTML = figurants.map(function(c){
+        var idx = all.indexOf(c);
+        // Cellules séquences individuelles
+        var comSeqs = (c.seqs||'').split(/[\s,]+/).map(function(s){return s.trim();}).filter(Boolean);
+        var seqCellsF = '';
+        if (allSeqs.length) {
+          allSeqs.forEach(function(s){
+            var sC = s.replace(/\s/g,'').toUpperCase();
+            var ok = comSeqs.some(function(cs){ return cs.replace(/\s/g,'').toUpperCase()===sC; });
+            seqCellsF += '<td style="padding:2px;border:1px solid #ddd;font-size:10px;text-align:center;font-weight:700">'+(ok?s:'')+'</td>';
+          });
+        } else {
+          seqCellsF = '<td style="padding:4px;border:1px solid #ddd;font-size:10px;text-align:center">'+(c.seqs||'')+'</td>';
+        }
+        return '<tr>'+
+          '<td style="padding:4px;border:1px solid #ddd;text-align:center;font-weight:700;color:var(--purple)">'+(c.nbre||1)+'</td>'+
+          '<td style="padding:4px;border:1px solid #ddd">'+(c.role||'')+(c.nom?' <span style="color:#888;font-size:10px">('+c.nom+')</span>':'')+
+            (c.note?'<br><span style="font-size:9px;color:#1565c0;font-style:italic">'+c.note+'</span>':'')+'</td>'+
+          seqCellsF+
+          '<td style="padding:4px;border:1px solid #ddd;text-align:center">'+(fmtTime(c.hmc)||'—')+'</td>'+
+          '<td style="padding:4px;border:1px solid #ddd;text-align:center">'+(fmtTime(c.loges)||'—')+'</td>'+
+          '<td style="padding:4px;border:1px solid #ddd;text-align:center;font-weight:700">'+(fmtTime(c.pat)||'—')+'</td>'+
+          '<td style="padding:2px;border:1px solid #ddd;text-align:center">'+pencilBtn(idx)+'</td>'+
+        '</tr>';
+      }).join('');
+    }
   }
 }
 
