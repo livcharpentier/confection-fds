@@ -4531,15 +4531,28 @@ function executerCopierFiguration() {
 
 function calcFigDescAuto(f) {
   // Calculer automatiquement l'encadré depuis les lignes figurants
+  // Chaque ligne = un TYPE de figurant avec son nbre propre
+  // On ne fait PAS la somme des nbre entre lignes du même type — on additionne les lignes distinctes
   if (!f) return '';
   var figurants = (f.comediens||[]).filter(function(c){ return c.type==='figurant'; });
   if (!figurants.length) return '';
+
   var totalAdultes = 0, totalEnfants = 0;
+
+  // Dédupliquer : si 2 lignes ont le même rôle (même texte), on ne compte qu'une fois
+  var seen = {};
   figurants.forEach(function(c) {
+    var roleKey = (c.role||'').toLowerCase().trim();
+    // Si ce rôle exact est déjà compté, ignorer (doublon de regroupement)
+    if (seen[roleKey]) return;
+    seen[roleKey] = true;
+
     var n = parseInt(c.nbre)||1;
     var isEnfant = /enfant|child|kids?/i.test(c.role||'');
-    if (isEnfant) totalEnfants += n; else totalAdultes += n;
+    if (isEnfant) totalEnfants += n;
+    else totalAdultes += n;
   });
+
   var parts = [];
   if (totalAdultes > 0) parts.push(totalAdultes + ' figurant' + (totalAdultes>1?'s':'') + ' adulte' + (totalAdultes>1?'s':''));
   if (totalEnfants > 0) parts.push(totalEnfants + ' figurant' + (totalEnfants>1?'s':'') + ' enfant' + (totalEnfants>1?'s':''));
@@ -8319,6 +8332,13 @@ function appliquerDepoPdf(journees) {
         }
       });
 
+      // Recalculer les totaux DEPUIS figMap (après regroupement) pour éviter les doublons
+      totalFigAdultes = 0; totalFigEnfants = 0;
+      Object.keys(figMap).forEach(function(key) {
+        var fm = figMap[key];
+        if (fm.isEnfant) totalFigEnfants += fm.nbre;
+        else totalFigAdultes += fm.nbre;
+      });
       var totalFig = totalFigAdultes + totalFigEnfants;
 
       // Chercher dans le PDT le total figurants pour enrichir fig_desc
