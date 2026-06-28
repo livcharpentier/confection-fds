@@ -459,6 +459,7 @@ textarea.form-input{resize:vertical;min-height:72px;}
         <div class="form-row-inline"><span class="form-label">PAT</span><input class="form-input" id="pg-pat" type="time" style="max-width:110px"/></div>
         <div class="form-row-inline"><span class="form-label">Tournage</span><input class="form-input" id="pg-debut" type="time" style="max-width:100px"/><span style="padding:0 4px;color:var(--text-muted)">→</span><input class="form-input" id="pg-fin" type="time" style="max-width:100px"/></div>
         <div class="form-row-inline"><span class="form-label">Repas</span><input class="form-input" id="pg-repas" type="time" style="max-width:110px"/></div>
+        <div class="form-row-inline"><span class="form-label">Pause repas</span><input class="form-input" id="pg-pause-repas" placeholder="30" style="max-width:60px;flex:none"/><span style="padding:0 6px;color:var(--text-muted);font-size:12px">mn à prévoir</span></div>
       </div>
       <div class="card">
         <div class="card-title">Météo</div>
@@ -475,6 +476,14 @@ textarea.form-input{resize:vertical;min-height:72px;}
       <div class="card">
         <div class="card-title">Note à l'équipe</div>
         <textarea class="form-input" id="pg-note" rows="4" placeholder="Message pour l'équipe..."></textarea>
+      </div>
+      <div class="card">
+        <div class="card-title">🌿 Ecoprod</div>
+        <textarea class="form-input" id="pg-ecoprod" rows="3" placeholder="Chaque geste compte !&#10;N'hésitez pas à ramener votre gourde ou votre ecocup&#10;Restons responsable !"></textarea>
+      </div>
+      <div class="card" style="border:2px solid #c07000">
+        <div class="card-title" style="color:#c07000">⚖️ Prévention Harcèlement</div>
+        <textarea class="form-input" id="pg-harcelement" rows="6" placeholder="Toute personne s'estimant victime de harcèlement peut s'adresser aux référents de notre film&#10;Louise Jacquet – Nina Allimann&#10;(cf. convocation pour les numéros de téléphone) et/ou envoyer un mail à l'adresse axelfilmsproduction@gmail.com&#10;Au médecin du travail – Centre Thalie Santé : (+33)1 49 27 60 00 / Au CCHSCT : (+33)1 53 89 01 30 /&#10;Au N° vert AP-HP St Antoine : +33 800 00 46 41 / Au N° d'urgence du Ministère de la Justice : +33 884 284 63"></textarea>
       </div>
       <div class="card" style="border:2px solid #1565c0;margin-bottom:8px">
         <div class="card-title" style="color:#1565c0">🎬 Équipe B</div>
@@ -2599,7 +2608,8 @@ function renderApercu(targetEl) {
   h += '<div style="font-size:'+fs(17)+';font-weight:600">Horaires\u00a0: ' + fmtTime(i.debut) + ' \u2013 ' + fmtTime(i.fin) + '</div>';
   h += '<div style="font-size:'+fs(22)+';font-weight:900;margin:2px 0">PAT\u00a0: ' + fmtTime(i.pat) + '</div>';
   h += '</div>';
-  h += '<div style="padding:6px 8px;border-bottom:1px solid #999;font-size:10px;font-weight:600">Repas \u00e0 partir de\u00a0: ' + fmtTime(i.repas) + '</div>';
+  h += '<div style="padding:6px 8px;border-bottom:1px solid #999;font-size:10px;font-weight:600">Repas à partir de\u00a0: ' + fmtTime(i.repas) +
+    (i.pause_repas ? '<br><span style="font-size:9px;font-weight:400">Pause de ' + i.pause_repas + 'mn à prévoir</span>' : '') + '</div>';
   h += '<div style="padding:5px 8px;font-size:8.5px;display:grid;grid-template-columns:1fr 1fr;gap:2px">';
   h += '<div>M\u00e9t\u00e9o\u00a0: ' + (i.meteo||'\u2014') + '</div><div>Temp\u00e9rature\u00a0: ' + (i.temperature||'\u2014') + '</div>';
   h += '<div>Cr\u00e9p. matin\u00a0: ' + (fmtTime(i.crep_m)||'\u2014') + '</div><div>Lever\u00a0: ' + (fmtTime(i.lever)||'\u2014') + '</div>';
@@ -2623,18 +2633,25 @@ function renderApercu(targetEl) {
   }
   h += '</div>';
 
-  // ECOPROD
-  h += '<div style="border:1px solid #ccc;padding:5px;text-align:center;font-size:9px;margin-bottom:5px">';
-  h += '<b>ECOPROD</b><br>Chaque geste compte !<br>N\u2019h\u00e9sitez pas \u00e0 ramener votre gourde ou votre ecocup<br>Restons responsable !</div>';
+  // ECOPROD (éditable)
+  if (i.ecoprod !== undefined ? i.ecoprod : true) {
+    var ecoText = i.ecoprod !== undefined ? i.ecoprod : "Chaque geste compte !\nN\'hésitez pas à ramener votre gourde ou votre ecocup\nRestons responsable !";
+    if (ecoText) {
+      h += '<div style="border:1px solid #ccc;padding:5px;text-align:center;font-size:9px;margin-bottom:5px">';
+      h += '🌿 <b>ECOPROD</b>' + pencilInline("goToTab(\'infos\')", "l\'encadré Ecoprod") + '<br>';
+      h += ecoText.replace(/\n/g,'<br>');
+      h += '</div>';
+    }
+  }
 
-  // HARCELEMENT fond orange
-  h += '<div style="border:1px solid #c07000;background:#e8850a;color:#fff;padding:8px;font-size:8.5px;margin-bottom:8px;text-align:center">';
-  h += '<div style="font-weight:700;text-decoration:underline;font-size:10px;margin-bottom:3px">PR\u00c9VENTION HARC\u00c8LEMENT</div>';
-  h += 'Toute personne s\u2019estimant victime de harc\u00e8lement peut s\u2019adresser aux r\u00e9f\u00e9rents de notre film<br>';
-  h += '<b>Louise Jacquet \u2013 Nina Allimann</b><br>';
-  h += '<i>(cf. convocation pour les num\u00e9ros de t\u00e9l\u00e9phone) et/ou<br>envoyer un mail \u00e0 l\u2019adresse axelfilmsproduction@gmail.com</i><br>';
-  h += 'Au m\u00e9decin du travail \u2013 Centre Thalie Sant\u00e9 : (+33)1 49 27 60 00 / Au CCHSCT : (+33)1 53 89 01 30 /<br>';
-  h += 'Au N\u00b0 vert AP-HP St Antoine : +33 800 00 46 41 / Au N\u00b0 d\u2019urgence du Minist\u00e8re de la Justice : +33 884 284 63</div>';
+  // HARCELEMENT (éditable)
+  var harcelText = i.harcelement_texte !== undefined ? i.harcelement_texte : "Toute personne s\'estimant victime de harcèlement peut s\'adresser aux référents de notre film\nLouise Jacquet – Nina Allimann\n(cf. convocation pour les numéros de téléphone) et/ou envoyer un mail à l\'adresse axelfilmsproduction@gmail.com\nAu médecin du travail – Centre Thalie Santé : (+33)1 49 27 60 00 / Au CCHSCT : (+33)1 53 89 01 30 /\nAu N° vert AP-HP St Antoine : +33 800 00 46 41 / Au N° d\'urgence du Ministère de la Justice : +33 884 284 63";
+  if (harcelText) {
+    h += '<div style="border:2px solid #c07000;background:#fffff0;padding:8px;font-size:8.5px;margin-bottom:8px;text-align:center">';
+    h += '<div style="font-weight:700;text-decoration:underline;font-size:10px;margin-bottom:3px;color:#c07000">PRÉVENTION HARCÈLEMENT' + pencilInline("goToTab(\'infos\')", "l\'encadré Harcèlement") + '</div>';
+    h += '<span style="color:#333">' + harcelText.replace(/\n/g,'<br>') + '</span>';
+    h += '</div>';
+  }
 
   // LIEUX
   if (f.lieux && f.lieux.length) {
@@ -3547,7 +3564,7 @@ function pgLoadInfos() {
   pgSetSub('pg-infos-sub');
   var f = activeFDS(); if (!f) return;
   var i = f.infos||{};
-  var fields = ['journee','date','pat','debut','fin','repas','meteo','temperature','lever','coucher'];
+  var fields = ['journee','date','pat','debut','fin','repas','pause_repas','meteo','temperature','lever','coucher'];
   fields.forEach(function(k){
     var el = document.getElementById('pg-'+k.replace('_','-'));
     if (el) el.value = i[k]||'';
@@ -3555,6 +3572,10 @@ function pgLoadInfos() {
   var cm = document.getElementById('pg-crep-m'); if(cm) cm.value = i.crep_m||'';
   var cs = document.getElementById('pg-crep-s'); if(cs) cs.value = i.crep_s||'';
   var note = document.getElementById('pg-note'); if(note) note.value = i.note||'';
+  var ecoprod = document.getElementById('pg-ecoprod');
+  if (ecoprod) ecoprod.value = i.ecoprod !== undefined ? i.ecoprod : "Chaque geste compte !\nN\'hésitez pas à ramener votre gourde ou votre ecocup\nRestons responsable !";
+  var harcel = document.getElementById('pg-harcelement');
+  if (harcel) harcel.value = i.harcelement_texte !== undefined ? i.harcelement_texte : "Toute personne s\'estimant victime de harcèlement peut s\'adresser aux référents de notre film\nLouise Jacquet – Nina Allimann\n(cf. convocation pour les numéros de téléphone) et/ou envoyer un mail à l\'adresse axelfilmsproduction@gmail.com\nAu médecin du travail – Centre Thalie Santé : (+33)1 49 27 60 00 / Au CCHSCT : (+33)1 53 89 01 30 /\nAu N° vert AP-HP St Antoine : +33 800 00 46 41 / Au N° d\'urgence du Ministère de la Justice : +33 884 284 63";
   // Équipe B
   var eqb = i.eqb || {};
   var eqbFields = ['pat','debut','fin','seqs','lieu','intervenants','note'];
@@ -3569,7 +3590,7 @@ function pgLoadInfos() {
 
 function pgSaveInfos() {
   var f = activeFDS(); if (!f) return;
-  var fields = ['journee','date','pat','debut','fin','repas','meteo','temperature','lever','coucher'];
+  var fields = ['journee','date','pat','debut','fin','repas','pause_repas','meteo','temperature','lever','coucher'];
   fields.forEach(function(k){
     var el = document.getElementById('pg-'+k.replace('_','-'));
     if (el) f.infos[k] = el.value;
@@ -3577,6 +3598,8 @@ function pgSaveInfos() {
   var cm = document.getElementById('pg-crep-m'); if(cm) f.infos.crep_m = cm.value;
   var cs = document.getElementById('pg-crep-s'); if(cs) f.infos.crep_s = cs.value;
   var note = document.getElementById('pg-note'); if(note) f.infos.note = note.value;
+  var ecoprod = document.getElementById('pg-ecoprod'); if(ecoprod) f.infos.ecoprod = ecoprod.value;
+  var harcel = document.getElementById('pg-harcelement'); if(harcel) f.infos.harcelement_texte = harcel.value;
   // Équipe B
   if (!f.infos.eqb) f.infos.eqb = {};
   var eqbFields = ['pat','debut','fin','seqs','lieu','intervenants','note'];
