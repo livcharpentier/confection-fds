@@ -1218,6 +1218,8 @@ textarea.form-input{resize:vertical;min-height:72px;}
         <option value="I-E/N">I-E/N — Int-Ext Nuit</option>
         <option value="E/Crép.">E/Crép. — Extérieur Crépuscule</option>
         <option value="E/Am.">E/Am. — Extérieur Aube</option>
+        <option value="E/N.Am.">E/N.Am. — Ext Nuit→Aube</option>
+        <option value="I/N.Am.">I/N.Am. — Int Nuit→Aube</option>
       </select>
     </div>
     <div class="form-row"><label class="form-label">Décor</label><input class="form-input" id="edit-seq-decor" placeholder="Route de campagne – sous-bois"/></div>
@@ -1239,6 +1241,12 @@ textarea.form-input{resize:vertical;min-height:72px;}
       <label style="display:flex;align-items:center;gap:6px;font-size:13px">
         <input type="checkbox" id="edit-seq-eqb"/> Séquence Équipe B
       </label>
+    </div>
+    <div class="form-row"><label class="form-label">Séparateur</label>
+      <label style="display:flex;align-items:center;gap:6px;font-size:13px">
+        <input type="checkbox" id="edit-seq-sep" onchange="(function(){var el=document.getElementById('edit-seq-sep-texte');if(el)el.style.display=document.getElementById('edit-seq-sep').checked?'block':'none';})()"/> Ligne de déplacement inter-décors
+      </label>
+      <input class="form-input" id="edit-seq-sep-texte" placeholder="- Déplacement vers Fort de Mézilles -" style="margin-top:5px;display:none"/>
     </div>
     <div style="display:flex;gap:8px;margin-top:4px">
       <button class="btn btn-primary" style="flex:1" onclick="saveEditSeq()">Enregistrer</button>
@@ -2671,9 +2679,25 @@ function renderApercu(targetEl) {
     h += '<caption style="caption-side:top;text-align:left;font-size:9px;font-weight:700;padding:3px 0">S\u00c9QUENCES ' + pencilInline("goToTab(\'sequences\')","les s\u00e9quences") + '</caption>';
     h += '<tr>'+th('SEQ','45px')+th('EFFET','45px')+th('D\u00c9COR')+th('R\u00c9SUM\u00c9')+th('R\u00d4LES','55px')+th('CONT.','75px')+th('MIN','48px')+'</tr>';
     f.sequences.forEach(function(s) {
+      if (s.sep) {
+        var sl = s.sep_texte || '— Déplacement —';
+        h += '<tr><td colspan="7" style="padding:3px 8px;background:#e0e0e0;text-align:center;font-size:8.5px;font-style:italic;font-weight:700;border:1px solid #bbb">'+sl+'</td></tr>';
+        return;
+      }
+      // Continuité enrichie : si on a juste "J19", on cherche la date dans PDT_DATA
+      var contAffiche = s.cont || '';
+      if (contAffiche && /^J\d+$/.test(contAffiche.trim())) {
+        var jNum = parseInt(contAffiche.replace('J',''));
+        var pdtRef = (typeof PDT_DATA !== 'undefined') ? PDT_DATA.find(function(p){return p.jdt===jNum;}) : null;
+        if (pdtRef && pdtRef.date) {
+          contAffiche = contAffiche + '<br><span style="font-size:7.5px">' + pdtRef.date + '</span>';
+        }
+      }
       h += '<tr>'+td(s.num,'',true,true)+td(s.effet,'',false,true)+td(s.decor,'',true,true)+
            '<td style="padding:2px 5px;font-size:9px;border:1px solid #999;font-style:italic;text-align:center">'+(s.resume||'&nbsp;')+'</td>'+
-           td(s.roles,'',false,true)+td(s.cont||'','',false,true)+td(s.duree,'',false,true)+'</tr>';
+           td(s.roles,'',false,true)+
+           '<td style="padding:2px 5px;font-size:8px;border:1px solid #999;text-align:center">'+contAffiche+'</td>'+
+           td(s.duree,'',false,true)+'</tr>';
     });
     h += '<tr><td colspan="6" style="text-align:right;padding:2px 8px;font-size:9px;font-weight:700;border:1px solid #999">TOTAL</td>'+
          td(f.total_min||'','',true,true)+'</tr>';
@@ -3643,6 +3667,13 @@ function pgRenderSequences() {
     return;
   }
   tb.innerHTML = seqs.map(function(s, i) {
+    if (s.sep) {
+      var sepLabel = s.sep_texte || '— Déplacement —';
+      return '<tr><td colspan="8" style="padding:4px 8px;background:#e8e8e8;text-align:center;font-size:10px;font-style:italic;font-weight:600;border:1px solid #ccc">' +
+        sepLabel +
+        ' <button onclick="ouvrirEditSeq(' + i + ')" style="background:none;border:none;cursor:pointer;padding:1px 4px;font-size:9px;color:#888">✏</button>' +
+        '</td></tr>';
+    }
     return '<tr>' +
       '<td style="padding:4px 6px;border:1px solid #ddd;text-align:center;font-weight:700;color:var(--purple)">' + (s.num||'') + '</td>' +
       '<td style="padding:4px 6px;border:1px solid #ddd;text-align:center;font-size:10px">' + (s.effet||'') + '</td>' +
@@ -3696,6 +3727,9 @@ function ouvrirModalAjoutSeq() {
   document.getElementById('edit-seq-min').value = '0';
   document.getElementById('edit-seq-sec').value = '00';
   document.getElementById('edit-seq-eqb').checked = false;
+  document.getElementById('edit-seq-sep').checked = false;
+  var sepTxt = document.getElementById('edit-seq-sep-texte');
+  if (sepTxt) { sepTxt.style.display='none'; sepTxt.value=''; }
   document.getElementById('edit-seq-duree-preview').textContent = '';
   openModal('modal-edit-seq');
 }
@@ -3711,6 +3745,10 @@ function ouvrirEditSeq(idx) {
   document.getElementById('edit-seq-roles').value = s.roles||'';
   document.getElementById('edit-seq-cont').value = s.cont||'';
   document.getElementById('edit-seq-eqb').checked = s.eqb||false;
+  var isSep = s.sep||false;
+  document.getElementById('edit-seq-sep').checked = isSep;
+  var sepTxtEl = document.getElementById('edit-seq-sep-texte');
+  if (sepTxtEl) { sepTxtEl.style.display = isSep ? 'block' : 'none'; sepTxtEl.value = s.sep_texte||''; }
   var d = parseDuree(s.duree||'');
   document.getElementById('edit-seq-min').value = String(d.min);
   document.getElementById('edit-seq-sec').value = String(d.sec).padStart(2,'0');
@@ -3724,15 +3762,19 @@ function saveEditSeq() {
   var min = parseInt(document.getElementById('edit-seq-min').value)||0;
   var sec = parseInt(document.getElementById('edit-seq-sec').value)||0;
   var duree = (min||sec) ? formatDuree(min,sec) : '';
+  var isSep = document.getElementById('edit-seq-sep').checked;
+  var sepTxtEl2 = document.getElementById('edit-seq-sep-texte');
   var data = {
-    num:    document.getElementById('edit-seq-num').value.trim(),
-    effet:  document.getElementById('edit-seq-effet').value,
-    decor:  document.getElementById('edit-seq-decor').value.trim(),
-    resume: document.getElementById('edit-seq-resume').value.trim(),
-    roles:  document.getElementById('edit-seq-roles').value.trim(),
-    cont:   document.getElementById('edit-seq-cont').value.trim(),
-    duree:  duree,
-    eqb:    document.getElementById('edit-seq-eqb').checked
+    num:      document.getElementById('edit-seq-num').value.trim(),
+    effet:    document.getElementById('edit-seq-effet').value,
+    decor:    document.getElementById('edit-seq-decor').value.trim(),
+    resume:   document.getElementById('edit-seq-resume').value.trim(),
+    roles:    document.getElementById('edit-seq-roles').value.trim(),
+    cont:     document.getElementById('edit-seq-cont').value.trim(),
+    duree:    duree,
+    eqb:      document.getElementById('edit-seq-eqb').checked,
+    sep:      isSep,
+    sep_texte: isSep && sepTxtEl2 ? sepTxtEl2.value.trim() : ''
   };
   if (!data.num) { toast('Numéro de séquence requis'); return; }
   if (!f.sequences) f.sequences = [];
@@ -6182,7 +6224,8 @@ function parseDepoPdf(lines) {
   var reSeqHeader = /^(\d+\s*(?:BIS|TER|A|B|C|D|E|F|G|H|I|J|K|P\d*|BIS\s*[A-Z]|PT)?(?:\s*(?:PEL|\?\!?|!|\(D\)|\(EQ\.?B?\)|P\d+|POV|P\d+\s*\+\s*POV))*)\s+(I\+?E\/[JNMS]|E\/[JNMS]|I\/[JNMS]|I\+?E\/[JN]\.?Am?|E\/[JN]\.?Am?|I\/[JN]\.?Am?|E\/(?:Soir|M|Aube|Crép\.?)|I\/(?:Soir|M|Aube|Crép\.?))/;
   var reMinutage = /Minutage\s*:\s*([\d:]+)/i;
   var rePages = /Pages?\s*:\s*([\d\s\/84]+)/i;
-  var reChrono = /Chrono-jour\s*:\s*(J\d+)/i;
+  var reChrono = /Chrono-jour\s*:\s*(J\d+[^
+]*)/i;
   var reNbRoles = /^(\d+)\s+R[oô]les?\s*:/;
   var reNbFig = /^(\d+)\s+Figurants?\s*:/;
   var reNbSil = /^(\d+)\s+Silhouettes?\s*:/;
