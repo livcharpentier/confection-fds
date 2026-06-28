@@ -6458,14 +6458,17 @@ function afficherDepoPdfPreview(journees, preview) {
   html += '<label style="display:flex;align-items:center;gap:6px;margin-bottom:4px"><input type="checkbox" id="depo-opt-vehic" checked> Véhicules (note dans département Véhicules)</label>';
   html += '<label style="display:flex;align-items:center;gap:6px;margin-bottom:4px"><input type="checkbox" id="depo-opt-cost" checked> Costumes (note dans département Costumes)</label>';
   html += '<label style="display:flex;align-items:center;gap:6px;margin-bottom:4px"><input type="checkbox" id="depo-opt-ecrase"> Écraser les données existantes (décoché = compléter seulement)</label>';
+  html += '<label style="display:flex;align-items:center;gap:6px;margin-bottom:4px"><input type="checkbox" id="depo-opt-decors" checked> Mettre à jour les décors + rôles depuis ce dépouillement (remplace valeurs PDT génériques)</label>';
   html += '<label style="display:flex;align-items:center;gap:6px;margin-bottom:8px"><input type="checkbox" id="depo-opt-creer" checked> Créer automatiquement les FDS manquantes ('+journees.filter(function(j){return !(state.fds||[]).find(function(f){return f.filmId===activeFilmId&&f.jdt===j.numJour;});}).length+' journées sans FDS)</label>';
   html += '</div>';
 
-  html += '<div style="display:flex;gap:8px;margin-top:10px">';
+  html += '<div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">';
   html += '<button class="btn btn-primary btn-block" style="background:#2e7d32;border-color:#2e7d32" onclick="appliquerDepoPdf(window._depoData)">✅ Importer dans les FDS</button>';
+  html += '<label class="btn btn-sm" style="cursor:pointer;background:#e8f5e9;border:1px solid #2e7d32;color:#2e7d32;font-size:11px;white-space:nowrap">➕ Fusionner PDF<input type="file" accept=".pdf" style="display:none" onchange="fusionnerDepoPdf(this)"/></label>';
   html += '<button class="btn btn-secondary" onclick="document.getElementById(\'import-depo-pdf-preview\').innerHTML=\'\'">Annuler</button>';
-  html += '<button class="btn btn-sm" onclick="depoDiag()" style="background:none;border:1px solid #999;color:#555;font-size:11px">🔍 Diagnostic FDS</button>';
+  html += '<button class="btn btn-sm" onclick="depoDiag()" style="background:none;border:1px solid #999;color:#555;font-size:11px">🔍 Diag</button>';
   html += '</div>';
+  html += '<div id="depo-fusion-status" style="font-size:11px;color:#2e7d32;margin-top:4px"></div>';
 
   preview.innerHTML = html;
   window._depoData = journees;
@@ -6481,6 +6484,83 @@ function depoDiag() {
   var vides = fds.filter(function(f){return !(f.comediens&&f.comediens.length)&&!(f.sequences&&f.sequences.length);});
   msg += 'FDS vides (sans comédiens ni séquences) : ' + vides.length + '\n';
   alert(msg);
+}
+
+function fusionnerDepoPdf(input) {
+  // Charge un 2e PDF de dépouillement et le fusionne avec window._depoData
+  if (!window._depoData) { toast('Chargez d'abord un dépouillement principal'); return; }
+  if (!input.files || !input.files[0]) return;
+  var statusEl = document.getElementById('depo-fusion-status');
+  if (statusEl) statusEl.textContent = '⏳ Lecture du 2e PDF...';
+
+  function loadPdfJs(cb) {
+    if (window.pdfjsLib) { cb(); return; }
+    var s = document.createElement('script');
+    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+    s.onload = function() { pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js'; cb(); };
+    document.head.appendChild(s);
+  }
+
+  loadPdfJs(function() {
+    var reader = new FileReader();
+    reader.onload = function(e) {
+      pdfjsLib.getDocument({data: e.target.result}).promise.then(function(pdf) {
+        var promises = [];
+        for (var p = 1; p <= pdf.numPages; p++) {
+          promises.push(pdf.getPage(p).then(function(page) {
+            return page.getTextContent().then(function(tc) {
+              var items = tc.items, lines = [], lastY = null, curLine = '';
+              items.forEach(function(it) {
+                var y = it.transform ? Math.round(it.transform[5]) : 0;
+                if (lastY !== null && Math.abs(y - lastY) > 3) { if (curLine.trim()) lines.push(curLine.trim()); curLine = ''; }
+                curLine += it.str; lastY = y;
+              });
+              if (curLine.trim()) lines.push(curLine.trim());
+              return lines;
+            });
+          }));
+        }
+        Promise.all(promises).then(function(pagesLines) {
+          var allLines = [];
+          pagesLines.forEach(function(l) { allLines = allLines.concat(l); });
+          var nouvJournees = parseDepoPdf(allLines);
+          // Fusionner avec _depoData existant
+          var nbFusion = 0, nbNouvelles = 0;
+          nouvJournees.forEach(function(nj) {
+            var existing = window._depoData.find(function(j){ return j.numJour === nj.numJour; });
+            if (existing) {
+              // Fusionner séquence par séquence
+              nj.sequences.forEach(function(ns) {
+                var se = existing.sequences.find(function(s){ return jajNumMatch(s.num, ns.num); });
+                if (se) {
+                  // Compléter les champs vides
+                  if (!se.decor && ns.decor) { se.decor = ns.decor; nbFusion++; }
+                  if (!se.roles && ns.roles) { se.roles = ns.roles; nbFusion++; }
+                  if (!se.resume && ns.resume) { se.resume = ns.resume; }
+                  if (!se.effet && ns.effet) { se.effet = ns.effet; }
+                  if (!se.minutage && ns.minutage) { se.minutage = ns.minutage; }
+                  if (!se.cont && ns.cont) { se.cont = ns.cont; }
+                } else {
+                  existing.sequences.push(ns);
+                  nbNouvelles++;
+                }
+              });
+            } else {
+              window._depoData.push(nj);
+              nbNouvelles += nj.sequences.length;
+            }
+          });
+          input.value = '';
+          if (statusEl) statusEl.textContent = '✅ Fusionné : ' + nbFusion + ' champs complétés, ' + nbNouvelles + ' séquences ajoutées';
+          toast('Fusion réussie : ' + nbFusion + ' champs mis à jour');
+        });
+      }).catch(function(err) {
+        if (statusEl) statusEl.textContent = '❌ Erreur : ' + err.message;
+        input.value = '';
+      });
+    };
+    reader.readAsArrayBuffer(input.files[0]);
+  });
 }
 
 function jajReremplirResumes() {
@@ -6640,17 +6720,32 @@ function appliquerDepoPdf(journees) {
       }
     });
 
+    // Décors PDT de la journée (valeurs génériques à remplacer si possible)
+    var pdtJour = (typeof PDT_DATA !== 'undefined') ? PDT_DATA.find(function(p){return p.jdt===fds.jdt;}) : null;
+    var pdtDecors = pdtJour ? (pdtJour.decors||[]) : [];
+    var optDecors = document.getElementById('depo-opt-decors') && document.getElementById('depo-opt-decors').checked;
+
     if (optSeqs) {
       j.sequences.forEach(function(s) {
         var seqExist = (fds.sequences||[]).find(function(se){ return jajNumMatch(se.num, s.num); });
         if (seqExist) {
           if (optEcrase || !seqExist.effet) seqExist.effet = s.effet || seqExist.effet;
-          if (optEcrase || !seqExist.decor) seqExist.decor = s.decor || seqExist.decor;
+          // Décor : remplacer si option cochée OU si le décor existant est une valeur PDT générique
+          var decorExistEstPDT = pdtDecors.indexOf(seqExist.decor) >= 0;
+          if (optEcrase || optDecors || !seqExist.decor || decorExistEstPDT) {
+            if (s.decor) seqExist.decor = s.decor;
+          }
           if (optEcrase || !seqExist.resume) seqExist.resume = s.resume || seqExist.resume;
           if (optEcrase || !seqExist.duree) seqExist.duree = s.minutage || seqExist.duree;
           if (optEcrase || !seqExist.cont) seqExist.cont = s.cont || seqExist.cont;
-          // Mettre à jour roles sur la séquence
-          if (optEcrase || !seqExist.roles) seqExist.roles = s.roles || seqExist.roles;
+          // Rôles : remplacer si option cochée OU si les rôles viennent du PDT (toutes les séquences ont les mêmes rôles = tous les rôles du jour)
+          var pdtRoles = pdtJour ? (pdtJour.roles||[]).map(function(r){return r.num;}) : [];
+          var rolesExist = (seqExist.roles||'').split(/[,\s]+/).map(function(r){return r.trim();}).filter(Boolean).sort().join(',');
+          var rolesFromPdt = pdtRoles.slice().sort().join(',');
+          var rolesEstPDT = rolesExist === rolesFromPdt;
+          if (optEcrase || optDecors || !seqExist.roles || rolesEstPDT) {
+            if (s.roles) seqExist.roles = s.roles;
+          }
         } else {
           if (!fds.sequences) fds.sequences = [];
           fds.sequences.push({ num: s.num, effet: s.effet, decor: s.decor, resume: s.resume, roles: s.roles || '', duree: s.minutage, cont: s.cont });
