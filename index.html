@@ -2754,12 +2754,13 @@ function renderApercu(targetEl) {
     var seqsD = pdtD ? pdtD.sequences : (allSeqs||[]);
     var csd = isMobile ? '6px' : '8px';
     h += '<table style="width:100%;border-collapse:collapse;margin-bottom:2px">';
-    h += '<caption style="caption-side:top;text-align:left;font-size:8px;font-style:italic;color:#c00;padding:2px 0">*Préparation des doublures à la loge rôles</caption>';
+    h += '<caption style="caption-side:top;text-align:left;font-size:9px;font-weight:700;padding:3px 0">DOUBLURES ' + pencilInline("goToTab(\'comediens\')", "les doublures") + '</caption>';
     h += '<tr style="background:#e8e8e8">';
-    h += th('N°','28px') + th('DOUBLURES* ('+doublures.length+')') + th('NOMS');
+    h += th('N°','28px') + th('DOUBLURES ('+doublures.length+')') + th('NOMS');
     seqsD.forEach(function(s){ h += '<th style="padding:2px 3px;border:1px solid #999;font-size:'+csd+';text-align:center">'+s+'</th>'; });
-    h += th('MeP','48px') + th('HMC','50px') + th('PAT','48px') + '</tr>';
+    h += th('MeP','48px') + th('HMC','50px') + th('PAT','48px') + th('','28px') + '</tr>';
     doublures.forEach(function(c) {
+      var didx = (f.comediens||[]).indexOf(c);
       var dSeqs = (c.seqs||'').split(',').map(function(s){return s.trim();}).filter(Boolean);
       h += '<tr>';
       h += td(c.num,'',false,true) + td(c.role,'',false,false) + td(c.nom,'',false,false);
@@ -2768,28 +2769,37 @@ function renderApercu(targetEl) {
         h += '<td style="padding:2px;border:1px solid #999;font-size:'+csd+';text-align:center;font-weight:700">'+(present?s:'')+'</td>';
       });
       h += td(fmtTime(c.mep)||'-','',false,true) + td(fmtTime(c.hmc)||'-','',false,true) + td(fmtTime(c.pat)||'-','',true,true);
+      h += '<td style="padding:2px;border:1px solid #999;text-align:center">'+pencilInline('openEditComedien('+didx+')',c.role)+'</td>';
       h += '</tr>';
     });
+    h += '<tr><td colspan="100" style="font-size:8px;font-style:italic;color:#c00;padding:2px 4px;border:1px solid #eee">* Préparation à la loge rôles</td></tr>';
     h += '</table>';
   }
   if (silhouettes.length) {
     h += '<table style="width:100%;border-collapse:collapse;margin-bottom:2px">';
-    h += '<tr>'+th('N\u00b0','35px')+th('SILHOUETTES* ('+silhouettes.length+')')+th('NOMS')+
-         th('S\u00c9QUENCES')+th('HMC','60px')+th('PAT','55px')+'</tr>';
+    h += '<caption style="caption-side:top;text-align:left;font-size:9px;font-weight:700;padding:3px 0">SILHOUETTES ' + pencilInline("goToTab(\'comediens\')", "les silhouettes") + '</caption>';
+    h += '<tr style="background:#e8e8e8">'+th('N°','35px')+th('SILHOUETTES ('+silhouettes.length+')')+th('NOMS')+
+         th('SÉQUENCES')+th('HMC','60px')+th('PAT','55px')+th('','28px')+'</tr>';
     silhouettes.forEach(function(c) {
+      var sidx = (f.comediens||[]).indexOf(c);
       h += '<tr>'+td(c.num,'',false,true)+td(c.role,'',false,false)+td(c.nom,'',false,false)+
-           td(c.seqs,'',false,true)+td(fmtTime(c.hmc),'',false,true)+td(fmtTime(c.pat),'',true,true)+'</tr>';
+           td(c.seqs||'-','',false,true)+td(fmtTime(c.hmc)||'-','',false,true)+td(fmtTime(c.pat)||'-','',true,true)+
+           '<td style="padding:2px;border:1px solid #999;text-align:center">'+pencilInline('openEditComedien('+sidx+')',c.role)+'</td>'+
+           '</tr>';
     });
+    h += '<tr><td colspan="7" style="font-size:8px;font-style:italic;color:#c00;padding:2px 4px;border:1px solid #eee">* Préparation à la loge figuration</td></tr>';
     h += '</table>';
-    h += '<div style="font-size:8px;font-style:italic;color:#c00;margin-bottom:4px">*Pr\u00e9paration des silhouettes \u00e0 la loge figuration</div>';
   }
   if (figurants.length) {
-    h += '<div style="font-size:9px;font-weight:700;margin:3px 0 2px">FIGURATION : ' + figurants.length + ' figurant(s)</div>';
     h += '<table style="width:100%;border-collapse:collapse;margin-bottom:5px">';
-    h += '<tr>'+th('Nbre','40px')+th('FIGURATION')+th('S\u00c9QUENCES')+th('HMC','60px')+th('PAT','55px')+'</tr>';
+    h += '<caption style="caption-side:top;text-align:left;font-size:9px;font-weight:700;padding:3px 0">FIGURATION ' + pencilInline("goToTab(\'comediens\')", "la figuration") + '</caption>';
+    h += '<tr style="background:#e8e8e8">'+th('Nbre','40px')+th('FIGURATION ('+figurants.length+')')+th('SÉQUENCES')+th('HMC','60px')+th('PAT','55px')+th('','28px')+'</tr>';
     figurants.forEach(function(c) {
-      h += '<tr>'+td('1','',false,true)+td(c.role+(c.nom?' ('+c.nom+')':''),'',false,false)+
-           td(c.seqs,'',false,true)+td(fmtTime(c.hmc),'',false,true)+td(fmtTime(c.pat),'',true,true)+'</tr>';
+      var fidx = (f.comediens||[]).indexOf(c);
+      h += '<tr>'+td(c.nom||'1','',false,true)+td(c.role,'',false,false)+
+           td(c.seqs||'-','',false,true)+td(fmtTime(c.hmc)||'-','',false,true)+td(fmtTime(c.pat)||'-','',true,true)+
+           '<td style="padding:2px;border:1px solid #999;text-align:center">'+pencilInline('openEditComedien('+fidx+')',c.role)+'</td>'+
+           '</tr>';
     });
     h += '</table>';
   }
