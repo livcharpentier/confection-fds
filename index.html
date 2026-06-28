@@ -2958,7 +2958,10 @@ function renderApercu(targetEl) {
     allCascVeh.forEach(function(c) {
       var cidx = (f.comediens||[]).indexOf(c);
       var comSeqs = (c.seqs||'').split(/[\s,]+/).map(function(s){return s.trim();}).filter(Boolean);
-      h += '<tr>'+td(c.num||'','45px',true,true)+td(c.role||'','',false,false)+td(c.nom||'','',false,false);
+      h += '<tr>';
+      h += '<td style="padding:2px 4px;border:1px solid #999;font-size:'+csz+';font-weight:700;color:#6a0dad;white-space:nowrap;text-align:center">'+(c.num||'')+'</td>';
+      h += '<td style="padding:2px 4px;border:1px solid #999;font-size:'+csz+'">'+(c.role||'')+(c.note?'<br><span style="color:#c00;font-size:7px;font-style:italic">'+c.note+'</span>':'')+'</td>';
+      h += '<td style="padding:2px 4px;border:1px solid #999;font-size:'+csz+'">'+(c.nom||'')+'</td>';
       allSeqs.forEach(function(s){ var ok=comSeqs.some(function(cs){return cs.replace(/\s/g,'').toUpperCase()===s.replace(/\s/g,'').toUpperCase();}); h+='<td style="padding:2px;border:1px solid #999;font-size:'+csz+';text-align:center;font-weight:700">'+(ok?s:'')+'</td>'; });
       h+=td(fmtTime(c.hmc)||'—','',false,true)+td(fmtTime(c.loges)||'—','',false,true)+td(fmtTime(c.pat)||'—','',true,true);
       h+='<td style="padding:2px;border:1px solid #999;text-align:center">'+pencilInline('openEditComedien('+cidx+')',c.role)+'</td></tr>';
@@ -2974,7 +2977,8 @@ function renderApercu(targetEl) {
     if (f.casc_phys_coord) h += '<div style="font-size:9px;font-style:italic;padding:3px 0">'+f.casc_phys_coord+'</div>';
     h += '<table style="width:100%;border-collapse:collapse;margin-bottom:3px">';
     h += '<caption style="caption-side:top;text-align:left;font-size:9px;font-weight:700;padding:2px 0">CASCADEURS ' + pencilInline("goToTab(\'pg-cascadeurs\')", "les cascadeurs") + '</caption>';
-    h += '<tr style="background:#f5e6ff">'+th('N°','45px')+th('RÔLE / DESCRIPTION')+th('NOM');
+    h += '<tr style="background:#f5e6ff">';
+    h += th('Nbr.','30px')+th('N°','60px')+th('RÔLE / DESCRIPTION')+th('NOM');
     if (nbSeqs) h += '<th style="padding:2px 4px;border:1px solid #999;font-size:'+csz+';text-align:center" colspan="'+nbSeqs+'">SÉQUENCES</th>';
     h += '<th style="padding:2px 4px;border:1px solid #999;font-size:'+csz+';text-align:center" rowspan="2">S/P<br><span style="color:#1565c0;font-size:7px">HMC</span></th>';
     h += th(i.col_pat||'PAT','45px')+'<th style="border:1px solid #999"></th></tr>';
@@ -2984,7 +2988,11 @@ function renderApercu(targetEl) {
       var comSeqs = (c.seqs||'').split(/[\s,]+/).map(function(s){return s.trim();}).filter(Boolean);
       var spCell = fmtTime(c.mep)||fmtTime(c.hmc)||'—';
       if (c.hmc && c.mep) spCell += '<br><span style="color:#1565c0;font-size:7px">'+fmtTime(c.hmc)+'</span>';
-      h += '<tr>'+td(c.num||'','45px',true,true)+td(c.role||'','',false,false)+td(c.nom||'','',false,false);
+      h += '<tr>';
+      h += td(String(c.nbre||1),'30px',true,true);
+      h += '<td style="padding:2px 4px;border:1px solid #999;font-size:'+csz+';font-weight:700;color:#6a0dad;white-space:nowrap;text-align:center">'+(c.num||'')+'</td>';
+      h += td(c.role||'','',false,false);
+      h += '<td style="padding:2px 4px;border:1px solid #999;font-size:'+csz+'">'+(c.nom||'')+(c.note?'<br><span style="color:#c00;font-size:7px;font-style:italic">'+c.note+'</span>':'')+'</td>';
       allSeqs.forEach(function(s){ var ok=comSeqs.some(function(cs){return cs.replace(/\s/g,'').toUpperCase()===s.replace(/\s/g,'').toUpperCase();}); h+='<td style="padding:2px;border:1px solid #999;font-size:'+csz+';text-align:center;font-weight:700">'+(ok?s:'')+'</td>'; });
       h+='<td style="padding:2px 4px;border:1px solid #999;text-align:center;font-size:'+csz+';font-weight:700">'+spCell+'</td>';
       h+=td(fmtTime(c.pat)||'—','',true,true);
@@ -3304,11 +3312,29 @@ function openEditComedien(idx) {
   if (!f) return;
   var c = (f.comediens||[])[idx];
   if (!c) return;
-  // Mettre à jour les labels avec les intitulés personnalisés
+  // Adapter les labels selon le type
   var i = f.infos || {};
-  ['lbl-edit-hmc'].forEach(function(id){var el=document.getElementById(id);if(el)el.textContent=i.col_hmc||'HMC';});
-  ['lbl-edit-loges'].forEach(function(id){var el=document.getElementById(id);if(el)el.textContent=i.col_loges||'Départ Loges';});
-  ['lbl-edit-pat'].forEach(function(id){var el=document.getElementById(id);if(el)el.textContent=i.col_pat||'PAT';});
+  var isCasc = (c.type==='cascadeur'||c.type==='cascade_vehicule');
+  var lHmc = isCasc ? 'HMC' : (i.col_hmc||'HMC');
+  var lLoges = isCasc ? 'Départ Loges / Loge' : (i.col_loges||'Départ Loges');
+  var lPat = isCasc ? 'PAT' : (i.col_pat||'PAT');
+  var lMep = isCasc ? 'S/P (Mise en place)' : 'MeP';
+  ['lbl-edit-hmc'].forEach(function(id){var el=document.getElementById(id);if(el)el.textContent=lHmc;});
+  ['lbl-edit-loges'].forEach(function(id){var el=document.getElementById(id);if(el)el.textContent=lLoges;});
+  ['lbl-edit-pat'].forEach(function(id){var el=document.getElementById(id);if(el)el.textContent=lPat;});
+  var mepLbl = document.querySelector('label[for="edit-com-mep"], #modal-edit-comedien .form-label');
+  // Mettre à jour le label MeP
+  var allLabels = document.querySelectorAll('#modal-edit-comedien .form-label');
+  allLabels.forEach(function(el){ if(el.textContent==='MeP'||el.textContent==='S/P (Mise en place)') el.textContent=lMep; });
+  // Adapter le placeholder N°
+  var numEl = document.getElementById('edit-com-num');
+  if (numEl) numEl.placeholder = isCasc ? 'DBMot, Pilote Stoewer...' : (c.type==='figurant'?'':'1, S9...');
+  // Adapter le placeholder Rôle
+  var roleEl = document.getElementById('edit-com-role');
+  if (roleEl) roleEl.placeholder = isCasc ? 'Doublure Moto Pégase, Soldat touché...' : 'PÉGASE, JEAN...';
+  // Adapter le placeholder Nom
+  var nomEl = document.getElementById('edit-com-nom');
+  if (nomEl) nomEl.placeholder = isCasc ? 'Jack Alexandre SOUFFLARD*' : 'Lucas HECTOR';
   document.getElementById('edit-com-idx').value = idx;
   document.getElementById('modal-edit-com-title').textContent = 'Modifier — ' + (c.type||'comédien');
   document.getElementById('edit-com-num').value = c.num||'';
@@ -4636,9 +4662,10 @@ function pgRenderCascadeurs() {
   }
 
   function buildTheadHtml(labelCol2, hasLoges, spHmc) {
-    // spHmc=true : fusionner S/P et HMC sur 2 lignes (pour cascadeurs physiques)
+    // spHmc=true : Nbre + N° + S/P+HMC fusionnés (cascadeurs physiques)
     var h = '<thead><tr style="background:#f5e6ff">';
-    h += '<th style="padding:5px 4px;border:1px solid #ccc;width:45px" rowspan="2">N°</th>';
+    if (spHmc) h += '<th style="padding:5px 4px;border:1px solid #ccc;width:35px" rowspan="2">Nbr.</th>';
+    h += '<th style="padding:5px 4px;border:1px solid #ccc;width:'+(spHmc?'65':'45')+'px" rowspan="2">N°</th>';
     h += '<th style="padding:5px 4px;border:1px solid #ccc;text-align:left" rowspan="2">'+labelCol2+'</th>';
     h += '<th style="padding:5px 4px;border:1px solid #ccc;text-align:left" rowspan="2">NOM</th>';
     if (allSeqs.length) {
@@ -4671,7 +4698,7 @@ function pgRenderCascadeurs() {
     var thead = table.querySelector('thead');
     var newThead = buildTheadHtml(labelCol2, hasLoges, spHmc);
     if (thead) thead.outerHTML = newThead; else table.insertAdjacentHTML('afterbegin', newThead);
-    var colCount = 5 + allSeqs.length + (spHmc ? 0 : (hasLoges ? 1 : 0));
+    var colCount = 5 + allSeqs.length + (spHmc ? 1 : (hasLoges ? 1 : 0));
     if (!list.length) {
       tb.innerHTML='<tr><td colspan="'+colCount+'" style="padding:10px;text-align:center;color:#999;font-size:12px">Aucun — cliquez + pour ajouter</td></tr>';
       return;
@@ -4687,8 +4714,10 @@ function pgRenderCascadeurs() {
         hmcCell = '<td style="padding:4px;border:1px solid #ddd;text-align:center;font-size:11px">'+(fmtTime(c.hmc)||'—')+'</td>'+
           (hasLoges?'<td style="padding:4px;border:1px solid #ddd;text-align:center;font-size:11px">'+(fmtTime(c.loges)||'—')+'</td>':'');
       }
+      var nbreCell = spHmc ? '<td style="padding:4px;border:1px solid #ddd;text-align:center;font-weight:700;font-size:11px;color:var(--purple)">'+(c.nbre||1)+'</td>' : '';
       return '<tr>'+
-        '<td style="padding:4px;border:1px solid #ddd;font-weight:700;text-align:center;font-size:10px;color:#6a0dad">'+(c.num||'')+'</td>'+
+        (spHmc ? nbreCell : '') +
+        '<td style="padding:4px;border:1px solid #ddd;font-weight:700;text-align:center;font-size:10px;color:#6a0dad;white-space:nowrap">'+(c.num||'')+'</td>'+
         '<td style="padding:4px;border:1px solid #ddd;font-size:11px">'+(c.role||'')+(c.note?'<br><span style="font-size:9px;color:#c00;font-style:italic">'+c.note+'</span>':'')+'</td>'+
         '<td style="padding:4px;border:1px solid #ddd;font-size:11px">'+(c.nom||'')+'</td>'+
         seqCols(c)+
