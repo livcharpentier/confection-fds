@@ -729,39 +729,48 @@ textarea.form-input{resize:vertical;min-height:72px;}
       <div class="page-sub" id="pg-vehicules-sub"></div>
     </div>
     <div class="scroll">
+      <!-- VÉHICULES DE TOURNAGE -->
       <div class="card" style="margin-bottom:8px">
-        <div class="card-title">Véhicules de tournage
+        <div class="card-title">🚗 Véhicules de tournage
           <button class="btn btn-sm btn-primary" onclick="ouvrirModalVehicule(-1)">+ Ajouter</button>
         </div>
-        <div style="font-size:11px;color:#555;margin-bottom:6px">
-          <input class="form-input" id="pg-vehicules-coord" placeholder="cf Éric Grimaldi — Présence Benjamin Decrucq (06 65 54 79 41)..." style="font-style:italic;font-size:11px" onblur="saveVehiculesCoord()"/>
+        <div style="margin-bottom:6px">
+          <input class="form-input" id="pg-vehicules-titre" placeholder="VÉHICULES cf Eric Grimaldi" style="font-weight:700;font-size:11px;margin-bottom:4px"/>
+          <input class="form-input" id="pg-vehicules-coord" placeholder="Présence Benjamin Decrucq (06 65 54 79 41)..." style="font-style:italic;font-size:11px"/>
+          <div style="font-size:10px;color:var(--text-muted);margin-top:2px">Titre en gras + ligne présence en italique sur la FDS</div>
         </div>
         <div style="overflow-x:auto">
-          <table style="width:100%;border-collapse:collapse;font-size:11px;min-width:450px">
-            <thead><tr style="background:#f5f0ff">
+          <table style="width:100%;border-collapse:collapse;font-size:11px;min-width:450px" id="table-vehicules">
+            <thead id="thead-vehicules"><tr style="background:#f5f0ff">
               <th style="padding:5px 4px;border:1px solid #ccc;width:45px" rowspan="2">Nbre</th>
-              <th style="padding:5px 4px;border:1px solid #ccc;text-align:left" rowspan="2">VÉHICULE</th>
-              <th style="padding:3px 4px;border:1px solid #ccc;text-align:center;font-size:10px" id="veh-seq-header" colspan="3">SÉQUENCES</th>
+              <th style="padding:5px 4px;border:1px solid #ccc;text-align:left" rowspan="2">VÉHICULE / NOM</th>
+              <th style="padding:3px 4px;border:1px solid #ccc;text-align:center;font-size:10px" colspan="3">SÉQUENCES</th>
               <th style="padding:5px 4px;border:1px solid #ccc;width:50px" rowspan="2">S/P</th>
               <th style="padding:5px 4px;border:1px solid #ccc;width:50px" rowspan="2">PAT</th>
               <th style="border:1px solid #ccc;width:26px" rowspan="2"></th>
             </tr><tr style="background:#f5f0ff" id="veh-seq-header-row2"></tr></thead>
             <tbody id="pg-tbody-vehicules"></tbody>
+            <tfoot><tr id="tr-total-veh" style="background:#e8e8e8">
+              <td style="padding:4px 6px;border:1px solid #ccc;text-align:center;font-weight:700" id="pg-vehicules-total">0</td>
+              <td style="padding:4px 6px;border:1px solid #ccc;font-weight:700" colspan="10">TOTAL</td>
+            </tr></tfoot>
           </table>
-          <div style="font-size:10px;font-weight:700;padding:4px 6px;border:1px solid #ddd;border-top:none;background:#f9f9f9" id="pg-vehicules-total"></div>
         </div>
+        <button class="btn btn-sm btn-secondary btn-block" onclick="saveVehiculesCoord()" style="margin-top:6px">Enregistrer</button>
       </div>
 
+      <!-- CHARRETTES / ATTELAGES -->
       <div class="card">
-        <div class="card-title">Charrettes / Attelages
+        <div class="card-title">🐎 Charrettes / Attelages
           <button class="btn btn-sm btn-primary" onclick="ouvrirModalVehicule(-1,'charrette')">+ Ajouter</button>
         </div>
-        <div style="font-size:11px;color:#555;margin-bottom:6px">
-          <input class="form-input" id="pg-charrettes-coord" placeholder="cf Attelages du Val d'Amour — Présence Julien Dugois..." style="font-style:italic;font-size:11px"/>
+        <div style="margin-bottom:6px">
+          <input class="form-input" id="pg-charrettes-titre" placeholder="CHARRETTES cf Attelages du Val d'Amour" style="font-weight:700;font-size:11px;margin-bottom:4px"/>
+          <input class="form-input" id="pg-charrettes-coord" placeholder="Présence Julien Dugois (06 74 14 46 35)..." style="font-style:italic;font-size:11px"/>
         </div>
         <div style="overflow-x:auto">
-          <table style="width:100%;border-collapse:collapse;font-size:11px;min-width:450px">
-            <thead><tr style="background:#f0f5ff">
+          <table style="width:100%;border-collapse:collapse;font-size:11px;min-width:450px" id="table-charrettes">
+            <thead id="thead-charrettes"><tr style="background:#f0f5ff">
               <th style="padding:5px 4px;border:1px solid #ccc;width:45px" rowspan="2">Nbre</th>
               <th style="padding:5px 4px;border:1px solid #ccc;text-align:left" rowspan="2">CHARRETTE / ATTELAGE</th>
               <th style="padding:3px 4px;border:1px solid #ccc;text-align:center;font-size:10px" colspan="3">SÉQUENCES</th>
@@ -770,9 +779,13 @@ textarea.form-input{resize:vertical;min-height:72px;}
               <th style="border:1px solid #ccc;width:26px" rowspan="2"></th>
             </tr><tr style="background:#f0f5ff" id="char-seq-header-row2"></tr></thead>
             <tbody id="pg-tbody-charrettes"></tbody>
+            <tfoot><tr id="tr-total-char" style="background:#e8e8e8">
+              <td style="padding:4px 6px;border:1px solid #ccc;text-align:center;font-weight:700" id="pg-charrettes-total">0</td>
+              <td style="padding:4px 6px;border:1px solid #ccc;font-weight:700" colspan="10">TOTAL</td>
+            </tr></tfoot>
           </table>
-          <div style="font-size:10px;font-weight:700;padding:4px 6px;border:1px solid #ddd;border-top:none;background:#f9f9f9" id="pg-charrettes-total"></div>
         </div>
+        <button class="btn btn-sm btn-secondary btn-block" onclick="saveVehiculesCoord()" style="margin-top:6px">Enregistrer</button>
       </div>
     </div>
   </div>
@@ -1315,9 +1328,15 @@ textarea.form-input{resize:vertical;min-height:72px;}
     <div class="form-row"><label class="form-label">Nbre</label><input class="form-input" id="veh-modal-nbre" type="number" min="1" value="1" style="max-width:70px"/></div>
     <div class="form-row"><label class="form-label">Nom / Description</label><textarea class="form-input" id="veh-modal-nom" rows="2" placeholder="Voiture Gestapo (Traction Noire)"></textarea></div>
     <div class="form-row"><label class="form-label">Séquences</label><input class="form-input" id="veh-modal-seqs" placeholder="91P1, 93 (EQ.B)..."/></div>
-    <div class="form-row"><label class="form-label">S/P (sur place)</label><input class="form-input" id="veh-modal-sp" type="time"/></div>
-    <div class="form-row"><label class="form-label">PAT</label><input class="form-input" id="veh-modal-pat" type="time"/></div>
-    <div class="form-row"><label class="form-label">Note</label><input class="form-input" id="veh-modal-note" placeholder="Attelée à la ferme abandonnée..."/></div>
+    <div class="form-row"><label class="form-label">S/P (sur place)</label>
+      <div style="display:flex;gap:4px"><input class="form-input" id="veh-modal-sp" style="flex:1" placeholder="5H30"/>
+      <button type="button" onclick="setSurTel('veh-modal-sp')" style="background:#f0f0f0;border:1px solid #ccc;border-radius:6px;padding:4px 8px;font-size:11px;cursor:pointer">Sur tel</button></div>
+    </div>
+    <div class="form-row"><label class="form-label">PAT</label>
+      <div style="display:flex;gap:4px"><input class="form-input" id="veh-modal-pat" style="flex:1" placeholder="7H00"/>
+      <button type="button" onclick="setSurTel('veh-modal-pat')" style="background:#f0f0f0;border:1px solid #ccc;border-radius:6px;padding:4px 8px;font-size:11px;cursor:pointer">Sur tel</button></div>
+    </div>
+    <div class="form-row"><label class="form-label" style="color:#888;font-size:11px">Note (italique sous le nom)</label><input class="form-input" id="veh-modal-note" placeholder="Peugeot 402, Peugeot 201, Hotchkiss Vichy..."/></div>
     <div style="display:flex;gap:8px;margin-top:4px">
       <button class="btn btn-primary" style="flex:1" onclick="saveVehicule()">Enregistrer</button>
       <button class="btn btn-secondary" style="color:#c00;border-color:#c00" onclick="deleteVehicule()">Supprimer</button>
@@ -3002,6 +3021,43 @@ function renderApercu(targetEl) {
     h += '<td style="padding:3px 6px;border:1px solid #999;font-weight:700" colspan="'+(2+nbSeqs)+'">TOTAL</td></tr>';
     if (f.casc_phys_footnote) h += '<tr><td colspan="'+(5+nbSeqs)+'" style="font-size:8px;font-style:italic;color:#1565c0;padding:2px 4px;border:1px solid #eee">'+f.casc_phys_footnote+'</td></tr>';
     h += '</table>';
+  }
+
+  // ── VÉHICULES DE TOURNAGE ────────────────────────────────────
+  function renderVehTable(list, titre, coord, pencilTarget) {
+    if (!list || !list.length) return '';
+    var totV = list.reduce(function(s,v){return s+(parseInt(v.nbre)||1);},0);
+    var hv = '';
+    if (titre) hv += '<div style="background:#e8e8e8;padding:3px 8px;font-size:9px;font-weight:700;border:1px solid #ccc;margin-bottom:2px"><i>'+titre+'</i></div>';
+    if (coord) hv += '<div style="font-size:8.5px;font-style:italic;padding:2px 0 3px">'+coord+'</div>';
+    hv += '<table style="width:100%;border-collapse:collapse;margin-bottom:4px">';
+    hv += '<tr style="background:#f5f0ff">'+th('Nbre','38px')+th('Noms');
+    if (nbSeqs) hv += '<th style="padding:2px 4px;border:1px solid #999;font-size:'+csz+';text-align:center" colspan="'+nbSeqs+'">SÉQUENCES</th>';
+    hv += th('S/P','45px')+th('PAT','45px')+'<th style="border:1px solid #999"></th></tr>';
+    if (nbSeqs) {
+      hv += '<tr style="background:#f5f0ff">';
+      allSeqs.forEach(function(s){ hv += '<th style="padding:2px 3px;border:1px solid #999;font-size:'+csz+';text-align:center;white-space:nowrap">'+s+'</th>'; });
+      hv += '</tr>';
+    }
+    list.forEach(function(v) {
+      var vSeqs = (v.seqs||'').split(/[\s,]+/).map(function(s){return s.trim();}).filter(Boolean);
+      hv += '<tr>'+td(String(v.nbre||1),'38px',true,true);
+      hv += '<td style="padding:2px 5px;border:1px solid #999;font-size:'+csz+'">'+(v.nom||'')+(v.note?'<br><span style="font-size:7.5px;color:#555;font-style:italic">'+v.note+'</span>':'')+'</td>';
+      allSeqs.forEach(function(s){ var ok=vSeqs.some(function(vs){return vs.replace(/\s/g,'').toUpperCase()===s.replace(/\s/g,'').toUpperCase();}); hv+='<td style="padding:2px;border:1px solid #999;font-size:'+csz+';text-align:center;font-weight:700">'+(ok?s:'')+'</td>'; });
+      hv += td(fmtTime(v.sp)||'—','',false,true)+td(fmtTime(v.pat)||'—','',true,true);
+      hv += '<td style="border:1px solid #999"></td></tr>';
+    });
+    hv += '<tr style="background:#e8e8e8"><td style="padding:2px 6px;border:1px solid #999;text-align:center;font-weight:700">'+totV+'</td>';
+    hv += '<td style="padding:2px 6px;border:1px solid #999;font-weight:700" colspan="'+(2+nbSeqs)+'">TOTAL</td></tr>';
+    hv += '</table>';
+    return hv;
+  }
+
+  var fVeh = f.vehicules || [];
+  var fChar = f.charrettes || [];
+  if (fVeh.length || fChar.length) {
+    if (fVeh.length) h += renderVehTable(fVeh, f.vehicules_titre, f.vehicules_coord, 'pg-vehicules');
+    if (fChar.length) h += renderVehTable(fChar, f.charrettes_titre, f.charrettes_coord, 'pg-charrettes');
   }
 
   // DEPARTEMENTS — tous affichés même vides
@@ -4783,11 +4839,11 @@ function pgRenderVehicules() {
   if (!f.vehicules) f.vehicules = [];
   if (!f.charrettes) f.charrettes = [];
 
-  // Charger les coordonnées
-  var coordEl = document.getElementById('pg-vehicules-coord');
-  var charCoordEl = document.getElementById('pg-charrettes-coord');
-  if (coordEl) coordEl.value = f.vehicules_coord||'';
-  if (charCoordEl) charCoordEl.value = f.charrettes_coord||'';
+  // Charger titres et coordonnées
+  var titreVEl = document.getElementById('pg-vehicules-titre'); if (titreVEl) titreVEl.value = f.vehicules_titre||'';
+  var titreCharEl = document.getElementById('pg-charrettes-titre'); if (titreCharEl) titreCharEl.value = f.charrettes_titre||'';
+  var coordEl = document.getElementById('pg-vehicules-coord'); if (coordEl) coordEl.value = f.vehicules_coord||'';
+  var charCoordEl = document.getElementById('pg-charrettes-coord'); if (charCoordEl) charCoordEl.value = f.charrettes_coord||'';
 
   var pdtJdt = typeof PDT_DATA!=='undefined' ? PDT_DATA.find(function(j){return j.jdt===f.jdt;}) : null;
   var allSeqs = pdtJdt ? pdtJdt.sequences : [];
@@ -4825,16 +4881,37 @@ function pgRenderVehicules() {
     var tb = document.getElementById(tbId); if (!tb) return;
     var total = list.reduce(function(s,v){return s+(parseInt(v.nbre)||1);},0);
     var totalEl = document.getElementById(totalId);
-    if (totalEl) totalEl.textContent = total + ' TOTAL';
+    if (totalEl) totalEl.textContent = total;
+    // Mettre à jour l'en-tête dynamique
+    var theadId = (type==='charrette') ? 'thead-charrettes' : 'thead-vehicules';
+    var thead = document.getElementById(theadId);
+    if (thead && allSeqs.length) {
+      var bg = type==='charrette' ? '#f0f5ff' : '#f5f0ff';
+      var label = type==='charrette' ? 'CHARRETTE / ATTELAGE' : 'VÉHICULE / NOM';
+      var th1 = '<tr style="background:'+bg+'">'+
+        '<th style="padding:5px 4px;border:1px solid #ccc;width:45px" rowspan="2">Nbre</th>'+
+        '<th style="padding:5px 4px;border:1px solid #ccc;text-align:left" rowspan="2">'+label+'</th>'+
+        '<th style="padding:3px 4px;border:1px solid #ccc;text-align:center;font-size:10px" colspan="'+allSeqs.length+'">SÉQUENCES</th>'+
+        '<th style="padding:5px 4px;border:1px solid #ccc;width:50px" rowspan="2">S/P</th>'+
+        '<th style="padding:5px 4px;border:1px solid #ccc;width:50px" rowspan="2">PAT</th>'+
+        '<th style="border:1px solid #ccc;width:26px" rowspan="2"></th></tr>'+
+        '<tr style="background:'+bg+'">';
+      allSeqs.forEach(function(s){
+        var isEqB = s.toUpperCase().replace(/[\s.]/g,'').indexOf('EQB')!==-1;
+        th1 += '<th style="padding:2px 3px;border:1px solid #ccc;font-size:9px;text-align:center;white-space:nowrap;'+(isEqB?'color:#1565c0;font-style:italic':'')+'">'+(isEqB?'EqB':s)+'</th>';
+      });
+      th1 += '</tr>';
+      thead.innerHTML = th1;
+    }
+    var cols = 5 + (allSeqs.length||1);
     if (!list.length) {
-      var cols = 6 + allSeqs.length;
-      tb.innerHTML = '<tr><td colspan="'+cols+'" style="padding:10px;text-align:center;color:#999;font-size:12px">Aucun véhicule — cliquez +</td></tr>';
+      tb.innerHTML = '<tr><td colspan="'+cols+'" style="padding:10px;text-align:center;color:#999;font-size:12px">Aucun — cliquez +</td></tr>';
       return;
     }
     tb.innerHTML = list.map(function(v, i) {
       return '<tr>'+
         '<td style="padding:4px;border:1px solid #ddd;text-align:center;font-weight:700;color:var(--purple)">'+(v.nbre||1)+'</td>'+
-        '<td style="padding:4px;border:1px solid #ddd;font-size:11px">'+(v.nom||'')+'</td>'+
+        '<td style="padding:4px;border:1px solid #ddd;font-size:11px">'+(v.nom||'')+(v.note?'<br><span style="font-size:10px;color:#555;font-style:italic">'+v.note+'</span>':'')+'</td>'+
         seqCols(v)+
         '<td style="padding:4px;border:1px solid #ddd;text-align:center;font-size:11px">'+(fmtTime(v.sp)||'—')+'</td>'+
         '<td style="padding:4px;border:1px solid #ddd;text-align:center;font-size:11px;font-weight:700">'+(fmtTime(v.pat)||'—')+'</td>'+
@@ -4847,16 +4924,17 @@ function pgRenderVehicules() {
       '</tr>';
     }).join('');
   }
-
   renderTable(f.vehicules, 'pg-tbody-vehicules', 'pg-vehicules-total', 'vehicule');
   renderTable(f.charrettes, 'pg-tbody-charrettes', 'pg-charrettes-total', 'charrette');
 }
 
 function saveVehiculesCoord() {
   var f = activeFDS(); if (!f) return;
+  var t1 = document.getElementById('pg-vehicules-titre'); if(t1) f.vehicules_titre = t1.value;
+  var t2 = document.getElementById('pg-charrettes-titre'); if(t2) f.charrettes_titre = t2.value;
   var c1 = document.getElementById('pg-vehicules-coord'); if(c1) f.vehicules_coord = c1.value;
   var c2 = document.getElementById('pg-charrettes-coord'); if(c2) f.charrettes_coord = c2.value;
-  save(); toast('Coordonnées enregistrées ✓');
+  save(); toast('Enregistré ✓');
 }
 
 function ouvrirModalVehicule(idx, type) {
