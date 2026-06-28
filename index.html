@@ -1026,6 +1026,22 @@ textarea.form-input{resize:vertical;min-height:72px;}
         <div id="pdt-comparaison-panel" style="display:none;margin-top:10px"></div>
       </div>
 
+      <!-- IMPORT FDS PDF - Notes techniques -->
+      <div class="card" style="margin-bottom:12px;border:2px solid #1565c0">
+        <div class="card-title" style="color:#1565c0">Import FDS PDF — Notes techniques
+          <span style="font-size:10px;font-weight:400;color:var(--text-muted)">Extrait Mise en scène, Déco, Maquillage, Coiffure...</span>
+        </div>
+        <div style="font-size:12px;color:var(--text-muted);margin-bottom:8px">
+          Importe une FDS existante et extrait automatiquement toutes les notes techniques dans l'onglet "Détails par poste".
+        </div>
+        <div id="import-fds-tech-status" style="margin-bottom:6px;font-size:12px"></div>
+        <label class="btn btn-secondary btn-block" style="cursor:pointer;text-align:center;margin-bottom:6px;border-color:#1565c0;color:#1565c0">
+          Choisir une FDS PDF
+          <input type="file" accept=".pdf" id="import-fds-tech-file" style="display:none" onchange="importFdsTechPdf(this)"/>
+        </label>
+        <div id="import-fds-tech-preview" style="margin-top:8px"></div>
+      </div>
+
       <!-- IMPORT DÉPOUILLEMENT -->
       <div class="card">
         <div class="card-title">Import Dépouillement Excel
@@ -8843,6 +8859,213 @@ function importerPDT() {
   closeModal('modal-import-pdt');
   renderJournees();
   toast(`${count} journée${count>1?'s':''} importée${count>1?'s':''} !`);
+}
+
+// ═══════════════════════ IMPORT FDS PDF NOTES TECHNIQUES ═══════════════════════
+function importFdsTechPdf(input) {
+  if (!activeFilmId) { toast('Sélectionnez un film d\'abord'); return; }
+  if (!input.files || !input.files[0]) return;
+  var preview = document.getElementById('import-fds-tech-preview');
+  var status  = document.getElementById('import-fds-tech-status');
+  preview.innerHTML = '<div style="color:#888;padding:10px;text-align:center">Lecture du PDF...</div>';
+
+  function loadPdfJs(cb) {
+    if (window.pdfjsLib) { cb(); return; }
+    var s = document.createElement('script');
+    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+    s.onload = function() {
+      pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+      cb();
+    };
+    document.head.appendChild(s);
+  }
+
+  loadPdfJs(function() {
+    var reader = new FileReader();
+    reader.onload = function(e) {
+      pdfjsLib.getDocument({data: e.target.result}).promise.then(function(pdf) {
+        var allText = '';
+        var pagePromises = [];
+        for (var p = 1; p <= pdf.numPages; p++) {
+          pagePromises.push(pdf.getPage(p).then(function(page) {
+            return page.getTextContent().then(function(tc) {
+              return tc.items.map(function(i){ return i.str; }).join(' ') + '\n';
+            });
+          }));
+        }
+        Promise.all(pagePromises).then(function(pages) {
+          allText = pages.join('\n');
+          var result = parseFdsTechNotes(allText);
+          afficherResultatFdsTech(result, preview, status);
+        });
+      }).catch(function(err) {
+        preview.innerHTML = '<div style="color:#c00;padding:10px">Erreur lecture PDF : ' + err.message + '</div>';
+      });
+    };
+    reader.readAsArrayBuffer(input.files[0]);
+  });
+}
+
+function parseFdsTechNotes(text) {
+  // Détecter le numéro de journée : "FEUILLE DE SERVICE DU ... J20" ou "J20" isolé
+  var jNum = null;
+  var mJ = text.match(/FEUILLE DE SERVICE[^\n]*?\b(J\d+)\b/i);
+  if (!mJ) mJ = text.match(/\b(J\d+)\b/);
+  if (mJ) jNum = mJ[1];
+
+  // Mapping titre FDS → clé deptNotes
+  var DEPT_MAP = [
+    { pattern: /^MISE EN SC[EÈ]NE$/i,           key: 'mise_en_scene' },
+    { pattern: /^D[ÉE]CORATION$/i,              key: 'decoration' },
+    { pattern: /^ACCESSOIRES?$/i,               key: 'accessoires' },
+    { pattern: /^ARMES?$/i,                     key: 'armes' },
+    { pattern: /^COSTUMES?$/i,                  key: 'costumes' },
+    { pattern: /^MAQUILLAGE$/i,                 key: 'maquillage' },
+    { pattern: /^COIFFURE$/i,                   key: 'coiffure' },
+    { pattern: /^[ÉE]LECTRICIT[ÉE]$/i,          key: 'electricite' },
+    { pattern: /^MACHINERIE$/i,                 key: 'machinerie' },
+    { pattern: /^SON$/i,                        key: 'son' },
+    { pattern: /^VFX$/i,                        key: 'vfx' },
+    { pattern: /^R[ÉE]GIE\/PRODUCTION$/i,      key: 'regie' },
+    { pattern: /^R[ÉE]GIE\s*PRODUCTION$/i,     key: 'regie' },
+    { pattern: /^R[ÉE]GIE$/i,                  key: 'regie' },
+    { pattern: /^COACH ET RESPONSABLE ENFANTS$/i, key: 'coach_enfants' },
+    { pattern: /^CASCADES? PHYSIQUES?$/i,       key: 'cascade' },
+    { pattern: /^CASCADES? V[ÉE]HICULES?$/i,   key: 'cascade_vehicule_note' }
+  ];
+
+  // Découper le texte en lignes et extraire sections
+  var lines = text.split(/[\n\r]+/).map(function(l){ return l.trim(); }).filter(Boolean);
+  var sections = {};
+  var currentKey = null;
+  var currentLines = [];
+  var stopKeys = [
+    /^TRANSPORTS/i, /^ARRIV[EÉ]E/i, /^D[EÉ]PART/i, /^PR[EÉ]VISIONS/i,
+    /^V[ÉE]HICULES cf/i, /^Nbre\s+Noms/i, /^TOTAL$/i
+  ];
+
+  function flush() {
+    if (currentKey && currentLines.length) {
+      sections[currentKey] = currentLines.join('\n').trim();
+    }
+    currentKey = null; currentLines = [];
+  }
+
+  lines.forEach(function(line) {
+    // Vérifier si c'est un titre de département
+    var matched = null;
+    DEPT_MAP.forEach(function(dm) {
+      if (dm.pattern.test(line)) matched = dm.key;
+    });
+    if (matched) {
+      flush();
+      currentKey = matched;
+      return;
+    }
+    // Vérifier si c'est un stop-marker (transports, etc.)
+    var isStop = stopKeys.some(function(re){ return re.test(line); });
+    if (isStop && currentKey && (currentKey === 'regie' || !currentLines.length)) {
+      flush();
+      return;
+    }
+    // Accumuler si on est dans une section
+    if (currentKey) {
+      // Ignorer les lignes qui sont des titres d\'autres sections connues
+      var isOtherTitle = DEPT_MAP.some(function(dm){ return dm.pattern.test(line); });
+      if (isOtherTitle) { flush(); return; }
+      if (isStop) { flush(); return; }
+      currentLines.push(line);
+    }
+  });
+  flush();
+
+  return { jNum: jNum, sections: sections };
+}
+
+function afficherResultatFdsTech(result, preview, status) {
+  var jNum = result.jNum;
+  var sections = result.sections;
+  var nbSections = Object.keys(sections).length;
+
+  if (!nbSections) {
+    preview.innerHTML = '<div style="color:#c00;padding:10px">Aucune section technique trouvée dans ce PDF.</div>';
+    return;
+  }
+
+  var DEPT_LABELS_LOCAL = {
+    mise_en_scene:'Mise en scène', decoration:'Décoration', accessoires:'Accessoires',
+    armes:'Armes', costumes:'Costumes', maquillage:'Maquillage', coiffure:'Coiffure',
+    electricite:'Électricité', machinerie:'Machinerie', son:'Son', vfx:'VFX',
+    regie:'Régie/Production', coach_enfants:'Coach et Responsable Enfants',
+    cascade:'Cascades physiques', cascade_vehicule_note:'Cascades véhicules'
+  };
+
+  var html = '<div style="border:1px solid #1565c0;border-radius:8px;padding:12px">';
+  html += '<div style="font-weight:700;color:#1565c0;font-size:13px;margin-bottom:6px">';
+  html += 'FDS ' + (jNum||'?') + ' — ' + nbSections + ' section(s) trouvée(s)</div>';
+
+  // Afficher un aperçu des sections
+  Object.keys(sections).forEach(function(key) {
+    var label = DEPT_LABELS_LOCAL[key] || key;
+    var val = sections[key];
+    html += '<div style="margin-bottom:4px">';
+    html += '<span style="font-size:10px;font-weight:700;background:#e3f2fd;color:#1565c0;padding:2px 6px;border-radius:4px">' + label + '</span>';
+    html += '<span style="font-size:10px;color:#555;margin-left:6px">' + val.slice(0,80) + (val.length>80?'…':'') + '</span>';
+    html += '</div>';
+  });
+
+  // Sélecteur de journée cible
+  var fdsOptions = (state.fds||[]).filter(function(f){return f.filmId===activeFilmId;})
+    .map(function(f){
+      var sel = jNum && (f.infos&&f.infos.journee||'J'+f.jdt) === jNum ? ' selected' : '';
+      return '<option value="'+f.id+'"'+sel+'>'+(f.infos&&f.infos.journee||'J'+f.jdt)+' — '+(f.infos&&f.infos.date||'')+'</option>';
+    }).join('');
+
+  html += '<div style="margin-top:10px">';
+  html += '<label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px">Journée cible :</label>';
+  html += '<select id="fds-tech-target" style="width:100%;padding:7px;border:1px solid var(--border);border-radius:6px;font-size:12px;margin-bottom:8px">'+fdsOptions+'</select>';
+  html += '<label style="display:flex;align-items:center;gap:6px;font-size:12px;margin-bottom:8px">';
+  html += '<input type="checkbox" id="fds-tech-ecrase"> Écraser les notes existantes';
+  html += '</label>';
+  html += '<button onclick="appliquerFdsTechNotes()" style="width:100%;padding:8px;background:#1565c0;color:#fff;border:none;border-radius:6px;cursor:pointer;font-weight:600;font-size:13px">Appliquer les notes techniques</button>';
+  html += '</div></div>';
+
+  preview.innerHTML = html;
+  window._fdsTechResult = result;
+}
+
+function appliquerFdsTechNotes() {
+  var result = window._fdsTechResult;
+  if (!result) return;
+  var sel = document.getElementById('fds-tech-target');
+  var ecrase = document.getElementById('fds-tech-ecrase') && document.getElementById('fds-tech-ecrase').checked;
+  if (!sel) return;
+  var fds = (state.fds||[]).find(function(f){ return f.id===sel.value; });
+  if (!fds) return;
+  if (!fds.deptNotes) fds.deptNotes = {};
+
+  var sections = result.sections;
+  var nbApplied = 0;
+  Object.keys(sections).forEach(function(key) {
+    var val = sections[key].trim();
+    if (!val) return;
+    if (ecrase || !fds.deptNotes[key]) {
+      fds.deptNotes[key] = val;
+      nbApplied++;
+    } else {
+      // Compléter sans écraser
+      fds.deptNotes[key] = fds.deptNotes[key] + '\n' + val;
+      nbApplied++;
+    }
+  });
+
+  save();
+  document.getElementById('import-fds-tech-preview').innerHTML =
+    '<div style="background:#e8f5e9;border:1px solid #2e7d32;border-radius:8px;padding:12px;color:#2e7d32;font-weight:600">' +
+    '✓ ' + nbApplied + ' section(s) appliquée(s) dans ' + (fds.infos&&fds.infos.journee||'J'+fds.jdt) + '</div>';
+  document.getElementById('import-fds-tech-file').value = '';
+  window._fdsTechResult = null;
+  toast(nbApplied + ' notes techniques appliquées ✓');
 }
 
 // ═══════════════════════ INIT ═══════════════════════
