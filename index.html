@@ -352,6 +352,7 @@ textarea.form-input{resize:vertical;min-height:72px;}
         <div class="card">
           <div class="card-title" id="fig-count-title">Figuration : 0 figurant(s)
             <button class="btn btn-sm btn-primary" onclick="openComModalType('figurant')">+ Ajouter</button>
+            <button class="btn btn-sm btn-secondary" onclick="ouvrirCopierFiguration()" style="font-size:10px">Copier depuis...</button>
           </div>
           <div style="margin-bottom:8px">
             <input class="form-input" id="fig-desc" placeholder="FIGURATION : 20 figurants adultes + 2 figurants enfants" style="font-size:11px;font-style:italic"/>
@@ -4329,6 +4330,86 @@ function pgRenderLieux() {
     '</div>';
   }).join('');
 }
+function ouvrirCopierFiguration() {
+  var f = activeFDS(); if (!f) return;
+  // Lister toutes les FDS du film qui ont de la figuration
+  var autres = (state.fds||[]).filter(function(x){
+    return x.filmId === activeFilmId && x.id !== f.id &&
+           (x.comediens||[]).some(function(c){ return c.type==='figurant'; });
+  });
+  if (!autres.length) { toast('Aucune autre journée avec figuration'); return; }
+
+  // Créer un sélecteur dans une modale simple via prompt-like
+  var html = '<div style="padding:12px">';
+  html += '<div style="font-weight:600;margin-bottom:8px">Copier la figuration depuis :</div>';
+  html += '<select id="copy-fig-source" style="width:100%;padding:8px;border:1px solid var(--border);border-radius:6px;margin-bottom:10px">';
+  autres.forEach(function(x) {
+    var nFig = (x.comediens||[]).filter(function(c){return c.type==='figurant';}).length;
+    html += '<option value="'+x.id+'">'+(x.infos&&x.infos.journee||'J'+x.jdt)+' — '+(x.infos&&x.infos.date||'')+' ('+nFig+' type(s))</option>';
+  });
+  html += '</select>';
+  html += '<div style="display:flex;gap:8px">';
+  html += '<button onclick="executerCopierFiguration()" style="flex:1;padding:8px;background:var(--purple);color:#fff;border:none;border-radius:6px;cursor:pointer;font-weight:500">Copier</button>';
+  html += '<button onclick="(function(){document.getElementById(\'modal-copy-fig\').style.display=\'none\';})()" style="flex:1;padding:8px;background:none;border:1px solid var(--border);border-radius:6px;cursor:pointer">Annuler</button>';
+  html += '</div></div>';
+
+  // Ouvrir une modale simple
+  var existing = document.getElementById('modal-copy-fig');
+  if (!existing) {
+    existing = document.createElement('div');
+    existing.id = 'modal-copy-fig';
+    existing.className = 'modal-overlay';
+    existing.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:1000;display:flex;align-items:center;justify-content:center';
+    existing.onclick = function(e){ if(e.target===existing) existing.style.display='none'; };
+    document.body.appendChild(existing);
+  }
+  existing.innerHTML = '<div style="background:var(--bg);border-radius:12px;max-width:360px;width:90%">'+html+'</div>';
+  existing.style.display = 'flex';
+}
+
+function executerCopierFiguration() {
+  var f = activeFDS(); if (!f) return;
+  var sel = document.getElementById('copy-fig-source');
+  if (!sel) return;
+  var srcId = sel.value;
+  var src = (state.fds||[]).find(function(x){ return x.id===srcId; });
+  if (!src) return;
+
+  var figsSrc = (src.comediens||[]).filter(function(c){ return c.type==='figurant'; });
+  if (!figsSrc.length) { toast('Aucun figurant dans cette journée'); return; }
+
+  // Copier en effaçant les horaires (HMC/PAT/MeP spécifiques au jour)
+  if (!f.comediens) f.comediens = [];
+  // Supprimer les figurants existants sauf ceux avec horaires saisis
+  var figExist = (f.comediens||[]).filter(function(c){ return c.type==='figurant'; });
+  var avec_horaires = figExist.filter(function(c){ return c.hmc||c.pat||c.mep; });
+
+  // Supprimer tous les figurants sans horaires
+  f.comediens = f.comediens.filter(function(c){ return c.type!=='figurant' || c.hmc || c.pat || c.mep; });
+
+  // Ajouter les figurants copiés (sans horaires)
+  figsSrc.forEach(function(fig) {
+    var alreadyExist = f.comediens.find(function(c){
+      return c.type==='figurant' && c.role===fig.role;
+    });
+    if (!alreadyExist) {
+      f.comediens.push({
+        type:'figurant', num:fig.num, role:fig.role, nom:'',
+        seqs: fig.seqs, nbre: fig.nbre,
+        hmc:'', loges:'', pat:'', mep:'', note: fig.note||''
+      });
+    }
+  });
+
+  // Copier aussi fig_desc si pas de desc existante
+  if (!f.fig_desc && src.fig_desc) f.fig_desc = src.fig_desc;
+
+  document.getElementById('modal-copy-fig').style.display = 'none';
+  save();
+  renderFigurationTab();
+  toast('Figuration copiée depuis '+(src.infos&&src.infos.journee||'J'+src.jdt)+' ✓');
+}
+
 function saveFigDesc() {
   var f = activeFDS(); if (!f) return;
   var el = document.getElementById('fig-desc') || document.getElementById('pg-fig-desc');
@@ -7857,58 +7938,101 @@ function appliquerDepoPdf(journees) {
     // ── FIGURANTS ──
     if (optFig) {
       // Agréger tous les figurants de toutes les séquences du jour
-      // Construire des lignes de figurants réelles depuis le dépouillement
-      // Regrouper par description de figurant + agréger les séquences
-      var figMap = {};  // clé = description figurant, valeur = {nbre, seqNums[]}
-      var totalFig = 0;
+      // ── FIGURATION : regroupement multi-séquences depuis le dépouillement ──
+      var figMap = {};
+      var totalFigAdultes = 0;
+      var totalFigEnfants = 0;
       var figDescParts = [];
+
       j.sequences.forEach(function(s) {
-        if (s.nbFig > 0) {
-          totalFig += s.nbFig;
-          if (s.figurants) {
-            // Le dépouillement donne une description des figurants par séquence
-            var desc = s.figurants.replace(/\n/g,' ').trim();
-            // Essayer de trouver si une ligne similaire existe déjà
-            var found = null;
-            Object.keys(figMap).forEach(function(k){
-              // Match approximatif : 70% des mots en commun
-              var kWords = k.toLowerCase().split(/\s+/);
-              var dWords = desc.toLowerCase().split(/\s+/);
-              var common = kWords.filter(function(w){ return dWords.indexOf(w)>=0; });
-              if (common.length >= Math.min(kWords.length, dWords.length) * 0.6) found = k;
-            });
-            if (found) {
-              figMap[found].seqs.push(s.num);
-            } else {
-              figMap[desc] = { nbre: s.nbFig, seqs: [s.num], desc: desc };
+        if (s.nbFig <= 0 || !s.figurants) return;
+        var seqNum = String(s.num||'').trim();
+
+        // Découper par ligne : chaque ligne = un type de figurant
+        var rawLines = s.figurants.split(/\n/).map(function(l){ return l.trim(); }).filter(Boolean);
+
+        rawLines.forEach(function(line) {
+          // Chercher un nombre en début de ligne : "4 Soldats Allemands"
+          var mNbre = line.match(/^(\d+)\s+(.+)$/);
+          var nbre = mNbre ? parseInt(mNbre[1]) : s.nbFig;
+          var desc = mNbre ? mNbre[2].trim() : line;
+
+          // Détecter enfant/adulte
+          var isEnfant = /enfant|child|kids?/i.test(desc);
+          if (isEnfant) totalFigEnfants += nbre; else totalFigAdultes += nbre;
+
+          // Clé de regroupement : normaliser la description
+          var key = desc.toLowerCase()
+            .replace(/[^a-zàâäéèêëîïôöùûüç0-9\s]/g, '')
+            .replace(/\s+/g, ' ').trim();
+
+          // Chercher une clé similaire existante (50% de mots communs)
+          var found = null;
+          Object.keys(figMap).forEach(function(k) {
+            var kW = k.split(' '); var dW = key.split(' ');
+            var common = kW.filter(function(w){ return w.length>2 && dW.indexOf(w)>=0; });
+            if (common.length >= Math.max(2, Math.min(kW.length, dW.length) * 0.5)) found = k;
+          });
+
+          if (found) {
+            // Regrouper : ajouter la séquence + sommer les figurants si pas déjà compté
+            if (seqNum && figMap[found].seqs.indexOf(seqNum) < 0) {
+              figMap[found].seqs.push(seqNum);
             }
-            figDescParts.push('Sc.' + s.num + ' : ' + s.nbFig + 'F — ' + desc);
+            // Garder le nbre max (pas additionner car même figurant dans 2 séquences)
+            if (nbre > figMap[found].nbre) figMap[found].nbre = nbre;
+          } else {
+            figMap[key] = { nbre: nbre, seqs: seqNum ? [seqNum] : [], desc: desc, isEnfant: isEnfant };
           }
+          figDescParts.push('Sc.' + seqNum + ' : ' + nbre + 'F — ' + desc);
+        });
+
+        // Si pas de détail ligne par ligne : une entrée globale
+        if (!rawLines.length && s.nbFig > 0) {
+          var key2 = 'figuration_sc_' + seqNum;
+          figMap[key2] = { nbre: s.nbFig, seqs: [seqNum], desc: 'Figuration sc. ' + seqNum, isEnfant: false };
+          totalFigAdultes += s.nbFig;
         }
       });
 
+      var totalFig = totalFigAdultes + totalFigEnfants;
+
+      // Chercher dans le PDT le total figurants pour enrichir fig_desc
+      var pdtTotalFig = 0;
+      if (pdtJour && pdtJour.nbFig) pdtTotalFig = pdtJour.nbFig;
+
       if (optFig && Object.keys(figMap).length) {
-        // Créer de vraies lignes de figurants dans f.comediens
         if (!fds.comediens) fds.comediens = [];
-        Object.keys(figMap).forEach(function(desc) {
-          var fm = figMap[desc];
-          // Chercher si une ligne similaire existe déjà
+        Object.keys(figMap).forEach(function(key) {
+          var fm = figMap[key];
+          // Chercher si ligne similaire existe déjà
           var existFig = fds.comediens.find(function(c){
-            return c.type==='figurant' && c.role && c.role.toLowerCase().indexOf(desc.toLowerCase().substring(0,10)) >= 0;
+            if (c.type !== 'figurant') return false;
+            var cKey = (c.role||'').toLowerCase().replace(/[^a-zàâäéèêëîïôöùûüç0-9\s]/g,'').replace(/\s+/g,' ').trim();
+            var cW = cKey.split(' '); var dW = key.split(' ');
+            var common = cW.filter(function(w){ return w.length>2 && dW.indexOf(w)>=0; });
+            return common.length >= Math.max(2, Math.min(cW.length, dW.length) * 0.5);
           });
-          if (!existFig || optEcrase) {
-            var newFig = { type:'figurant', num:'', role: desc, nom:'', seqs: fm.seqs.join(', '), nbre: fm.nbre, hmc:'', loges:'', pat:'', mep:'', note:'' };
-            if (!existFig) {
-              fds.comediens.push(newFig);
-            } else if (optEcrase) {
-              existFig.seqs = fm.seqs.join(', ');
-              existFig.nbre = fm.nbre;
-            }
+          if (!existFig) {
+            fds.comediens.push({ type:'figurant', num:'', role: fm.desc, nom:'', seqs: fm.seqs.join(', '), nbre: fm.nbre, hmc:'', loges:'', pat:'', mep:'', note:'' });
+          } else if (optEcrase) {
+            existFig.seqs = fm.seqs.join(', ');
+            existFig.nbre = fm.nbre;
+            existFig.role = fm.desc;
+          } else {
+            // Compléter les séquences manquantes
+            var existSeqs = existFig.seqs ? existFig.seqs.split(/[,\s]+/).map(function(s){return s.trim();}).filter(Boolean) : [];
+            fm.seqs.forEach(function(sq){ if (existSeqs.indexOf(sq)<0) existSeqs.push(sq); });
+            existFig.seqs = existSeqs.join(', ');
           }
         });
-        // Mettre à jour fig_desc
+
+        // fig_desc enrichi : "FIGURATION : 20 figurants adultes + 2 figurants enfants"
         if (totalFig > 0 && (optEcrase || !fds.fig_desc)) {
-          fds.fig_desc = 'FIGURATION : ' + totalFig + ' figurant(s)';
+          var desc_parts = [];
+          if (totalFigAdultes > 0) desc_parts.push(totalFigAdultes + ' figurant' + (totalFigAdultes>1?'s':'') + ' adulte' + (totalFigAdultes>1?'s':''));
+          if (totalFigEnfants > 0) desc_parts.push(totalFigEnfants + ' figurant' + (totalFigEnfants>1?'s':'') + ' enfant' + (totalFigEnfants>1?'s':''));
+          fds.fig_desc = 'FIGURATION : ' + (desc_parts.length ? desc_parts.join(' + ') : totalFig + ' figurant(s)');
         }
       }
 
