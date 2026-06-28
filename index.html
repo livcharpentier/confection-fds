@@ -5704,6 +5704,23 @@ function formatScenarioTexte(texte) {
   var html = '';
   var prevType = '';
 
+  // Normaliser les accents pour la détection MAJUSCULES
+  function normalizeUpper(s) {
+    return s
+      .replace(/[ÀÂÄÁÃÅ]/g,'A').replace(/[ÉÈÊË]/g,'E').replace(/[ÎÏÍÌ]/g,'I')
+      .replace(/[ÔÖÓÒ]/g,'O').replace(/[ÛÜÚÙ]/g,'U').replace(/[Ç]/g,'C').replace(/[Ñ]/g,'N')
+      .replace(/[àâäáãå]/g,'a').replace(/[éèêë]/g,'e').replace(/[îïíì]/g,'i')
+      .replace(/[ôöóò]/g,'o').replace(/[ûüúù]/g,'u').replace(/[ç]/g,'c').replace(/[ñ]/g,'n');
+  }
+
+  function isAllUpper(s) {
+    var n = normalizeUpper(s);
+    // Garder uniquement les lettres
+    var letters = n.replace(/[^a-zA-Z]/g,'');
+    if (!letters) return false;
+    return letters === letters.toUpperCase();
+  }
+
   // Détecter si le PDF a de l'indentation ou pas
   var hasIndent = lines.some(function(l){ return /^\s{6,}/.test(l); });
 
@@ -5721,21 +5738,20 @@ function formatScenarioTexte(texte) {
 
     if (hasIndent) {
       // PDF avec indentation classique Final Draft
-      isPerso   = leadSpaces >= 12 && trimmed === trimmed.toUpperCase()
-                  && trimmed.length < 55 && !/^\(/.test(trimmed) && !/^\d+\./.test(trimmed);
+      isPerso   = leadSpaces >= 12 && isAllUpper(trimmed)
+                  && trimmed.length < 60 && !/^\(/.test(trimmed) && !/^\d+\./.test(trimmed);
       isParenth = /^\(/.test(trimmed) && leadSpaces >= 8;
       isDialogue= leadSpaces >= 6 && !isPerso && !isParenth;
     } else {
       // PDF sans indentation : détection par contenu
-      // Perso : ligne courte (< 50 car), tout en MAJUSCULES (hors ponctuation), pas de minuscule
-      var noAccent = trimmed.replace(/[àâäéèêëîïôöùûüç]/gi,'a');
-      var upperOnly = noAccent === noAccent.toUpperCase();
-      isPerso = upperOnly && trimmed.length < 52
-                && !/^\d/.test(trimmed)
-                && !/^\(/.test(trimmed)
-                && !/[.!?…]{2,}$/.test(trimmed)  // évite les lignes action qui finissent en ...
-                && !/^[A-Z]{2,}[^A-Z]/.test(trimmed.slice(trimmed.search(/[a-zàâéèêîôùûç]/i))) // pas de minuscule
-                && trimmed.split(' ').length <= 6;  // max 6 mots
+      // Perso : ligne courte, tout en MAJUSCULES (accents tolérés), pas de point final
+      isPerso = isAllUpper(trimmed)
+                && trimmed.length < 60
+                && !/^\d/.test(trimmed)          // pas de chiffre au début
+                && !/^\(/.test(trimmed)           // pas une parenthèse
+                && !/[.…]{1}$/.test(trimmed)       // pas de point/ellipse en fin
+                && trimmed.split(' ').length <= 8  // max 8 mots
+                && !/^(INT|EXT|I\.E|E\.I|SUR |DANS |AU |À |LE |LA |LES |UN |UNE )/.test(trimmed); // pas didascalie lieu
       // Parenthèse : commence par (
       isParenth = /^\(/.test(trimmed);
       // Dialogue : ligne qui suit un perso ou une parenthèse
@@ -5744,21 +5760,21 @@ function formatScenarioTexte(texte) {
     }
 
     if (isPerso && prevType && prevType !== 'perso') {
-      html += '<div style="height:0.5em"></div>';
+      html += '<div style="height:0.6em"></div>';
     }
 
     if (isPerso) {
-      html += '<div style="text-align:center;font-weight:bold;font-size:11px;font-family:Courier New,Courier,monospace;line-height:1.3;letter-spacing:0.03em;margin-top:0.4em">'+escHtml(trimmed)+'</div>';
+      html += '<div style="text-align:center;font-weight:bold;font-size:12px;font-family:Courier New,Courier,monospace;line-height:1.4;letter-spacing:0.05em;margin-top:0.3em">'+escHtml(trimmed)+'</div>';
       prevType = 'perso';
     } else if (isParenth) {
-      html += '<div style="text-align:center;font-style:italic;font-size:11px;font-family:Courier New,Courier,monospace;line-height:1.3;color:#333">'+escHtml(trimmed)+'</div>';
+      html += '<div style="text-align:center;font-style:italic;font-size:11px;font-family:Courier New,Courier,monospace;line-height:1.3;color:#444">'+escHtml(trimmed)+'</div>';
       prevType = 'parenth';
     } else if (isDialogue) {
-      html += '<div style="margin-left:25%;font-size:11px;font-family:Courier New,Courier,monospace;line-height:1.35">'+escHtml(trimmed)+'</div>';
+      html += '<div style="margin:0 auto;width:60%;font-size:11px;font-family:Courier New,Courier,monospace;line-height:1.45">'+escHtml(trimmed)+'</div>';
       prevType = 'dialogue';
     } else {
-      if (prevType === 'dialogue' || prevType === 'perso') html += '<div style="height:0.3em"></div>';
-      html += '<div style="font-size:11px;font-family:Courier New,Courier,monospace;line-height:1.35">'+escHtml(trimmed)+'</div>';
+      if (prevType === 'dialogue' || prevType === 'perso') html += '<div style="height:0.4em"></div>';
+      html += '<div style="font-size:11px;font-family:Courier New,Courier,monospace;line-height:1.45">'+escHtml(trimmed)+'</div>';
       prevType = 'action';
     }
   });
