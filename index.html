@@ -461,6 +461,18 @@ textarea.form-input{resize:vertical;min-height:72px;}
       <div class="page-title" id="pg-infos-title">Infos journée</div>
       <div class="page-sub" id="pg-infos-sub"></div>
     </div>
+    <!-- BARRE DE COMPLÉTION FDS -->
+    <div id="fds-completion-bar" style="background:var(--surface-1);border-bottom:1px solid var(--border);padding:8px 14px;display:none">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:5px">
+        <span style="font-size:11px;font-weight:600;color:var(--text-primary)">Complétion FDS</span>
+        <span id="fds-completion-pct" style="font-size:12px;font-weight:700;color:var(--purple)">0%</span>
+        <span id="fds-completion-label" style="font-size:10px;color:var(--text-muted);margin-left:auto"></span>
+      </div>
+      <div style="height:6px;background:var(--border);border-radius:99px;overflow:hidden">
+        <div id="fds-completion-fill" style="height:100%;background:var(--purple);border-radius:99px;transition:width .4s;width:0%"></div>
+      </div>
+      <div id="fds-completion-items" style="display:flex;flex-wrap:wrap;gap:4px;margin-top:6px"></div>
+    </div>
     <div class="scroll">
       <div class="card">
         <div class="card-title">Horaires</div>
@@ -2011,6 +2023,7 @@ function openFDS(id) {
   loadInfosForm();
   // Aller sur Infos et activer le bon bouton nav
   goToTabCompat('pg-infos');
+  setTimeout(calcFdsCompletion, 100);
 }
 
 function removeFDS(id) {
@@ -4149,7 +4162,7 @@ function navTo(name, btn) {
   // Handlers
   if (name === 'films') { renderFilms(); renderResidences(); }
   if (name === 'fds') renderJournees();
-  if (name === 'pg-infos') pgLoadInfos();
+  if (name === 'pg-infos') { pgLoadInfos(); calcFdsCompletion(); }
   if (name === 'pg-sequences') pgRenderSequences();
   if (name === 'pg-comediens') pgRenderComediens();
   if (name === 'pg-complements') pgRenderComplements();
@@ -4167,6 +4180,49 @@ function navTo(name, btn) {
   if (name === 'info') { var el=document.getElementById('info-email'); if(el&&currentUser) el.textContent=currentUser.email; }
 }
 
+function calcFdsCompletion() {
+  var bar = document.getElementById('fds-completion-bar');
+  if (!bar) return;
+  var f = activeFDS();
+  if (!f) { bar.style.display='none'; return; }
+  bar.style.display='block';
+
+  var sections = [
+    { key:'pat',        label:'PAT',          ok: !!(f.infos && f.infos.pat) },
+    { key:'sequences',  label:'Séquences',    ok: (f.sequences||[]).length > 0 },
+    { key:'lieux',      label:'Lieux',        ok: (f.lieux||[]).some(function(l){return l.valeur;}) },
+    { key:'comediens',  label:'Comédiens',    ok: (f.comediens||[]).some(function(c){return c.type==='comedien'||!c.type;}) },
+    { key:'doublures',  label:'Doublures',    ok: (f.comediens||[]).some(function(c){return c.type==='doublure';}) },
+    { key:'figuration', label:'Figuration',   ok: (f.comediens||[]).some(function(c){return c.type==='figurant';}) },
+    { key:'silhouettes',label:'Silhouettes',  ok: (f.comediens||[]).some(function(c){return c.type==='silhouette';}) },
+    { key:'cascadeurs', label:'Cascadeurs',   ok: (f.comediens||[]).some(function(c){return c.type==='cascadeur'||c.type==='cascade_vehicule';}) },
+    { key:'vehicules',  label:'Véhicules',    ok: (f.vehicules||[]).length > 0 || (f.charrettes||[]).length > 0 },
+    { key:'transports', label:'Transports',   ok: (f.transports||[]).length > 0 },
+    { key:'equipe',     label:'Équipe',       ok: !!(f.equipe && Object.keys(f.equipe).length > 0) },
+    { key:'dept',       label:'Notes poste',  ok: !!(f.deptNotes && Object.values(f.deptNotes).some(function(v){return v&&v.trim();})) }
+  ];
+
+  var done = sections.filter(function(s){return s.ok;}).length;
+  var pct = Math.round(done / sections.length * 100);
+
+  document.getElementById('fds-completion-pct').textContent = pct + '%';
+  document.getElementById('fds-completion-fill').style.width = pct + '%';
+  document.getElementById('fds-completion-fill').style.background =
+    pct < 40 ? '#e53935' : pct < 70 ? '#fb8c00' : pct < 100 ? '#43a047' : 'var(--purple)';
+
+  var label = pct < 40 ? 'À compléter' : pct < 70 ? 'En cours' : pct < 100 ? 'Presque prête' : 'FDS complète ✓';
+  document.getElementById('fds-completion-label').textContent = label;
+
+  // Pastilles par section
+  var itemsEl = document.getElementById('fds-completion-items');
+  if (itemsEl) {
+    itemsEl.innerHTML = sections.map(function(s) {
+      return '<span style="display:inline-flex;align-items:center;gap:3px;padding:2px 7px;border-radius:99px;font-size:10px;background:'+(s.ok?'#e8f5e9':'#fce4ec')+';color:'+(s.ok?'#2e7d32':'#c62828')+'">' +
+        (s.ok ? '✓' : '○') + ' ' + s.label + '</span>';
+    }).join('');
+  }
+}
+
 function pgSetSub(elId) {
   var f = activeFDS(); var film = activeFilm();
   var el = document.getElementById(elId); if (!el) return;
@@ -4176,6 +4232,7 @@ function pgSetSub(elId) {
 // ── PAGE INFOS ────────────────────────────────────────────────
 function pgLoadInfos() {
   pgSetSub('pg-infos-sub');
+  setTimeout(calcFdsCompletion, 50);
   var f = activeFDS(); if (!f) return;
   var i = f.infos||{};
   var fields = ['journee','date','pat','debut','fin','repas','pause_repas','meteo','temperature','lever','coucher'];
@@ -4238,7 +4295,7 @@ function pgSaveInfos() {
   });
   document.querySelectorAll('.pg-lieu-val').forEach(function(inp,idx){ if(f.lieux[idx]) f.lieux[idx].valeur=inp.value; });
   document.querySelectorAll('.pg-lieu-label').forEach(function(inp,idx){ if(f.lieux[idx]) f.lieux[idx].label=inp.value; });
-  save(); toast('Enregistré ✓');
+  save(); calcFdsCompletion(); toast('Enregistré ✓');
 }
 
 function pgRenderLieux() {
