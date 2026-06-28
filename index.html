@@ -664,62 +664,59 @@ textarea.form-input{resize:vertical;min-height:72px;}
       <div class="page-sub" id="pg-cascadeurs-sub"></div>
     </div>
     <div class="scroll">
-      <div class="card" style="margin-bottom:10px">
-        <div class="card-title">Cascadeurs
-          <button class="btn btn-sm btn-primary" onclick="openComModalType('cascadeur')">+ Ajouter</button>
+
+      <!-- CASCADES VÉHICULES -->
+      <div class="card" style="margin-bottom:10px;border:2px solid #6a0dad">
+        <div class="card-title" style="color:#6a0dad">🚗 CASCADES VÉHICULES
+          <button class="btn btn-sm btn-primary" style="background:#6a0dad" onclick="openComModalType('cascade_vehicule')">+ Ajouter</button>
+        </div>
+        <div style="margin-bottom:6px">
+          <input class="form-input" id="casc-veh-coord" placeholder="Présence Coordinateur Cascades Véhicules : Nom (06 xx xx xx xx)" style="font-size:11px;font-style:italic"/>
+          <div style="font-size:10px;color:var(--text-muted);margin-top:2px">Encadré coordinateur (apparaît en italique sur la FDS)</div>
         </div>
         <div style="overflow-x:auto">
           <table style="width:100%;border-collapse:collapse;font-size:11px;min-width:500px">
-            <tr style="background:#f0f0f0">
-              <th style="padding:5px 6px;border:1px solid #ccc;width:60px">N°</th>
-              <th style="padding:5px 6px;border:1px solid #ccc;text-align:left">RÔLE / DESCRIPTION</th>
-              <th style="padding:5px 6px;border:1px solid #ccc;text-align:left">NOM</th>
-              <th style="padding:5px 6px;border:1px solid #ccc;width:90px">SÉQUENCES</th>
-              <th style="padding:5px 6px;border:1px solid #ccc;width:55px">HMC</th>
-              <th style="padding:5px 6px;border:1px solid #ccc;width:55px">Départ Loges</th>
-              <th style="padding:5px 6px;border:1px solid #ccc;width:50px">PAT</th>
-              <th style="padding:5px 6px;border:1px solid #ccc;width:28px"></th>
-            </tr>
-            <tbody id="pg-tbody-cascadeurs"></tbody>
-          </table>
-          <div style="font-size:9px;font-style:italic;color:#c00;margin-top:4px">*Préparation en loge figuration (sauf loge rôles si spécifié)</div>
-        </div>
-      </div>
-      <div class="card">
-        <div class="card-title">Cascade véhicules
-          <button class="btn btn-sm btn-primary" onclick="openComModalType('cascade_vehicule')">+ Ajouter</button>
-        </div>
-        <div id="cascade-vehicule-note" style="font-size:11px;color:#555;padding:4px 0 8px;font-style:italic"></div>
-        <div style="overflow-x:auto">
-          <table style="width:100%;border-collapse:collapse;font-size:11px;min-width:500px">
-            <tr style="background:#f0f0f0">
-              <th style="padding:5px 6px;border:1px solid #ccc;width:60px">N°</th>
-              <th style="padding:5px 6px;border:1px solid #ccc;text-align:left">RÔLE / VÉHICULE</th>
-              <th style="padding:5px 6px;border:1px solid #ccc;text-align:left">NOM</th>
-              <th style="padding:5px 6px;border:1px solid #ccc;width:90px">SÉQUENCES</th>
-              <th style="padding:5px 6px;border:1px solid #ccc;width:55px">HMC</th>
-              <th style="padding:5px 6px;border:1px solid #ccc;width:55px">Départ Loges</th>
-              <th style="padding:5px 6px;border:1px solid #ccc;width:50px">PAT</th>
-              <th style="padding:5px 6px;border:1px solid #ccc;width:28px"></th>
-            </tr>
             <tbody id="pg-tbody-cascade-vehicules"></tbody>
           </table>
-          <div style="font-size:9px;font-style:italic;color:#555;margin-top:4px" id="cascade-vehicule-footnote"></div>
         </div>
+        <div style="margin-top:6px">
+          <input class="form-input" id="casc-veh-footnote" placeholder="*Préparation en loge figuration / * Préparation en loge rôles..." style="font-size:9px;font-style:italic;color:#c00"/>
+          <div style="font-size:10px;color:var(--text-muted);margin-top:2px">Note de bas de tableau (loge)</div>
+        </div>
+        <button class="btn btn-sm btn-secondary btn-block" onclick="saveCascCoords()" style="margin-top:6px">Enregistrer les notes coordinateur</button>
       </div>
 
-      <!-- NOTES CASCADE -->
-      <div class="card" style="border:2px solid #6a0dad;margin-bottom:8px">
-        <div class="card-title" style="color:#6a0dad">📝 Notes Cascades physiques
+      <!-- CASCADEURS PHYSIQUES -->
+      <div class="card" style="border:2px solid #6a0dad">
+        <div class="card-title" style="color:#6a0dad">🎭 CASCADEURS
+          <button class="btn btn-sm btn-primary" style="background:#6a0dad" onclick="openComModalType('cascadeur')">+ Ajouter</button>
+        </div>
+        <div style="margin-bottom:6px">
+          <input class="form-input" id="casc-phys-coord" placeholder="Présence Régleur cascade physique : Nom (06 xx xx xx) assisté de..." style="font-size:11px;font-style:italic"/>
+          <div style="font-size:10px;color:var(--text-muted);margin-top:2px">Encadré régleur (apparaît en italique sur la FDS)</div>
+        </div>
+        <div style="overflow-x:auto">
+          <table style="width:100%;border-collapse:collapse;font-size:11px;min-width:500px">
+            <tbody id="pg-tbody-cascadeurs"></tbody>
+            <tfoot><tr id="tr-total-casc" style="background:#e8e8e8">
+              <td style="padding:3px 6px;border:1px solid #ccc;text-align:center;font-weight:700" id="casc-total">0</td>
+              <td style="padding:3px 6px;border:1px solid #ccc;font-weight:700" colspan="10">TOTAL</td>
+            </tr></tfoot>
+          </table>
+        </div>
+        <div style="margin-top:6px">
+          <input class="form-input" id="casc-phys-footnote" placeholder="*Préparation des Cascadeurs à la loge Figuration" style="font-size:9px;font-style:italic;color:#c00"/>
+          <div style="font-size:10px;color:var(--text-muted);margin-top:2px">Note de bas de tableau</div>
+        </div>
+        <button class="btn btn-sm btn-secondary btn-block" onclick="saveCascCoords()" style="margin-top:6px">Enregistrer</button>
+      </div>
+
+      <!-- NOTE DEPT CASCADE (Détails par poste) -->
+      <div class="card" style="border:2px solid #6a0dad;margin-top:8px">
+        <div class="card-title" style="color:#6a0dad">📝 Note département Cascades (Détails par poste)
           <button class="btn btn-sm btn-primary" style="background:#6a0dad" onclick="saveCascadeNote('cascade')">Enregistrer</button>
         </div>
-        <textarea class="form-input" id="cascade-note-cascade" rows="3" placeholder="Notes pour les cascades physiques : coordinateur, matériel, sécurité..." oninput=""></textarea>
-      </div>
-      <div class="card" style="border:2px solid #6a0dad">
-        <div class="card-title" style="color:#6a0dad">📝 Notes Cascades véhicules
-          <button class="btn btn-sm btn-primary" style="background:#6a0dad" onclick="saveCascadeNote('vehicules')">Enregistrer</button>
-        </div>
-        <textarea class="form-input" id="cascade-note-vehicules" rows="3" placeholder="Notes pour les cascades véhicules : coordinateur, système traction, véhicules présents..."></textarea>
+        <textarea class="form-input" id="cascade-note-cascade" rows="3" placeholder="Notes générales cascades : matériel, sécurité, timing..."></textarea>
       </div>
 
     </div>
@@ -2062,6 +2059,7 @@ const DEPT_LABELS = {
   electricite:'Électricité',
   machinerie:'Machinerie',
   son:'Son',
+  cascade:'Cascades',
   vehicules:'Véhicules',
   drone:'Drone',
   vfx:'VFX',
@@ -2946,8 +2944,60 @@ function renderApercu(targetEl) {
     h += '</table>';
   }
 
+  // ── CASCADES VÉHICULES ──────────────────────────────────────
+  var allCascVeh = (f.comediens||[]).filter(function(c){ return c.type==='cascade_vehicule'; });
+  if (allCascVeh.length || f.casc_veh_coord) {
+    var lblHmcCV = i.col_hmc || 'HMC'; var lblLogCV = i.col_loges || 'Dép. Loges'; var lblPatCV = i.col_pat || 'PAT';
+    if (f.casc_veh_coord) h += '<div style="font-size:9px;font-style:italic;padding:3px 0">'+f.casc_veh_coord+'</div>';
+    h += '<table style="width:100%;border-collapse:collapse;margin-bottom:3px">';
+    h += '<caption style="caption-side:top;text-align:left;font-size:9px;font-weight:700;padding:2px 0">CASCADES VÉHICULES ' + pencilInline("goToTab(\'pg-cascadeurs\')", "les cascades véhicules") + '</caption>';
+    h += '<tr style="background:#f5e6ff">'+th('N°','45px')+th('RÔLE / VÉHICULE')+th('NOM');
+    if (nbSeqs) h += '<th style="padding:2px 4px;border:1px solid #999;font-size:'+csz+';text-align:center" colspan="'+nbSeqs+'">SÉQUENCES</th>';
+    h += th(lblHmcCV,'50px')+th(lblLogCV,'55px')+th(lblPatCV,'45px')+'<th style="border:1px solid #999"></th></tr>';
+    if (nbSeqs) { h += '<tr style="background:#f5e6ff">'; allSeqs.forEach(function(s){ h += '<th style="padding:2px 3px;border:1px solid #999;font-size:'+csz+';text-align:center;white-space:nowrap">'+s+'</th>'; }); h += '</tr>'; }
+    allCascVeh.forEach(function(c) {
+      var cidx = (f.comediens||[]).indexOf(c);
+      var comSeqs = (c.seqs||'').split(/[\s,]+/).map(function(s){return s.trim();}).filter(Boolean);
+      h += '<tr>'+td(c.num||'','45px',true,true)+td(c.role||'','',false,false)+td(c.nom||'','',false,false);
+      allSeqs.forEach(function(s){ var ok=comSeqs.some(function(cs){return cs.replace(/\s/g,'').toUpperCase()===s.replace(/\s/g,'').toUpperCase();}); h+='<td style="padding:2px;border:1px solid #999;font-size:'+csz+';text-align:center;font-weight:700">'+(ok?s:'')+'</td>'; });
+      h+=td(fmtTime(c.hmc)||'—','',false,true)+td(fmtTime(c.loges)||'—','',false,true)+td(fmtTime(c.pat)||'—','',true,true);
+      h+='<td style="padding:2px;border:1px solid #999;text-align:center">'+pencilInline('openEditComedien('+cidx+')',c.role)+'</td></tr>';
+    });
+    if (f.casc_veh_footnote) h += '<tr><td colspan="'+(6+nbSeqs)+'" style="font-size:8px;font-style:italic;color:#c00;padding:2px 4px;border:1px solid #eee">'+f.casc_veh_footnote+'</td></tr>';
+    h += '</table>';
+  }
+
+  // ── CASCADEURS PHYSIQUES ──────────────────────────────────────
+  var allCascPhys = (f.comediens||[]).filter(function(c){ return c.type==='cascadeur'; });
+  if (allCascPhys.length || f.casc_phys_coord) {
+    var totCasc = allCascPhys.reduce(function(s,c){return s+(parseInt(c.nbre)||1);},0);
+    if (f.casc_phys_coord) h += '<div style="font-size:9px;font-style:italic;padding:3px 0">'+f.casc_phys_coord+'</div>';
+    h += '<table style="width:100%;border-collapse:collapse;margin-bottom:3px">';
+    h += '<caption style="caption-side:top;text-align:left;font-size:9px;font-weight:700;padding:2px 0">CASCADEURS ' + pencilInline("goToTab(\'pg-cascadeurs\')", "les cascadeurs") + '</caption>';
+    h += '<tr style="background:#f5e6ff">'+th('N°','45px')+th('RÔLE / DESCRIPTION')+th('NOM');
+    if (nbSeqs) h += '<th style="padding:2px 4px;border:1px solid #999;font-size:'+csz+';text-align:center" colspan="'+nbSeqs+'">SÉQUENCES</th>';
+    h += '<th style="padding:2px 4px;border:1px solid #999;font-size:'+csz+';text-align:center" rowspan="2">S/P<br><span style="color:#1565c0;font-size:7px">HMC</span></th>';
+    h += th(i.col_pat||'PAT','45px')+'<th style="border:1px solid #999"></th></tr>';
+    if (nbSeqs) { h += '<tr style="background:#f5e6ff">'; allSeqs.forEach(function(s){ h += '<th style="padding:2px 3px;border:1px solid #999;font-size:'+csz+';text-align:center;white-space:nowrap">'+s+'</th>'; }); h += '</tr>'; }
+    allCascPhys.forEach(function(c) {
+      var cidx = (f.comediens||[]).indexOf(c);
+      var comSeqs = (c.seqs||'').split(/[\s,]+/).map(function(s){return s.trim();}).filter(Boolean);
+      var spCell = fmtTime(c.mep)||fmtTime(c.hmc)||'—';
+      if (c.hmc && c.mep) spCell += '<br><span style="color:#1565c0;font-size:7px">'+fmtTime(c.hmc)+'</span>';
+      h += '<tr>'+td(c.num||'','45px',true,true)+td(c.role||'','',false,false)+td(c.nom||'','',false,false);
+      allSeqs.forEach(function(s){ var ok=comSeqs.some(function(cs){return cs.replace(/\s/g,'').toUpperCase()===s.replace(/\s/g,'').toUpperCase();}); h+='<td style="padding:2px;border:1px solid #999;font-size:'+csz+';text-align:center;font-weight:700">'+(ok?s:'')+'</td>'; });
+      h+='<td style="padding:2px 4px;border:1px solid #999;text-align:center;font-size:'+csz+';font-weight:700">'+spCell+'</td>';
+      h+=td(fmtTime(c.pat)||'—','',true,true);
+      h+='<td style="padding:2px;border:1px solid #999;text-align:center">'+pencilInline('openEditComedien('+cidx+')',c.role)+'</td></tr>';
+    });
+    h += '<tr style="background:#f5e6ff"><td style="padding:3px 6px;border:1px solid #999;text-align:center;font-weight:700">'+totCasc+'</td>';
+    h += '<td style="padding:3px 6px;border:1px solid #999;font-weight:700" colspan="'+(2+nbSeqs)+'">TOTAL</td></tr>';
+    if (f.casc_phys_footnote) h += '<tr><td colspan="'+(5+nbSeqs)+'" style="font-size:8px;font-style:italic;color:#1565c0;padding:2px 4px;border:1px solid #eee">'+f.casc_phys_footnote+'</td></tr>';
+    h += '</table>';
+  }
+
   // DEPARTEMENTS — tous affichés même vides
-  var DEPT_ORDER = ['mise_en_scene','coach_enfants','decoration','accessoires','armes','costumes','maquillage','coiffure','image','electricite','machinerie','son','vehicules','drone','vfx','regie'];
+  var DEPT_ORDER = ['mise_en_scene','coach_enfants','decoration','accessoires','armes','costumes','maquillage','coiffure','image','electricite','machinerie','son','cascade','vehicules','drone','vfx','regie'];
   DEPT_ORDER.forEach(function(d) {
     var note = (f.deptNotes && f.deptNotes[d]) || '';
     h += '<table style="width:100%;border-collapse:collapse;margin-bottom:2px">';
@@ -4585,9 +4635,10 @@ function pgRenderCascadeurs() {
     return cells;
   }
 
-  function buildTheadHtml(labelCol2, hasLoges) {
+  function buildTheadHtml(labelCol2, hasLoges, spHmc) {
+    // spHmc=true : fusionner S/P et HMC sur 2 lignes (pour cascadeurs physiques)
     var h = '<thead><tr style="background:#f5e6ff">';
-    h += '<th style="padding:5px 4px;border:1px solid #ccc;width:60px" rowspan="2">N°</th>';
+    h += '<th style="padding:5px 4px;border:1px solid #ccc;width:45px" rowspan="2">N°</th>';
     h += '<th style="padding:5px 4px;border:1px solid #ccc;text-align:left" rowspan="2">'+labelCol2+'</th>';
     h += '<th style="padding:5px 4px;border:1px solid #ccc;text-align:left" rowspan="2">NOM</th>';
     if (allSeqs.length) {
@@ -4595,8 +4646,12 @@ function pgRenderCascadeurs() {
     } else {
       h += '<th style="padding:5px 4px;border:1px solid #ccc;width:90px" rowspan="2">SÉQUENCES</th>';
     }
-    h += '<th style="padding:5px 4px;border:1px solid #ccc;width:50px" rowspan="2">HMC</th>';
-    if (hasLoges) h += '<th style="padding:5px 4px;border:1px solid #ccc;width:50px" rowspan="2">Dép. Loges</th>';
+    if (spHmc) {
+      h += '<th style="padding:5px 4px;border:1px solid #ccc;width:55px;text-align:center" rowspan="2">S/P<br><span style="color:#1565c0;font-size:8px">HMC</span></th>';
+    } else {
+      h += '<th style="padding:5px 4px;border:1px solid #ccc;width:50px" rowspan="2">HMC</th>';
+      if (hasLoges) h += '<th style="padding:5px 4px;border:1px solid #ccc;width:50px" rowspan="2">Dép. Loges</th>';
+    }
     h += '<th style="padding:5px 4px;border:1px solid #ccc;width:45px" rowspan="2">PAT</th>';
     h += '<th style="border:1px solid #ccc;width:26px" rowspan="2"></th>';
     h += '</tr><tr style="background:#f5e6ff">';
@@ -4610,25 +4665,34 @@ function pgRenderCascadeurs() {
     return h;
   }
 
-  function renderCascTable(tbId, list, labelCol2, hasLoges) {
+  function renderCascTable(tbId, list, labelCol2, hasLoges, spHmc) {
     var tb = document.getElementById(tbId); if (!tb) return;
     var table = tb.closest('table'); if (!table) return;
     var thead = table.querySelector('thead');
-    var newThead = buildTheadHtml(labelCol2, hasLoges);
+    var newThead = buildTheadHtml(labelCol2, hasLoges, spHmc);
     if (thead) thead.outerHTML = newThead; else table.insertAdjacentHTML('afterbegin', newThead);
+    var colCount = 5 + allSeqs.length + (spHmc ? 0 : (hasLoges ? 1 : 0));
     if (!list.length) {
-      tb.innerHTML='<tr><td colspan="'+(6+(hasLoges?1:0)+allSeqs.length)+'" style="padding:10px;text-align:center;color:#999;font-size:12px">Aucun — cliquez + pour ajouter</td></tr>';
+      tb.innerHTML='<tr><td colspan="'+colCount+'" style="padding:10px;text-align:center;color:#999;font-size:12px">Aucun — cliquez + pour ajouter</td></tr>';
       return;
     }
     tb.innerHTML = list.map(function(c){
       var idx = all.indexOf(c);
+      var hmcCell;
+      if (spHmc) {
+        var sp = fmtTime(c.mep)||'—';
+        var hmc = c.hmc ? '<br><span style="color:#1565c0;font-size:9px">'+fmtTime(c.hmc)+'</span>' : '';
+        hmcCell = '<td style="padding:4px;border:1px solid #ddd;text-align:center;font-size:11px;font-weight:700">'+sp+hmc+'</td>';
+      } else {
+        hmcCell = '<td style="padding:4px;border:1px solid #ddd;text-align:center;font-size:11px">'+(fmtTime(c.hmc)||'—')+'</td>'+
+          (hasLoges?'<td style="padding:4px;border:1px solid #ddd;text-align:center;font-size:11px">'+(fmtTime(c.loges)||'—')+'</td>':'');
+      }
       return '<tr>'+
-        '<td style="padding:4px;border:1px solid #ddd;font-weight:700;text-align:center;font-size:11px;color:#6a0dad">'+(c.num||'')+'</td>'+
-        '<td style="padding:4px;border:1px solid #ddd;font-size:11px">'+(c.role||'')+'</td>'+
+        '<td style="padding:4px;border:1px solid #ddd;font-weight:700;text-align:center;font-size:10px;color:#6a0dad">'+(c.num||'')+'</td>'+
+        '<td style="padding:4px;border:1px solid #ddd;font-size:11px">'+(c.role||'')+(c.note?'<br><span style="font-size:9px;color:#c00;font-style:italic">'+c.note+'</span>':'')+'</td>'+
         '<td style="padding:4px;border:1px solid #ddd;font-size:11px">'+(c.nom||'')+'</td>'+
         seqCols(c)+
-        '<td style="padding:4px;border:1px solid #ddd;text-align:center;font-size:11px">'+(fmtTime(c.hmc)||'—')+'</td>'+
-        (hasLoges?'<td style="padding:4px;border:1px solid #ddd;text-align:center;font-size:11px">'+(fmtTime(c.loges)||'—')+'</td>':'')+
+        hmcCell+
         '<td style="padding:4px;border:1px solid #ddd;text-align:center;font-size:11px;font-weight:700">'+(fmtTime(c.pat)||'—')+'</td>'+
         '<td style="padding:2px;border:1px solid #ddd;text-align:center">'+pencilBtn(idx)+'</td>'+
       '</tr>';
@@ -4638,17 +4702,39 @@ function pgRenderCascadeurs() {
   var cascadeurs = all.filter(function(c){ return c.type==='cascadeur'; });
   var cascVehic = all.filter(function(c){ return c.type==='cascade_vehicule'; });
 
-  renderCascTable('pg-tbody-cascadeurs', cascadeurs, 'RÔLE / DESCRIPTION', true);
-  renderCascTable('pg-tbody-cascade-vehicules', cascVehic, 'RÔLE / VÉHICULE', true);
+  // Cascades véhicules : HMC + Dép. Loges séparés
+  renderCascTable('pg-tbody-cascade-vehicules', cascVehic, 'RÔLE / VÉHICULE', true, false);
+  // Cascadeurs physiques : S/P + HMC fusionnés
+  renderCascTable('pg-tbody-cascadeurs', cascadeurs, 'RÔLE / DESCRIPTION', false, true);
 
-  // Note coordinateur si renseigné
-  var noteEl = document.getElementById('cascade-vehicule-note');
-  if (noteEl) noteEl.textContent = f.cascade_coord_note || '';
-  // Charger les notes
+  // Total cascadeurs
+  var totalCasc = cascadeurs.reduce(function(s,c){ return s+(parseInt(c.nbre)||1); }, 0);
+  var totEl = document.getElementById('casc-total');
+  if (totEl) totEl.textContent = totalCasc;
+
+  // Charger les encadrés coordinateur/régleur
+  var vehCoord = document.getElementById('casc-veh-coord');
+  if (vehCoord) vehCoord.value = (f.casc_veh_coord || '');
+  var physCoord = document.getElementById('casc-phys-coord');
+  if (physCoord) physCoord.value = (f.casc_phys_coord || '');
+  var vehFoot = document.getElementById('casc-veh-footnote');
+  if (vehFoot) vehFoot.value = (f.casc_veh_footnote || '');
+  var physFoot = document.getElementById('casc-phys-footnote');
+  if (physFoot) physFoot.value = (f.casc_phys_footnote || '');
+
+  // Note département cascade
   var noteCasc = document.getElementById('cascade-note-cascade');
-  var noteVeh = document.getElementById('cascade-note-vehicules');
   if (noteCasc) noteCasc.value = (f.deptNotes && f.deptNotes['cascade']) || '';
-  if (noteVeh) noteVeh.value = (f.deptNotes && f.deptNotes['vehicules']) || '';
+}
+
+function saveCascCoords() {
+  var f = activeFDS(); if (!f) return;
+  var el;
+  el = document.getElementById('casc-veh-coord'); if (el) f.casc_veh_coord = el.value;
+  el = document.getElementById('casc-phys-coord'); if (el) f.casc_phys_coord = el.value;
+  el = document.getElementById('casc-veh-footnote'); if (el) f.casc_veh_footnote = el.value;
+  el = document.getElementById('casc-phys-footnote'); if (el) f.casc_phys_footnote = el.value;
+  save(); toast('Enregistré ✓');
 }
 
 function saveCascadeNote(dept) {
