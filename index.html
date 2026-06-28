@@ -350,23 +350,29 @@ textarea.form-input{resize:vertical;min-height:72px;}
           <div class="card-title" id="fig-count-title">Figuration : 0 figurant(s)
             <button class="btn btn-sm btn-primary" onclick="openComModalType('figurant')">+ Ajouter</button>
           </div>
+          <div style="margin-bottom:8px">
+            <input class="form-input" id="fig-desc" placeholder="FIGURATION : 20 figurants adultes + 2 figurants enfants" style="font-size:11px;font-style:italic"/>
+            <div style="font-size:10px;color:var(--text-muted);margin-top:2px">Encadré titre figuration (s'affiche en gris dans l'aperçu)</div>
+          </div>
           <div style="overflow-x:auto">
-            <table style="width:100%;border-collapse:collapse;font-size:12px">
-              <tr style="background:#f0f0f0">
+            <table style="width:100%;border-collapse:collapse;font-size:12px" id="table-figurants">
+              <thead id="thead-figurants"><tr style="background:#f0f0f0">
                 <th style="padding:5px 6px;border:1px solid #ccc;text-align:center;width:50px">Nbre</th>
                 <th style="padding:5px 6px;border:1px solid #ccc;text-align:left">FIGURATION</th>
                 <th style="padding:5px 6px;border:1px solid #ccc;text-align:center">SÉQUENCES</th>
                 <th style="padding:5px 6px;border:1px solid #ccc;text-align:center;min-width:55px">HMC</th>
+                <th style="padding:5px 6px;border:1px solid #ccc;text-align:center;min-width:70px">Dép. Loges</th>
                 <th style="padding:5px 6px;border:1px solid #ccc;text-align:center;min-width:55px">PAT</th>
                 <th style="padding:5px 6px;border:1px solid #ccc;width:30px"></th>
-              </tr>
+              </tr></thead>
               <tbody id="tbody-figurants"></tbody>
               <tr id="tr-total-fig" style="background:#e8e8e8">
                 <td style="padding:4px 6px;border:1px solid #ccc;text-align:center;font-weight:700" id="fig-total">0</td>
-                <td style="padding:4px 6px;border:1px solid #ccc;font-weight:700" colspan="5">TOTAL</td>
+                <td style="padding:4px 6px;border:1px solid #ccc;font-weight:700" colspan="6">TOTAL</td>
               </tr>
             </table>
           </div>
+          <button class="btn btn-sm btn-secondary btn-block" onclick="saveFigDesc()" style="margin-top:6px">Enregistrer description figuration</button>
         </div>
       </div>
 
@@ -624,23 +630,29 @@ textarea.form-input{resize:vertical;min-height:72px;}
         <div class="card-title" id="pg-fig-title">Figuration
           <button class="btn btn-sm btn-primary" onclick="openComModalType('figurant')">+ Ajouter</button>
         </div>
+        <div style="margin-bottom:8px">
+          <input class="form-input" id="pg-fig-desc" placeholder="FIGURATION : 20 figurants adultes + 2 figurants enfants" style="font-size:11px;font-style:italic"/>
+          <div style="font-size:10px;color:var(--text-muted);margin-top:2px">Encadré titre figuration (s'affiche en gris dans l'aperçu)</div>
+        </div>
         <div style="overflow-x:auto">
-          <table style="width:100%;border-collapse:collapse;font-size:11px;min-width:400px">
-            <tr style="background:#f0f0f0">
+          <table style="width:100%;border-collapse:collapse;font-size:11px;min-width:400px" id="pg-table-figurants">
+            <thead id="pg-thead-figurants"><tr style="background:#f0f0f0">
               <th style="padding:5px 6px;border:1px solid #ccc;width:50px">Nbre</th>
               <th style="padding:5px 6px;border:1px solid #ccc;text-align:left">FIGURATION</th>
-              <th style="padding:5px 6px;border:1px solid #ccc;width:90px">SÉQUENCES</th>
+              <th style="padding:5px 6px;border:1px solid #ccc;text-align:center">SÉQUENCES</th>
               <th style="padding:5px 6px;border:1px solid #ccc;width:55px">HMC</th>
+              <th style="padding:5px 6px;border:1px solid #ccc;width:65px">Dép. Loges</th>
               <th style="padding:5px 6px;border:1px solid #ccc;width:50px">PAT</th>
               <th style="padding:5px 6px;border:1px solid #ccc;width:28px"></th>
-            </tr>
+            </tr></thead>
             <tbody id="pg-tbody-figurants"></tbody>
             <tfoot><tr style="background:#e8e8e8">
               <td style="padding:4px 6px;border:1px solid #ccc;text-align:center;font-weight:700" id="pg-fig-total">0</td>
-              <td style="padding:4px 6px;border:1px solid #ccc;font-weight:700" colspan="5">TOTAL</td>
+              <td style="padding:4px 6px;border:1px solid #ccc;font-weight:700" colspan="6">TOTAL</td>
             </tr></tfoot>
           </table>
         </div>
+        <button class="btn btn-sm btn-secondary btn-block" onclick="saveFigDesc()" style="margin-top:6px">Enregistrer description figuration</button>
       </div>
     </div>
   </div>
@@ -2879,16 +2891,47 @@ function renderApercu(targetEl) {
     h += '</table>';
   }
   if (figurants.length) {
+    var totFig = figurants.reduce(function(s,c){return s+(parseInt(c.nbre)||1);},0);
+    if (f.fig_desc) {
+      h += '<div style="background:#e0e0e0;padding:4px 8px;font-size:9px;font-style:italic;font-weight:600;border:1px solid #ccc;margin-bottom:3px">'+f.fig_desc+'</div>';
+    }
+    var lblHmcF  = (i.col_hmc   || 'HMC');
+    var lblLogesF= (i.col_loges || 'Départ Loges');
+    var lblPatF  = (i.col_pat   || 'PAT');
     h += '<table style="width:100%;border-collapse:collapse;margin-bottom:5px">';
     h += '<caption style="caption-side:top;text-align:left;font-size:9px;font-weight:700;padding:3px 0">FIGURATION ' + pencilInline("goToTab(\'comediens\')", "la figuration") + '</caption>';
-    h += '<tr style="background:#e8e8e8">'+th('Nbre','40px')+th('FIGURATION ('+figurants.length+')')+th('SÉQUENCES')+th('HMC','60px')+th('PAT','55px')+th('','28px')+'</tr>';
+    h += '<tr style="background:#e8e8e8">';
+    h += '<th style="padding:2px 4px;border:1px solid #999;font-size:'+csz+'" rowspan="2">Nbre</th>';
+    h += '<th style="padding:2px 4px;border:1px solid #999;font-size:'+csz+'" rowspan="2">FIGURATION ('+figurants.length+' types)</th>';
+    if (nbSeqs) h += '<th style="padding:2px 4px;border:1px solid #999;font-size:'+csz+';text-align:center" colspan="'+nbSeqs+'">SÉQUENCES</th>';
+    h += '<th style="padding:2px 4px;border:1px solid #999;font-size:'+csz+'" rowspan="2">'+lblHmcF+'</th>';
+    h += '<th style="padding:2px 4px;border:1px solid #999;font-size:'+csz+'" rowspan="2">'+lblLogesF+'</th>';
+    h += '<th style="padding:2px 4px;border:1px solid #999;font-size:'+csz+'" rowspan="2">'+lblPatF+'</th>';
+    h += '<th style="border:1px solid #999" rowspan="2"></th></tr>';
+    if (nbSeqs) {
+      h += '<tr style="background:#e8e8e8">';
+      allSeqs.forEach(function(s){ h += '<th style="padding:2px 3px;border:1px solid #999;font-size:'+csz+';text-align:center;white-space:nowrap">'+s+'</th>'; });
+      h += '</tr>';
+    }
     figurants.forEach(function(c) {
       var fidx = (f.comediens||[]).indexOf(c);
-      h += '<tr>'+td(c.nom||'1','',false,true)+td(c.role,'',false,false)+
-           td(c.seqs||'-','',false,true)+td(fmtTime(c.hmc)||'-','',false,true)+td(fmtTime(c.pat)||'-','',true,true)+
-           '<td style="padding:2px;border:1px solid #999;text-align:center">'+pencilInline('openEditComedien('+fidx+')',c.role)+'</td>'+
-           '</tr>';
+      var comSeqs = (c.seqs||'').split(/[\s,]+/).map(function(s){return s.trim();}).filter(Boolean);
+      h += '<tr>';
+      h += td(String(c.nbre||1),'38px',true,true);
+      h += td(c.role,'',false,false);
+      allSeqs.forEach(function(s){
+        var sC = s.replace(/\s/g,'').toUpperCase();
+        var ok = comSeqs.some(function(cs){ return cs.replace(/\s/g,'').toUpperCase()===sC; });
+        h += '<td style="padding:2px;border:1px solid #999;font-size:'+csz+';text-align:center;font-weight:700">'+(ok?s:'')+'</td>';
+      });
+      h += td(fmtTime(c.hmc)||'—','',false,true);
+      h += td(fmtTime(c.loges)||'—','',false,true);
+      h += td(fmtTime(c.pat)||'—','',true,true);
+      h += '<td style="padding:2px;border:1px solid #999;text-align:center">'+pencilInline('openEditComedien('+fidx+')',c.role)+'</td>';
+      h += '</tr>';
     });
+    h += '<tr style="background:#e8e8e8"><td style="padding:3px 6px;border:1px solid #999;text-align:center;font-weight:700">'+totFig+'</td>';
+    h += '<td style="padding:3px 6px;border:1px solid #999;font-weight:700" colspan="'+(3+(nbSeqs||1))+'">TOTAL</td></tr>';
     h += '</table>';
   }
 
@@ -3107,28 +3150,61 @@ function renderFigurationTab() {
     }
   }
 
-  // FIGURANTS
+  // FIGURANTS — colonnes séquences individuelles + Départ Loges
   var tbF = document.getElementById('tbody-figurants');
   var totalEl = document.getElementById('fig-total');
   var titleEl = document.getElementById('fig-count-title');
   var total = figurants.reduce(function(s,c){ return s + (parseInt(c.nbre)||1); }, 0);
   if (totalEl) totalEl.textContent = total;
-  if (titleEl) {
-    titleEl.childNodes[0].textContent = 'Figuration : ' + total + ' figurant(s) ';
+  if (titleEl) titleEl.childNodes[0].textContent = 'Figuration : ' + total + ' figurant(s) ';
+  // Charger la description
+  var figDescEl = document.getElementById('fig-desc');
+  if (figDescEl && f.fig_desc !== undefined) figDescEl.value = f.fig_desc;
+  // Séquences du jour
+  var pdtJdtF = typeof PDT_DATA !== 'undefined' ? PDT_DATA.find(function(j){ return j.jdt===f.jdt; }) : null;
+  var allSeqsF = pdtJdtF ? pdtJdtF.sequences : [];
+  var theadF = document.getElementById('thead-figurants');
+  if (theadF) {
+    var thH = '<tr style="background:#f0f0f0"><th style="padding:5px 6px;border:1px solid #ccc;width:50px">Nbre</th>' +
+              '<th style="padding:5px 6px;border:1px solid #ccc;text-align:left">FIGURATION</th>';
+    if (allSeqsF.length) thH += '<th style="padding:5px 6px;border:1px solid #ccc;text-align:center" colspan="'+allSeqsF.length+'">SÉQUENCES</th>';
+    else thH += '<th style="padding:5px 6px;border:1px solid #ccc;text-align:center">SÉQUENCES</th>';
+    thH += '<th style="padding:5px 6px;border:1px solid #ccc;width:55px">HMC</th>' +
+           '<th style="padding:5px 6px;border:1px solid #ccc;width:65px">Dép. Loges</th>' +
+           '<th style="padding:5px 6px;border:1px solid #ccc;width:50px">PAT</th>' +
+           '<th style="width:28px;border:1px solid #ccc"></th></tr>';
+    if (allSeqsF.length) {
+      thH += '<tr style="background:#f0f0f0">';
+      allSeqsF.forEach(function(s){ thH += '<th style="padding:2px 3px;border:1px solid #ccc;font-size:9px;text-align:center;white-space:nowrap">'+s+'</th>'; });
+      thH += '</tr>';
+    }
+    theadF.innerHTML = thH;
   }
   if (tbF) {
     if (!figurants.length) {
-      tbF.innerHTML = '<tr><td colspan="6" style="padding:8px;text-align:center;color:#999;font-size:12px;border:1px solid #eee">Aucun figurant — cliquez + pour ajouter</td></tr>';
+      tbF.innerHTML = '<tr><td colspan="'+(7+(allSeqsF.length||1))+'" style="padding:8px;text-align:center;color:#999;font-size:12px;border:1px solid #eee">Aucun figurant — cliquez + pour ajouter</td></tr>';
     } else {
       tbF.innerHTML = figurants.map(function(c) {
-        var idx = all.indexOf(c);
+        var cidx = all.indexOf(c);
+        var comSeqs = (c.seqs||'').split(/[\s,]+/).map(function(s){return s.trim();}).filter(Boolean);
+        var seqCells = '';
+        if (allSeqsF.length) {
+          allSeqsF.forEach(function(s){
+            var sC = s.replace(/\s/g,'').toUpperCase();
+            var ok = comSeqs.some(function(cs){ return cs.replace(/\s/g,'').toUpperCase()===sC; });
+            seqCells += '<td style="padding:2px;border:1px solid #ddd;font-size:10px;text-align:center;font-weight:700">'+(ok?s:'')+'</td>';
+          });
+        } else {
+          seqCells = '<td style="padding:4px 6px;border:1px solid #ddd;font-size:10px;text-align:center">'+(c.seqs||'')+'</td>';
+        }
         return '<tr>' +
-          '<td style="padding:4px 6px;border:1px solid #ddd;font-size:11px;text-align:center;font-weight:700;color:var(--purple)">' + (c.nbre||1) + '</td>' +
-          '<td style="padding:4px 6px;border:1px solid #ddd;font-size:11px">' + (c.role||'') + (c.nom?' <i style="color:#999">('+c.nom+')</i>':'') + '</td>' +
-          '<td style="padding:4px 6px;border:1px solid #ddd;font-size:11px;text-align:center">' + (c.seqs||'') + '</td>' +
-          '<td style="padding:4px 6px;border:1px solid #ddd;font-size:11px;text-align:center">' + fmtTime(c.hmc) + '</td>' +
-          '<td style="padding:4px 6px;border:1px solid #ddd;font-size:11px;text-align:center;font-weight:700">' + fmtTime(c.pat) + '</td>' +
-          '<td style="padding:2px;border:1px solid #ddd;text-align:center">' + pencilBtn(idx) + '</td>' +
+          '<td style="padding:4px 6px;border:1px solid #ddd;font-size:11px;text-align:center;font-weight:700;color:var(--purple)">'+(c.nbre||1)+'</td>' +
+          '<td style="padding:4px 6px;border:1px solid #ddd;font-size:11px">'+(c.role||'')+(c.nom?' <span style="color:#888;font-size:10px">('+c.nom+')</span>':'')+'</td>' +
+          seqCells +
+          '<td style="padding:4px 6px;border:1px solid #ddd;font-size:11px;text-align:center">'+fmtTime(c.hmc)+'</td>' +
+          '<td style="padding:4px 6px;border:1px solid #ddd;font-size:11px;text-align:center">'+fmtTime(c.loges)+'</td>' +
+          '<td style="padding:4px 6px;border:1px solid #ddd;font-size:11px;text-align:center;font-weight:700">'+fmtTime(c.pat)+'</td>' +
+          '<td style="padding:2px;border:1px solid #ddd;text-align:center">'+pencilBtn(cidx)+'</td>' +
           '</tr>';
       }).join('');
     }
@@ -3715,6 +3791,12 @@ function pgRenderLieux() {
     '</div>';
   }).join('');
 }
+function saveFigDesc() {
+  var f = activeFDS(); if (!f) return;
+  var el = document.getElementById('fig-desc') || document.getElementById('pg-fig-desc');
+  if (el) { f.fig_desc = el.value; save(); toast('Description figuration enregistrée ✓'); }
+}
+
 function pgAddLieu(){ var f=activeFDS();if(!f)return;f.lieux.push({label:'Autre',valeur:''});pgRenderLieux(); }
 function pgRemoveLieu(i){ var f=activeFDS();if(!f)return;f.lieux.splice(i,1);pgRenderLieux(); }
 
