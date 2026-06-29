@@ -3024,7 +3024,7 @@ function renderApercu(targetEl) {
       var cidx = (f.comediens||[]).indexOf(c);
       // Priorité : séquences depuis archives, sinon depuis c.seqs
       var roleSeqsStr = seqsRole[c.num] || c.seqs || '';
-      var comSeqs = roleSeqsStr.split(/[\s,]+/).map(function(s){return s.trim();}).filter(Boolean);
+      var comSeqs = roleSeqsStr.split(/\s*,\s*/).map(function(s){return s.trim();}).filter(Boolean);
       h += '<tr>';
       h += td(c.num,'',false,true) + td(c.role,'',true,false) + td(c.nom,'',false,false);
       allSeqs.forEach(function(s){
@@ -3107,7 +3107,7 @@ function renderApercu(targetEl) {
     }
     figurants.forEach(function(c) {
       var fidx = (f.comediens||[]).indexOf(c);
-      var comSeqs = (c.seqs||'').split(/[\s,]+/).map(function(s){return s.trim();}).filter(Boolean);
+      var comSeqs = (c.seqs||'').split(/\s*,\s*/).map(function(s){return s.trim();}).filter(Boolean);
       h += '<tr>';
       h += td(String(c.nbre||1),'38px',true,true);
       // Cellule rôle + note en bleu
@@ -3144,7 +3144,7 @@ function renderApercu(targetEl) {
     if (nbSeqs) { h += '<tr style="background:#f0f5ff">'; allSeqs.forEach(function(s){ h += '<th style="padding:2px 3px;border:1px solid #999;font-size:'+csz+';text-align:center;white-space:nowrap">'+s+'</th>'; }); h += '</tr>'; }
     allChauffeurs.forEach(function(c) {
       var cidx = (f.comediens||[]).indexOf(c);
-      var comSeqs = (c.seqs||'').split(/[\s,]+/).map(function(s){return s.trim();}).filter(Boolean);
+      var comSeqs = (c.seqs||'').split(/\s*,\s*/).map(function(s){return s.trim();}).filter(Boolean);
       h += '<tr>'+td(String(c.nbre||1),'38px',true,true);
       h += '<td style="padding:2px 5px;border:1px solid #999;font-size:'+csz+'">'+(c.role||'')+(c.nom?' <span style="font-style:italic;color:#555">('+c.nom+')</span>':'')+(c.note?'<br><span style="font-size:7.5px;color:#555;font-style:italic">'+c.note+'</span>':'')+'</td>';
       allSeqs.forEach(function(s){ var ok=comSeqs.some(function(cs){return cs.replace(/[\s.]/g,'').toUpperCase()===s.replace(/[\s.]/g,'').toUpperCase();}); h+='<td style="padding:2px;border:1px solid #999;font-size:'+csz+';text-align:center;font-weight:700">'+(ok?s:'')+'</td>'; });
@@ -3170,7 +3170,7 @@ function renderApercu(targetEl) {
     if (nbSeqs) { h += '<tr style="background:#f5e6ff">'; allSeqs.forEach(function(s){ h += '<th style="padding:2px 3px;border:1px solid #999;font-size:'+csz+';text-align:center;white-space:nowrap">'+s+'</th>'; }); h += '</tr>'; }
     allCascVeh.forEach(function(c) {
       var cidx = (f.comediens||[]).indexOf(c);
-      var comSeqs = (c.seqs||'').split(/[\s,]+/).map(function(s){return s.trim();}).filter(Boolean);
+      var comSeqs = (c.seqs||'').split(/\s*,\s*/).map(function(s){return s.trim();}).filter(Boolean);
       h += '<tr>';
       h += '<td style="padding:2px 4px;border:1px solid #999;font-size:'+csz+';font-weight:700;color:#6a0dad;white-space:nowrap;text-align:center">'+(c.num||'')+'</td>';
       h += '<td style="padding:2px 4px;border:1px solid #999;font-size:'+csz+'">'+(c.role||'')+(c.note?'<br><span style="color:#c00;font-size:7px;font-style:italic">'+c.note+'</span>':'')+'</td>';
@@ -3198,7 +3198,7 @@ function renderApercu(targetEl) {
     if (nbSeqs) { h += '<tr style="background:#f5e6ff">'; allSeqs.forEach(function(s){ h += '<th style="padding:2px 3px;border:1px solid #999;font-size:'+csz+';text-align:center;white-space:nowrap">'+s+'</th>'; }); h += '</tr>'; }
     allCascPhys.forEach(function(c) {
       var cidx = (f.comediens||[]).indexOf(c);
-      var comSeqs = (c.seqs||'').split(/[\s,]+/).map(function(s){return s.trim();}).filter(Boolean);
+      var comSeqs = (c.seqs||'').split(/\s*,\s*/).map(function(s){return s.trim();}).filter(Boolean);
       var spCell = fmtTime(c.mep)||fmtTime(c.hmc)||'—';
       if (c.hmc && c.mep) spCell += '<br><span style="color:#1565c0;font-size:7px">'+fmtTime(c.hmc)+'</span>';
       h += '<tr>';
@@ -3243,7 +3243,7 @@ function renderApercu(targetEl) {
       hv += '</tr>';
     }
     list.forEach(function(v) {
-      var vSeqs = (v.seqs||'').split(/[\s,]+/).map(function(s){return s.trim();}).filter(Boolean);
+      var vSeqs = (v.seqs||'').split(/\s*,\s*/).map(function(s){return s.trim();}).filter(Boolean);
       hv += '<tr>'+td(String(v.nbre||1),'38px',true,true);
       hv += '<td style="padding:2px 5px;border:1px solid #999;font-size:'+csz+'">'+(v.nom||'')+(v.note?'<br><span style="font-size:7.5px;color:#555;font-style:italic">'+v.note+'</span>':'')+'</td>';
       allSeqs.forEach(function(s){ var ok=vSeqs.some(function(vs){return vs.replace(/\s/g,'').toUpperCase()===s.replace(/\s/g,'').toUpperCase();}); hv+='<td style="padding:2px;border:1px solid #999;font-size:'+csz+';text-align:center;font-weight:700">'+(ok?s:'')+'</td>'; });
@@ -3495,7 +3495,7 @@ function renderFigurationTab() {
     } else {
       tbS.innerHTML = silhouettes.map(function(c) {
         var cidx = all.indexOf(c);
-        var comSeqs = (c.seqs||'').split(/[\s,]+/).map(function(s){return s.trim();}).filter(Boolean);
+        var comSeqs = (c.seqs||'').split(/\s*,\s*/).map(function(s){return s.trim();}).filter(Boolean);
         var seqCells = '';
         if (allSeqsF && allSeqsF.length) {
           allSeqsF.forEach(function(s){
@@ -3568,7 +3568,7 @@ function renderFigurationTab() {
     } else {
       tbF.innerHTML = figurants.map(function(c) {
         var cidx = all.indexOf(c);
-        var comSeqs = (c.seqs||'').split(/[\s,]+/).map(function(s){return s.trim();}).filter(Boolean);
+        var comSeqs = (c.seqs||'').split(/\s*,\s*/).map(function(s){return s.trim();}).filter(Boolean);
         var seqCells = '';
         if (allSeqsF.length) {
           allSeqsF.forEach(function(s){
@@ -4811,7 +4811,7 @@ function pgRenderComediens() {
     var idx = (f.comediens||[]).indexOf(c);
     var manque = !c.hmc||!c.pat;
     var roleSeqsStr = seqsRole[c.num] || c.seqs || '';
-    var comSeqs = roleSeqsStr.split(/[\s,]+/).map(function(s){return s.trim().replace(/[\s.]/g,'').toUpperCase();}).filter(Boolean);
+    var comSeqs = roleSeqsStr.split(/\s*,\s*/).map(function(s){return s.trim().replace(/[\s.]/g,'').toUpperCase();}).filter(Boolean);
     var row = '<tr style="'+(manque?'background:#fffbf0':'')+'">';
     row += '<td style="padding:4px 4px;border:1px solid #ddd;text-align:center;font-weight:700;font-size:11px;color:var(--purple)">'+(c.num||'')+'</td>';
     row += '<td style="padding:4px 4px;border:1px solid #ddd;font-weight:600;font-size:11px;color:'+(manque?'#b07700':'#111')+'">'+(c.role||'')+'</td>';
@@ -4853,7 +4853,7 @@ function pgRenderComplements() {
 
   function seqCols(c) {
     if (!allSeqs.length) return '<td style="padding:4px;border:1px solid #ddd;text-align:center;font-size:10px">'+(c.seqs||'')+'</td>';
-    var comSeqs = (c.seqs||'').split(/[\s,]+/).map(function(s){return s.trim().replace(/[\s.]/g,'').toUpperCase();}).filter(Boolean);
+    var comSeqs = (c.seqs||'').split(/\s*,\s*/).map(function(s){return s.trim().replace(/[\s.]/g,'').toUpperCase();}).filter(Boolean);
     var cells = '';
     allSeqs.forEach(function(s){
       var sKey = s.trim().replace(/[\s.]/g,'').toUpperCase();
@@ -4998,7 +4998,7 @@ function pgRenderComplements() {
       tbF.innerHTML = figurants.map(function(c){
         var idx = all.indexOf(c);
         // Cellules séquences individuelles
-        var comSeqs = (c.seqs||'').split(/[\s,]+/).map(function(s){return s.trim();}).filter(Boolean);
+        var comSeqs = (c.seqs||'').split(/\s*,\s*/).map(function(s){return s.trim();}).filter(Boolean);
         var seqCellsF = '';
         if (allSeqs.length) {
           allSeqs.forEach(function(s){
@@ -5391,7 +5391,7 @@ function pgRenderCascadeurs() {
 
   function seqCols(c) {
     if (!allSeqs.length) return '<td style="padding:4px;border:1px solid #ddd;text-align:center;font-size:10px">'+(c.seqs||'')+'</td>';
-    var comSeqs = (c.seqs||'').split(/[\s,]+/).map(function(s){return s.trim().replace(/[\s.]/g,'').toUpperCase();}).filter(Boolean);
+    var comSeqs = (c.seqs||'').split(/\s*,\s*/).map(function(s){return s.trim().replace(/[\s.]/g,'').toUpperCase();}).filter(Boolean);
     var cells = '';
     allSeqs.forEach(function(s){
       var sKey = s.trim().replace(/[\s.]/g,'').toUpperCase();
@@ -5563,7 +5563,7 @@ function pgRenderVehicules() {
 
   function seqCols(v) {
     if (!allSeqs.length) return '<td style="padding:4px;border:1px solid #ddd;text-align:center;font-size:10px">'+(v.seqs||'')+'</td>';
-    var vSeqs = (v.seqs||'').split(/[\s,]+/).map(function(s){return s.trim().replace(/[\s.]/g,'').toUpperCase();}).filter(Boolean);
+    var vSeqs = (v.seqs||'').split(/\s*,\s*/).map(function(s){return s.trim().replace(/[\s.]/g,'').toUpperCase();}).filter(Boolean);
     var cells = '';
     allSeqs.forEach(function(s) {
       var sKey = s.trim().replace(/[\s.]/g,'').toUpperCase();
