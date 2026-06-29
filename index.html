@@ -3136,7 +3136,7 @@ function renderApercu(targetEl) {
       h += '</tr>';
     });
     h += '<tr style="background:#e8e8e8"><td style="padding:3px 6px;border:1px solid #999;text-align:center;font-weight:700">'+totFig+'</td>';
-    h += '<td style="padding:3px 6px;border:1px solid #999;font-weight:700" colspan="'+(3+(nbSeqs||1))+'">TOTAL</td></tr>';
+    h += '<td style="padding:3px 6px;border:1px solid #999;font-weight:700" colspan="'+(1+nbSeqs+4)+'">TOTAL</td></tr>';
     h += '</table>';
   }
 
@@ -3161,7 +3161,7 @@ function renderApercu(targetEl) {
       h+='<td style="padding:2px;border:1px solid #999;text-align:center">'+pencilInline('openEditComedien('+cidx+')',c.role)+'</td></tr>';
     });
     h += '<tr style="background:#f0f5ff"><td style="padding:3px 6px;border:1px solid #999;text-align:center;font-weight:700">'+totChauf+'</td>';
-    h += '<td style="padding:3px 6px;border:1px solid #999;font-weight:700" colspan="'+(4+nbSeqs)+'">TOTAL</td></tr>';
+    h += '<td style="padding:3px 6px;border:1px solid #999;font-weight:700" colspan="'+(1+nbSeqs+5)+'">TOTAL</td></tr>';
     if (f.chauff_footnote) h += '<tr><td colspan="'+(6+nbSeqs)+'" style="font-size:8px;font-style:italic;color:#c00;padding:2px 4px;border:1px solid #eee">'+f.chauff_footnote+'</td></tr>';
     h += '</table>';
   }
@@ -3221,7 +3221,7 @@ function renderApercu(targetEl) {
       h+='<td style="padding:2px;border:1px solid #999;text-align:center">'+pencilInline('openEditComedien('+cidx+')',c.role)+'</td></tr>';
     });
     h += '<tr style="background:#f5e6ff"><td style="padding:3px 6px;border:1px solid #999;text-align:center;font-weight:700">'+totCasc+'</td>';
-    h += '<td style="padding:3px 6px;border:1px solid #999;font-weight:700" colspan="'+(2+nbSeqs)+'">TOTAL</td></tr>';
+    h += '<td style="padding:3px 6px;border:1px solid #999;font-weight:700" colspan="'+(3+nbSeqs+3)+'">TOTAL</td></tr>';
     if (f.casc_phys_footnote) h += '<tr><td colspan="'+(5+nbSeqs)+'" style="font-size:8px;font-style:italic;color:#1565c0;padding:2px 4px;border:1px solid #eee">'+f.casc_phys_footnote+'</td></tr>';
     h += '</table>';
   }
@@ -3260,7 +3260,7 @@ function renderApercu(targetEl) {
       hv += '<td style="border:1px solid #999"></td></tr>';
     });
     hv += '<tr style="background:#e8e8e8"><td style="padding:2px 6px;border:1px solid #999;text-align:center;font-weight:700">'+totV+'</td>';
-    hv += '<td style="padding:2px 6px;border:1px solid #999;font-weight:700" colspan="'+(2+nbSeqs)+'">TOTAL</td></tr>';
+    hv += '<td style="padding:2px 6px;border:1px solid #999;font-weight:700" colspan="'+(1+nbSeqs+3)+'">TOTAL</td></tr>';
     hv += '</table>';
     return hv;
   }
