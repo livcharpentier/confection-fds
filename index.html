@@ -945,7 +945,8 @@ textarea.form-input{resize:vertical;min-height:72px;}
       <!-- ARRIVÉES VEILLE -->
       <div class="card" style="margin-bottom:10px">
         <div class="card-title">Arrivées la veille
-          <button class="btn btn-sm btn-secondary" onclick="openTransportModal('arrivee_veille')">+ Ajouter</button>
+          <button class="btn btn-sm btn-primary" onclick="preRemplirArrivees('veille')" style="margin-right:4px">⟳ Auto</button>
+          <button class="btn btn-sm btn-secondary" onclick="openTransportModal('arrivee_veille')">+ Manuel</button>
         </div>
         <div id="transport-nav-veille"><div class="empty">Aucune arrivée la veille</div></div>
       </div>
@@ -953,7 +954,8 @@ textarea.form-input{resize:vertical;min-height:72px;}
       <!-- ARRIVÉES JOUR -->
       <div class="card" style="margin-bottom:10px">
         <div class="card-title" id="transport-nav-arrivee-titre">Arrivées du jour
-          <button class="btn btn-sm btn-secondary" onclick="openTransportModal('arrivee_jour')">+ Ajouter</button>
+          <button class="btn btn-sm btn-primary" onclick="preRemplirArrivees('jour')" style="margin-right:4px">⟳ Auto</button>
+          <button class="btn btn-sm btn-secondary" onclick="openTransportModal('arrivee_jour')">+ Manuel</button>
         </div>
         <div id="transport-nav-arrivee-list"><div class="empty">Aucune arrivée</div></div>
       </div>
@@ -4255,6 +4257,75 @@ function preRemplirTransports() {
   });
   save(); renderTransportList();
   toast(ajoutes ? ajoutes+' comédien(s) pré-rempli(s) ✓' : 'Tous déjà ajoutés');
+}
+
+function preRemplirArrivees(quand) {
+  // quand = 'veille' ou 'jour'
+  var f = activeFDS(); if (!f) return;
+  var pdt = getPDTData();
+  var jdtCourant = f.jdt;
+  var jdtVeille = jdtCourant - 1;
+  var type = quand === 'veille' ? 'arrivee_veille' : 'arrivee_jour';
+
+  // Comédiens du jour courant
+  var comedsAujourdhui = (f.comediens||[])
+    .filter(function(c){ return !c.type || c.type==='comedien'; })
+    .map(function(c){ return c.nom; });
+
+  // Comédiens de la veille (depuis la FDS J-1 si elle existe)
+  var comedsVeille = [];
+  var fdsVeille = (state.fds||[]).find(function(fd){ return fd.filmId===activeFilmId && fd.jdt===jdtVeille; });
+  if (fdsVeille) {
+    comedsVeille = (fdsVeille.comediens||[])
+      .filter(function(c){ return !c.type || c.type==='comedien'; })
+      .map(function(c){ return c.nom; });
+  }
+
+  // Comédiens qui arrivent = présents aujourd'hui mais absents la veille
+  var arrivants = comedsAujourdhui.filter(function(nom){
+    return comedsVeille.indexOf(nom) === -1;
+  });
+
+  if (!arrivants.length) {
+    toast('Tous les comédiens étaient déjà présents la veille');
+    return;
+  }
+
+  // Récupérer adresse d'arrivée = hôtel du jour
+  var hotelArrivee = '';
+  var firstDecor = (f.lieux||[]).find(function(l){ return /^Décor/i.test(l.label) && l.valeur; });
+  if (firstDecor) hotelArrivee = firstDecor.valeur;
+
+  // Trouver les comédiens dans la FDS pour récupérer leur rôle et PAT
+  var existants = (f.transports||[]).map(function(t){ return t.comedien+'_'+t.type; });
+  var ajoutes = 0;
+
+  arrivants.forEach(function(nom) {
+    var c = (f.comediens||[]).find(function(c){ return c.nom === nom; });
+    var key = nom+'_'+type;
+    if (existants.indexOf(key) !== -1) return; // déjà ajouté
+
+    if (!f.transports) f.transports = [];
+    f.transports.push({
+      type: type,
+      comedien: nom,
+      role: c ? c.role : '',
+      chauffeur: 'Cf. régie',
+      tel: '',
+      depart: getResidence(nom),
+      arrivee: hotelArrivee,
+      pat: '',
+      sur_place: ''
+    });
+    ajoutes++;
+  });
+
+  save(); renderTransportNavLists();
+  if (ajoutes) {
+    toast('⟳ '+ajoutes+' arrivée(s) pré-remplie(s) — vérifiez et ajustez au crayon ✏️');
+  } else {
+    toast('Arrivées déjà renseignées');
+  }
 }
 
 function preRemplirTransportsNav() {
