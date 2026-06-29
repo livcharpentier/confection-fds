@@ -4241,10 +4241,10 @@ function preRemplirTransports() {
   arrivee = (el && el.value) || arrivee;
   // PAT de la FDS
   var pat = (f.infos||{}).pat || '';
-  var existants = (f.transports||[]).map(function(t){ return t.comedien; });
+  var existantsJour = (f.transports||[]).filter(function(t){ return t.type==='jour' || t.type==='' || !t.type; }).map(function(t){ return t.comedien; });
   var ajoutes = 0;
   comediens.forEach(function(c) {
-    if (existants.indexOf(c.nom) === -1) {
+    if (existantsJour.indexOf(c.nom) === -1) {
       if (!f.transports) f.transports = [];
       f.transports.push({
         type: 'jour',
@@ -4383,10 +4383,11 @@ function preRemplirTransportsNav() {
   var comediens = (f.comediens||[]).filter(function(c){ return !c.type||c.type==='comedien'; });
   if (!comediens.length) { toast('Ajoutez d’abord des comédiens'); return; }
   var arrivee = (document.getElementById('transport-nav-arrivee')||{}).value||'';
-  var existants = (f.transports||[]).map(function(t){ return t.comedien; });
+  // Filtre uniquement sur type 'jour' — les arrivées/départs ne bloquent pas
+  var existantsJour = (f.transports||[]).filter(function(t){ return t.type==='jour' || t.type==='' || !t.type; }).map(function(t){ return t.comedien; });
   var ajoutes = 0;
   comediens.forEach(function(c) {
-    if (existants.indexOf(c.nom)===-1) {
+    if (existantsJour.indexOf(c.nom)===-1) {
       if (!f.transports) f.transports=[];
       f.transports.push({type:'jour',comedien:c.nom,role:c.role,chauffeur:'',tel:'',depart:getResidence(c.nom),arrivee:arrivee,pat:c.pat||'',sur_place:''});
       ajoutes++;
