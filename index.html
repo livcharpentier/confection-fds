@@ -964,7 +964,8 @@ textarea.form-input{resize:vertical;min-height:72px;}
       <div class="card">
         <div class="card-title" style="background:#333;color:#fff;padding:6px 10px;border-radius:6px;margin:-10px -10px 8px">
           DÉPART(S) — <span id="transport-nav-date-dep" style="font-weight:400;font-size:11px"></span>
-          <button class="btn btn-sm" style="background:#555;color:#fff;" onclick="openTransportModal('depart')">+ Ajouter</button>
+          <button class="btn btn-sm btn-primary" onclick="preRemplirDeparts()" style="margin-right:4px">⟳ Auto</button>
+          <button class="btn btn-sm" style="background:#555;color:#fff;" onclick="openTransportModal('depart')">+ Manuel</button>
         </div>
         <div id="transport-nav-depart-list"><div class="empty">Aucun départ</div></div>
       </div>
@@ -4258,6 +4259,61 @@ function preRemplirTransports() {
   });
   save(); renderTransportList();
   toast(ajoutes ? ajoutes+' comédien(s) pré-rempli(s) ✓' : 'Tous déjà ajoutés');
+}
+
+function preRemplirDeparts() {
+  var f = activeFDS(); if (!f) return;
+  var jdtDemain = f.jdt + 1;
+
+  // Comédiens du jour courant
+  var comedsAujourdhui = (f.comediens||[])
+    .filter(function(c){ return !c.type || c.type==='comedien'; });
+
+  // Comédiens de demain (depuis la FDS J+1 si elle existe)
+  var comedsNomsDemain = [];
+  var fdsDemain = (state.fds||[]).find(function(fd){ return fd.filmId===activeFilmId && fd.jdt===jdtDemain; });
+  if (fdsDemain) {
+    comedsNomsDemain = (fdsDemain.comediens||[])
+      .filter(function(c){ return !c.type || c.type==='comedien'; })
+      .map(function(c){ return c.nom; });
+  }
+
+  // Partants = présents aujourd'hui mais absents demain
+  var partants = comedsAujourdhui.filter(function(c){
+    return comedsNomsDemain.indexOf(c.nom) === -1;
+  });
+
+  if (!partants.length) {
+    toast('Tous les comédiens tournent aussi demain');
+    return;
+  }
+
+  var existants = (f.transports||[]).map(function(t){ return t.comedien+'_depart'; });
+  var ajoutes = 0;
+
+  partants.forEach(function(c) {
+    if (existants.indexOf(c.nom+'_depart') !== -1) return;
+    if (!f.transports) f.transports = [];
+    f.transports.push({
+      type: 'depart',
+      comedien: c.nom,
+      role: c.role,
+      chauffeur: 'Cf. régie',
+      tel: '',
+      depart: '', // = le set / décor du jour
+      arrivee: getResidence(c.nom) || 'Train à l\'issue de la journée',
+      pat: '',
+      sur_place: ''
+    });
+    ajoutes++;
+  });
+
+  save(); renderTransportNavLists();
+  if (ajoutes) {
+    toast('⟳ '+ajoutes+' départ(s) pré-rempli(s) — annulez au crayon si le comédien reste sur place ✏️');
+  } else {
+    toast('Départs déjà renseignés');
+  }
 }
 
 function preRemplirArrivees(quand) {
