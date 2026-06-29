@@ -3268,6 +3268,8 @@ function renderApercu(targetEl) {
   var fVeh = f.vehicules || [];
   var fChar = f.charrettes || [];
   if (fVeh.length || fChar.length) {
+    // Titre de section véhicules
+    h += '<div style="font-size:9px;font-weight:700;padding:3px 0 2px">CHAUFFEURS VÉHICULES / CONDUCTEURS CHARRETTES ' + pencilInline("goToTab('pg-vehicules')", "les véhicules") + '</div>';
     if (fVeh.length) h += renderVehTable(fVeh, f.vehicules_titre, f.vehicules_coord, 'pg-vehicules');
     if (fChar.length) h += renderVehTable(fChar, f.charrettes_titre, f.charrettes_coord, 'pg-charrettes');
   }
