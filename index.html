@@ -3536,7 +3536,7 @@ function renderApercu(targetEl) {
     var arr_veille = allTransports.filter(function(t){ return t.type==='arrivee_veille'; });
     if (arr_veille.length) {
       h += '<table style="width:100%;border-collapse:collapse;margin-bottom:6px">';
-      h += secHead('ARRIVÉE(S) – VEILLE', 5);
+      h += secHead('ARRIVÉE(S) VEILLE – ' + (i.date||'').toUpperCase(), 5);
       h += '<tr>'+th('NOMS')+th('CHAUFFEUR')+th('PICK-UP','65px')+th('LIEUX DE PICK-UP')+th('ARRIVÉE')+'</tr>';
       arr_veille.forEach(function(t) {
         h += '<tr>'+td(t.comedien,'',true,true)+td(t.chauffeur,'',false,true)+td(t.pickup||'—','',false,true)+td(t.depart,'',false,true)+td(t.arrivee||'','',false,false)+'</tr>';
