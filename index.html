@@ -8409,6 +8409,44 @@ function appliquerDepoPdf(journees) {
       });
       var totalFig = totalFigAdultes + totalFigEnfants;
 
+      // Enrichir figMap avec les séquences PEL du PDT qui ne sont pas dans le dépouillement
+      // Une pelure (PEL) partage le décor avec les autres séquences du jour → mêmes figurants de fond
+      if (pdtJour && pdtJour.sequences) {
+        var depoSeqNums = j.sequences.map(function(s){ return String(s.num||'').trim().toUpperCase().replace(/\s+/g,''); });
+        pdtJour.sequences.forEach(function(pdtSeq) {
+          var pdtSeqClean = String(pdtSeq||'').trim().toUpperCase().replace(/\s+/g,'');
+          // Si c'est une PEL et qu'elle n'est pas dans le dépouillement FLO
+          if (/PEL/.test(pdtSeqClean) && depoSeqNums.indexOf(pdtSeqClean) < 0) {
+            var seqLabel = String(pdtSeq||'').trim();
+            // Trouver la séquence "sœur" dans le dépouillement (même décor/numéro de base)
+            // → ajouter cette PEL aux figurants qui ont d'autres séquences PEL du même jour
+            // ou à défaut à tous les figurants avec des séquences ayant le même décor
+            // Stratégie simple : ajouter aux figurants qui ont déjà au moins une séquence PEL dans leurs seqs
+            var hasPelFigs = false;
+            Object.keys(figMap).forEach(function(key) {
+              var fm = figMap[key];
+              var hasPel = fm.seqs.some(function(sq){ return /PEL/i.test(sq); });
+              if (hasPel) {
+                hasPelFigs = true;
+                if (fm.seqs.indexOf(seqLabel) < 0) fm.seqs.push(seqLabel);
+              }
+            });
+            // Si aucun figurant n'a de PEL, ajouter à ceux qui couvrent la plupart des séquences du jour
+            if (!hasPelFigs && Object.keys(figMap).length > 0) {
+              // Trouver les figurants avec le plus de séquences (figurants de fond du jour)
+              var maxSeqs = 0;
+              Object.keys(figMap).forEach(function(k){ if (figMap[k].seqs.length > maxSeqs) maxSeqs = figMap[k].seqs.length; });
+              Object.keys(figMap).forEach(function(key) {
+                var fm = figMap[key];
+                if (fm.seqs.length === maxSeqs) {
+                  if (fm.seqs.indexOf(seqLabel) < 0) fm.seqs.push(seqLabel);
+                }
+              });
+            }
+          }
+        });
+      }
+
       // Chercher dans le PDT le total figurants pour enrichir fig_desc
       var pdtTotalFig = 0;
       if (pdtJour && pdtJour.nbFig) pdtTotalFig = pdtJour.nbFig;
