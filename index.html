@@ -3470,8 +3470,19 @@ function renderFigurationTab() {
   }
 
   // Séquences du jour (partagé silhouettes + figurants)
+  // Prendre les séquences PDT ET ajouter celles présentes dans les figurants (ex: PEL enrichies)
   var pdtJdtF = getPDTData().find(function(j){ return j.jdt===f.jdt; }) || null;
-  var allSeqsF = pdtJdtF ? pdtJdtF.sequences : [];
+  var allSeqsF = pdtJdtF ? pdtJdtF.sequences.slice() : [];
+  // Ajouter les séquences des figurants qui ne sont pas dans le PDT (ex: ajoutées manuellement)
+  var allSeqsFSet = allSeqsF.map(function(s){ return s.replace(/\s/g,'').toUpperCase(); });
+  (f.comediens||[]).filter(function(c){ return c.type==='figurant'||c.type==='silhouette'; }).forEach(function(c){
+    (c.seqs||'').split(/\s*,\s*/).forEach(function(sq){
+      sq = sq.trim();
+      if (!sq) return;
+      var sqC = sq.replace(/\s/g,'').toUpperCase();
+      if (allSeqsFSet.indexOf(sqC) < 0) { allSeqsF.push(sq); allSeqsFSet.push(sqC); }
+    });
+  });
 
   // SILHOUETTES — colonnes séquences individuelles
   var tbS = document.getElementById('tbody-silhouettes');
