@@ -3440,10 +3440,13 @@ function renderApercu(targetEl) {
 
   // ── COACH ET RESPONSABLE ENFANTS ─────────────────────────────
   var coachNote = f.deptNotes && f.deptNotes['coach_enfants'] && f.deptNotes['coach_enfants'].trim();
-  if (coachNote) {
+  {
     h += '<table style="width:100%;border-collapse:collapse;margin-bottom:3px">';
     h += '<tr><td style="background:#e8f5e9;padding:3px 8px;font-size:9px;font-weight:700;font-style:italic;border:1px solid #ccc">COACH ET RESPONSABLE ENFANTS' + pencilInline("(function(){currentDept='coach_enfants';goToTab(\'dept\');})()", 'Coach enfants') + '</td></tr>';
-    h += '<tr><td style="padding:3px 6px;font-size:9px;border:1px solid #ccc">'+coachNote+'</td></tr>';
+    h += '<tr><td style="padding:3px 6px;font-size:9px;border:1px solid #ccc">';
+    h += 'Présence <b>Delphine LABEY</b> et <b>Liv CHARPENTIER</b>';
+    if (coachNote) h += '<br>' + coachNote;
+    h += '</td></tr>';
     h += '</table>';
   }
 
