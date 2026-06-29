@@ -3507,10 +3507,10 @@ function renderApercu(targetEl) {
     if (transEquipe.length) {
       h += '<table style="width:100%;border-collapse:collapse;margin-bottom:6px">';
       h += secHead('TRANSPORTS ÉQUIPE – ' + (i.date||'').toUpperCase(), 5);
-      h += '<tr>'+th('NOMS')+th('CHAUFFEUR')+th('PICK-UP','65px')+th('LIEUX')+th('SUR PLACE','65px')+'</tr>';
+      h += '<tr>'+th('NOMS')+th('CHAUFFEUR')+th('PICK-UP','65px')+th('LIEUX')+th('DESTINATION','80px')+th('SUR PLACE','65px')+'</tr>';
       transEquipe.forEach(function(t) {
         h += '<tr>'+td(t.comedien,'',true,true)+td(t.chauffeur+(t.tel?'<br><span style="font-size:8px">'+t.tel+'</span>':''),'',false,true)+
-             td(fmtTime(t.pickup)||'—','',true,true)+td(t.depart,'',false,true)+td(fmtTime(t.sur_place)||'—','',false,true)+'</tr>';
+             td(fmtTime(t.pickup)||'—','',true,true)+td(t.depart,'',false,true)+td(t.arrivee||'Set','',false,true)+td(fmtTime(t.sur_place)||'—','',false,true)+'</tr>';
       });
       h += '</table>';
     }
@@ -4318,59 +4318,49 @@ function preRemplirDeparts() {
 
 function preRemplirArrivees(quand) {
   // quand = 'veille' ou 'jour'
+  // Arrivants = comédiens présents en J+1 (demain) mais absents en J (aujourd'hui)
+  // Ils arrivent aujourd'hui pour tourner demain
   var f = activeFDS(); if (!f) return;
-  var pdt = getPDTData();
-  var jdtCourant = f.jdt;
-  var jdtVeille = jdtCourant - 1;
+  var jdtDemain = f.jdt + 1;
   var type = quand === 'veille' ? 'arrivee_veille' : 'arrivee_jour';
 
   // Comédiens du jour courant
-  var comedsAujourdhui = (f.comediens||[])
+  var comedsNujourdhui = (f.comediens||[])
     .filter(function(c){ return !c.type || c.type==='comedien'; })
     .map(function(c){ return c.nom; });
 
-  // Comédiens de la veille (depuis la FDS J-1 si elle existe)
-  var comedsVeille = [];
-  var fdsVeille = (state.fds||[]).find(function(fd){ return fd.filmId===activeFilmId && fd.jdt===jdtVeille; });
-  if (fdsVeille) {
-    comedsVeille = (fdsVeille.comediens||[])
-      .filter(function(c){ return !c.type || c.type==='comedien'; })
-      .map(function(c){ return c.nom; });
-  }
+  // Comédiens de demain
+  var fdsDemain = (state.fds||[]).find(function(fd){ return fd.filmId===activeFilmId && fd.jdt===jdtDemain; });
+  if (!fdsDemain) { toast('FDS J+'+(jdtDemain)+' pas encore créée — impossible de détecter les arrivants'); return; }
 
-  // Comédiens qui arrivent = présents aujourd'hui mais absents la veille
-  var arrivants = comedsAujourdhui.filter(function(nom){
-    return comedsVeille.indexOf(nom) === -1;
+  var comedsDemain = (fdsDemain.comediens||[])
+    .filter(function(c){ return !c.type || c.type==='comedien'; });
+
+  // Arrivants = présents demain mais absents aujourd'hui
+  var arrivants = comedsDemain.filter(function(c){
+    return comedsNujourdhui.indexOf(c.nom) === -1;
   });
 
   if (!arrivants.length) {
-    toast('Tous les comédiens étaient déjà présents la veille');
+    toast('Tous les comédiens de demain sont déjà présents aujourd\'hui');
     return;
   }
 
-  // Récupérer adresse d'arrivée = hôtel du jour
-  var hotelArrivee = '';
-  var firstDecor = (f.lieux||[]).find(function(l){ return /^Décor/i.test(l.label) && l.valeur; });
-  if (firstDecor) hotelArrivee = firstDecor.valeur;
-
-  // Trouver les comédiens dans la FDS pour récupérer leur rôle et PAT
   var existants = (f.transports||[]).map(function(t){ return t.comedien+'_'+t.type; });
   var ajoutes = 0;
 
-  arrivants.forEach(function(nom) {
-    var c = (f.comediens||[]).find(function(c){ return c.nom === nom; });
-    var key = nom+'_'+type;
-    if (existants.indexOf(key) !== -1) return; // déjà ajouté
-
+  arrivants.forEach(function(c) {
+    var key = c.nom+'_'+type;
+    if (existants.indexOf(key) !== -1) return;
     if (!f.transports) f.transports = [];
     f.transports.push({
       type: type,
-      comedien: nom,
-      role: c ? c.role : '',
+      comedien: c.nom,
+      role: c.role || '',
       chauffeur: 'Cf. régie',
       tel: '',
-      depart: getResidence(nom),
-      arrivee: hotelArrivee,
+      depart: '', // lieu de pick-up (gare, domicile...) à préciser
+      arrivee: getResidence(c.nom) || '', // hôtel d'arrivée
       pat: '',
       sur_place: ''
     });
@@ -4379,7 +4369,7 @@ function preRemplirArrivees(quand) {
 
   save(); renderTransportNavLists();
   if (ajoutes) {
-    toast('⟳ '+ajoutes+' arrivée(s) pré-remplie(s) — vérifiez et ajustez au crayon ✏️');
+    toast('⟳ '+ajoutes+' arrivée(s) pré-remplie(s) — ajustez pick-up et heure au crayon ✏️');
   } else {
     toast('Arrivées déjà renseignées');
   }
