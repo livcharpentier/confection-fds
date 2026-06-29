@@ -353,6 +353,7 @@ textarea.form-input{resize:vertical;min-height:72px;}
           <div class="card-title" id="fig-count-title">Figuration : 0 figurant(s)
             <button class="btn btn-sm btn-primary" onclick="openComModalType('figurant')">+ Ajouter</button>
             <button class="btn btn-sm btn-secondary" onclick="ouvrirCopierFiguration()" style="font-size:10px">Copier depuis...</button>
+            <button class="btn btn-sm" onclick="reinitFiguration()" style="font-size:10px;color:#c00;border:1px solid #c00;background:none">Réinitialiser</button>
           </div>
           <div style="margin-bottom:8px">
             <input class="form-input" id="fig-desc" placeholder="FIGURATION : 20 figurants adultes + 2 figurants enfants" style="font-size:11px;font-style:italic"/>
@@ -4449,6 +4450,18 @@ function executerCopierDepuis(typeEl, navTarget) {
   toast('Copié depuis '+(src.infos&&src.infos.journee||'J'+src.jdt)+' ✓');
 }
 
+function reinitFiguration() {
+  var f = activeFDS(); if (!f) return;
+  var nbFig = (f.comediens||[]).filter(function(c){ return c.type==='figurant'; }).length;
+  if (!confirm('Supprimer les ' + nbFig + ' ligne(s) de figurants et repartir de zéro ?')) return;
+  f.comediens = (f.comediens||[]).filter(function(c){ return c.type !== 'figurant'; });
+  f.fig_desc = '';
+  save();
+  renderFigurationTab();
+  pgRenderComplements && pgRenderComplements();
+  toast('Figuration réinitialisée — relancer le pré-remplissage depuis le dépouillement');
+}
+
 function ouvrirCopierFiguration() {
   var f = activeFDS(); if (!f) return;
   // Lister toutes les FDS du film qui ont de la figuration
@@ -8285,43 +8298,68 @@ function appliquerDepoPdf(journees) {
         if (s.nbFig <= 0 || !s.figurants) return;
         var seqNum = String(s.num||'').trim();
 
-        // Découper par ligne : chaque ligne = un type de figurant
-        var rawLines = s.figurants.split(/\n/).map(function(l){ return l.trim(); }).filter(Boolean);
+        // Découper par ligne ET par format "NxDescription"
+        var rawText = s.figurants || '';
+        // Séparer d'abord par retour à la ligne
+        var rawLines = rawText.split(/\n/).map(function(l){ return l.trim(); }).filter(Boolean);
 
+        // Si une seule ligne contient plusieurs figurants concaténés ("3xSoldats 15xPassants"),
+        // les séparer — le format est NxDesc ou N x Desc ou "N Description"
+        var expandedLines = [];
         rawLines.forEach(function(line) {
-          // Chercher un nombre en début de ligne : "4 Soldats Allemands"
-          var mNbre = line.match(/^(\d+)\s+(.+)$/);
-          var nbre = mNbre ? parseInt(mNbre[1]) : s.nbFig;
+          // Chercher des patterns "NxDesc" ou "N x Desc" collés
+          // Ex: "3xSoldats Allemands 15xPassants Guerchin 2xEnfants Village"
+          var parts = line.split(/(?=\d+[xX×])/);
+          if (parts.length > 1) {
+            parts.forEach(function(p){ if (p.trim()) expandedLines.push(p.trim()); });
+          } else {
+            expandedLines.push(line);
+          }
+        });
+
+        expandedLines.forEach(function(line) {
+          if (!line) return;
+          // Formats acceptés : "4 Soldats Allemands" ou "4xSoldats Allemands" ou "4 x Soldats"
+          var mNbre = line.match(/^(\d+)\s*[xX×]\s*(.+)$/) || line.match(/^(\d+)\s+(.+)$/);
+          var nbre = mNbre ? parseInt(mNbre[1]) : 1;
           var desc = mNbre ? mNbre[2].trim() : line;
+
+          // Ignorer les lignes qui sont juste un nombre (total)
+          if (!desc || /^\d+$/.test(desc)) return;
 
           // Détecter enfant/adulte
           var isEnfant = /enfant|child|kids?/i.test(desc);
-          if (isEnfant) totalFigEnfants += nbre; else totalFigAdultes += nbre;
 
           // Clé de regroupement : normaliser la description
           var key = desc.toLowerCase()
             .replace(/[^a-zàâäéèêëîïôöùûüç0-9\s]/g, '')
             .replace(/\s+/g, ' ').trim();
 
-          // Chercher une clé similaire existante (50% de mots communs)
+          // Chercher une clé EXACTE d'abord, puis similaire
           var found = null;
-          Object.keys(figMap).forEach(function(k) {
-            var kW = k.split(' '); var dW = key.split(' ');
-            var common = kW.filter(function(w){ return w.length>2 && dW.indexOf(w)>=0; });
-            if (common.length >= Math.max(2, Math.min(kW.length, dW.length) * 0.5)) found = k;
-          });
+          if (figMap[key]) {
+            found = key;
+          } else {
+            Object.keys(figMap).forEach(function(k) {
+              var kW = k.split(' '); var dW = key.split(' ');
+              // Similarité stricte : tous les mots significatifs en commun
+              var sigK = kW.filter(function(w){ return w.length > 3; });
+              var sigD = dW.filter(function(w){ return w.length > 3; });
+              if (sigK.length === 0 || sigD.length === 0) return;
+              var common = sigK.filter(function(w){ return sigD.indexOf(w) >= 0; });
+              // Seuil élevé : 80% des mots significatifs en commun
+              if (common.length >= Math.ceil(Math.min(sigK.length, sigD.length) * 0.8)) found = k;
+            });
+          }
 
           if (found) {
-            // Regrouper : ajouter la séquence + sommer les figurants si pas déjà compté
             if (seqNum && figMap[found].seqs.indexOf(seqNum) < 0) {
               figMap[found].seqs.push(seqNum);
             }
-            // Garder le nbre max (pas additionner car même figurant dans 2 séquences)
             if (nbre > figMap[found].nbre) figMap[found].nbre = nbre;
           } else {
             figMap[key] = { nbre: nbre, seqs: seqNum ? [seqNum] : [], desc: desc, isEnfant: isEnfant };
           }
-          figDescParts.push('Sc.' + seqNum + ' : ' + nbre + 'F — ' + desc);
         });
 
         // Si pas de détail ligne par ligne : une entrée globale
