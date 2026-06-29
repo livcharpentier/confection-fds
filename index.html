@@ -3532,8 +3532,11 @@ function renderApercu(targetEl) {
       h += '</table>';
     }
 
-    // Arrivées (veille + jour fusionnées)
-    var arr_tous = allTransports.filter(function(t){ return t.type==='arrivee_veille' || t.type==='arrivee_jour'; });
+    // Arrivées (veille + jour fusionnées, dédoublonnées)
+    var arr_tous_raw = allTransports.filter(function(t){ return t.type==='arrivee_veille' || t.type==='arrivee_jour'; });
+    var arr_tous = arr_tous_raw.filter(function(t, idx, arr){
+      return arr.findIndex(function(x){ return x.comedien === t.comedien; }) === idx;
+    });
     if (arr_tous.length) {
       h += '<table style="width:100%;border-collapse:collapse;margin-bottom:6px">';
       h += secHead('ARRIVÉE(S) – ' + (i.date||'').toUpperCase(), 5);
