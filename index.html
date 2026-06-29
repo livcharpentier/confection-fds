@@ -243,6 +243,11 @@ textarea.form-input{resize:vertical;min-height:72px;}
           <button class="btn btn-secondary btn-block" onclick="addLieu()">+ Ajouter un lieu</button>
           <button class="btn btn-secondary btn-block" style="margin-top:6px;font-size:11px;color:#1565c0" onclick="prefillLieuxFromPDT()">↺ Pré-remplir lieux depuis PDT</button>
         </div>
+        <div class="card" style="border:2px solid #1565c0">
+          <div class="card-title" style="color:#1565c0">🔄 Synchronisation PDT</div>
+          <p style="font-size:11px;color:#555;margin-bottom:8px">Met à jour les séquences et comédiens depuis le PDT hardcodé. Ne touche pas aux horaires HMC/PAT ni à la figuration.</p>
+          <button class="btn btn-block" style="background:#1565c0;color:#fff;font-size:12px;font-weight:700" onclick="syncFromPDT()">🔄 Synchroniser séquences + comédiens depuis PDT</button>
+        </div>
         <div class="card">
           <div class="card-title">Note à l'équipe</div>
           <textarea class="form-input" id="f-note" rows="4" placeholder="Message spécial pour l'équipe…"></textarea>
@@ -2114,6 +2119,74 @@ function addLieu() {
 function removeLieu(i) {
   const f = activeFDS(); if (!f) return;
   f.lieux.splice(i, 1); renderLieux();
+}
+
+function syncFromPDT() {
+  var f = activeFDS(); if (!f) return;
+  var pdt = getPDTData().find(function(j){ return j.jdt === f.jdt; });
+  if (!pdt) { toast('Pas de données PDT pour cette journée'); return; }
+
+  var changes = [];
+
+  // 1. Séquences : remplacer par celles du PDT
+  if (pdt.sequences && pdt.sequences.length) {
+    // Récupérer les séquences actuelles pour savoir lesquelles ont des données saisies
+    var oldSeqs = (f.sequences||[]).map(function(s){ return s.num||s; });
+    var newSeqs = pdt.sequences;
+    // Construire la nouvelle liste de séquences en préservant les données existantes
+    var seqMap = {};
+    (f.sequences||[]).forEach(function(s){
+      var key = (s.num||s+'').trim();
+      seqMap[key] = s;
+    });
+    f.sequences = newSeqs.map(function(num){
+      var key = (num+'').trim();
+      return seqMap[key] || {num: num, effet:'', decor:'', resume:'', roles:'', cont:'', min:''};
+    });
+    changes.push('séquences mises à jour ('+newSeqs.length+')');
+  }
+
+  // 2. Comédiens : ajouter les nouveaux rôles PDT, garder les existants avec leurs horaires
+  if (pdt.roles && pdt.roles.length) {
+    var existingNums = (f.comediens||[]).map(function(c){ return String(c.num); });
+    var added = 0;
+    pdt.roles.forEach(function(r){
+      if (existingNums.indexOf(String(r.num)) === -1) {
+        // Nouveau rôle pas encore dans la FDS
+        var newSeqStr = pdt.sequences ? pdt.sequences.join(', ') : '';
+        f.comediens = f.comediens || [];
+        f.comediens.push({type:'comedien', num:r.num, role:r.role, nom:r.comedien,
+          seqs: newSeqStr, hmc:'', loges:'', pat:'', nbre:1});
+        added++;
+      }
+    });
+    // Mettre à jour les séquences des comédiens existants si elles n'ont pas été modifiées manuellement
+    // (on ne touche pas aux horaires HMC/PAT)
+    if (added) changes.push(added+' nouveau(x) comédien(s) ajouté(s)');
+    else changes.push('comédiens vérifiés');
+  }
+
+  // 3. Décors : mettre à jour
+  if (pdt.decors && pdt.decors.length) {
+    var lieuxDecors = (f.lieux||[]).filter(function(l){ return /^D\u00e9cor\s*\d/i.test(l.label); });
+    if (!lieuxDecors.length) {
+      // Pas encore de décors → préfill
+      prefillLieuxFromPDT();
+    }
+    changes.push('décors vérifiés');
+  }
+
+  save();
+  toast('✅ Sync PDT : ' + changes.join(' · '));
+  // Refresh de l'onglet actif
+  renderAllTabs();
+}
+
+function renderAllTabs() {
+  // Re-render les sections visibles
+  if (typeof renderSequences === 'function') renderSequences();
+  if (typeof renderComediens === 'function') renderComediens();
+  if (typeof renderLieux === 'function') renderLieux();
 }
 
 function prefillLieuxFromPDT() {
