@@ -3499,13 +3499,13 @@ function renderFigurationTab() {
   var tbS = document.getElementById('tbody-silhouettes');
   var theadS = document.getElementById('pg-thead-silhouettes');
   if (theadS && allSeqsF && allSeqsF.length) {
-    var thS = '<tr style="background:#f0f0f0"><th style="padding:5px 4px;border:1px solid #ccc;width:55px">N°</th>' +
-              '<th style="padding:5px 4px;border:1px solid #ccc;text-align:left">SILHOUETTE</th>' +
-              '<th style="padding:5px 4px;border:1px solid #ccc;text-align:left">NOM</th>' +
+    var thS = '<tr style="background:#f0f0f0"><th style="padding:5px 4px;border:1px solid #ccc;width:55px" rowspan="2">N°</th>' +
+              '<th style="padding:5px 4px;border:1px solid #ccc;text-align:left" rowspan="2">SILHOUETTE</th>' +
+              '<th style="padding:5px 4px;border:1px solid #ccc;text-align:left" rowspan="2">NOM</th>' +
               '<th style="padding:5px 4px;border:1px solid #ccc;text-align:center" colspan="'+allSeqsF.length+'">SÉQUENCES</th>' +
-              '<th style="padding:5px 4px;border:1px solid #ccc;width:55px">HMC</th>' +
-              '<th style="padding:5px 4px;border:1px solid #ccc;width:50px">PAT</th>' +
-              '<th style="border:1px solid #ccc;width:28px"></th></tr>' +
+              '<th style="padding:5px 4px;border:1px solid #ccc;width:55px" rowspan="2">HMC</th>' +
+              '<th style="padding:5px 4px;border:1px solid #ccc;width:50px" rowspan="2">PAT</th>' +
+              '<th style="border:1px solid #ccc;width:28px" rowspan="2"></th></tr>' +
               '<tr style="background:#f0f0f0">';
     allSeqsF.forEach(function(s){ thS += '<th style="padding:2px 3px;border:1px solid #ccc;font-size:9px;text-align:center;white-space:nowrap">'+s+'</th>'; });
     thS += '</tr>';
@@ -3563,14 +3563,14 @@ function renderFigurationTab() {
   // allSeqsF déjà déclaré plus haut
   var theadF = document.getElementById('thead-figurants');
   if (theadF) {
-    var thH = '<tr style="background:#f0f0f0"><th style="padding:5px 6px;border:1px solid #ccc;width:50px">Nbre</th>' +
-              '<th style="padding:5px 6px;border:1px solid #ccc;text-align:left">FIGURATION</th>';
+    var thH = '<tr style="background:#f0f0f0"><th style="padding:5px 6px;border:1px solid #ccc;width:50px" rowspan="2">Nbre</th>' +
+              '<th style="padding:5px 6px;border:1px solid #ccc;text-align:left" rowspan="2">FIGURATION</th>';
     if (allSeqsF.length) thH += '<th style="padding:5px 6px;border:1px solid #ccc;text-align:center" colspan="'+allSeqsF.length+'">SÉQUENCES</th>';
     else thH += '<th style="padding:5px 6px;border:1px solid #ccc;text-align:center">SÉQUENCES</th>';
-    thH += '<th style="padding:5px 6px;border:1px solid #ccc;width:55px">HMC</th>' +
-           '<th style="padding:5px 6px;border:1px solid #ccc;width:65px">Dép. Loges/MeP</th>' +
-           '<th style="padding:5px 6px;border:1px solid #ccc;width:50px">PAT</th>' +
-           '<th style="width:28px;border:1px solid #ccc"></th></tr>';
+    thH += '<th style="padding:5px 6px;border:1px solid #ccc;width:55px" rowspan="2">HMC</th>' +
+           '<th style="padding:5px 6px;border:1px solid #ccc;width:65px" rowspan="2">Dép. Loges/MeP</th>' +
+           '<th style="padding:5px 6px;border:1px solid #ccc;width:50px" rowspan="2">PAT</th>' +
+           '<th style="width:28px;border:1px solid #ccc" rowspan="2"></th></tr>';
     if (allSeqsF.length) {
       thH += '<tr style="background:#f0f0f0">';
       allSeqsF.forEach(function(s){ thH += '<th style="padding:2px 3px;border:1px solid #ccc;font-size:9px;text-align:center;white-space:nowrap">'+s+'</th>'; });
