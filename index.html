@@ -4457,11 +4457,13 @@ function renderTransportNavLists() {
       }, '#f0f0f0');
   }
 
-  // ── ARRIVÉES VEILLE ───────────────────────────────────────────
-  var veille = transports.filter(function(t){return t.type==='arrivee_veille';});
+  // ── ARRIVÉES (veille + jour fusionnées) ──────────────────────
+  var arrTous = transports.filter(function(t){return t.type==='arrivee_veille'||t.type==='arrivee_jour';});
   var elV = document.getElementById('transport-nav-veille');
-  if (elV) {
-    elV.innerHTML = buildTable(veille,
+  if (elV) elV.innerHTML = '';
+  var elA = document.getElementById('transport-nav-arrivee-list');
+  if (elA) {
+    elA.innerHTML = buildTable(arrTous,
       ['NOMS','CHAUFFEUR','PICK-UP','LIEUX DE PICK-UP','ARRIVÉE'],
       function(t){
         var idx = transports.indexOf(t);
@@ -4473,24 +4475,6 @@ function renderTransportNavLists() {
           '<td style="padding:4px 6px;border:1px solid #ddd;text-align:center">'+(t.arrivee||'—')+'</td>'+
           '<td style="padding:2px;border:1px solid #ddd;text-align:center">'+pencilTr(idx)+deleteTr(idx)+'</td></tr>';
       }, '#fff8e1');
-  }
-
-  // ── ARRIVÉES JOUR ─────────────────────────────────────────────
-  var arrJour = transports.filter(function(t){return t.type==='arrivee_jour';});
-  var elA = document.getElementById('transport-nav-arrivee-list');
-  if (elA) {
-    elA.innerHTML = buildTable(arrJour,
-      ['NOMS','CHAUFFEUR','PICK-UP','LIEUX DE PICK-UP','ARRIVÉE'],
-      function(t){
-        var idx = transports.indexOf(t);
-        return '<tr>'+
-          '<td style="padding:4px 6px;border:1px solid #ddd">'+t.comedien+'</td>'+
-          '<td style="padding:4px 6px;border:1px solid #ddd;text-align:center">'+(t.chauffeur||'—')+'</td>'+
-          '<td style="padding:4px 6px;border:1px solid #ddd;text-align:center">'+(fmtTime(t.pickup)||'—')+'</td>'+
-          '<td style="padding:4px 6px;border:1px solid #ddd">'+(t.depart||'—')+'</td>'+
-          '<td style="padding:4px 6px;border:1px solid #ddd;text-align:center">'+(t.arrivee||'—')+'</td>'+
-          '<td style="padding:2px;border:1px solid #ddd;text-align:center">'+pencilTr(idx)+deleteTr(idx)+'</td></tr>';
-      }, '#f0f0f0');
   }
 
   // ── DÉPARTS ──────────────────────────────────────────────────
