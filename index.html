@@ -1491,7 +1491,18 @@ textarea.form-input{resize:vertical;min-height:72px;}
     <div class="modal-head"><h2>Ajouter un transport</h2><button class="modal-close" onclick="closeModal('modal-transport')">×</button></div>
     <div class="form-row"><label class="form-label">Comédien</label><input class="form-input" id="tr-comedien" placeholder="Lucas HECTOR"/></div>
     <div class="form-row"><label class="form-label">Rôle</label><input class="form-input" id="tr-role" placeholder="François"/></div>
-    <div class="form-row"><label class="form-label">Chauffeur</label><input class="form-input" id="tr-chauffeur" placeholder="Delphine & Liv"/></div>
+    <div class="form-row"><label class="form-label">Chauffeur</label>
+    <select class="form-input" id="tr-chauffeur-select" onchange="trChauffeurChange(this)">
+      <option value="">— Choisir —</option>
+      <option value="PPM|">PPM</option>
+      <option value="Paul QUINTANE|07 85 50 31 77">Paul QUINTANE (07 85 50 31 77)</option>
+      <option value="Charlotte GIRARD|06 37 33 53 85">Charlotte GIRARD (06 37 33 53 85)</option>
+      <option value="Delphine LABEY & Liv CHARPENTIER|">Delphine LABEY & Liv CHARPENTIER</option>
+      <option value="Delphine LABEY|06 07 76 23 13">Delphine LABEY (06 07 76 23 13)</option>
+      <option value="Liv CHARPENTIER|06 19 60 12 96">Liv CHARPENTIER (06 19 60 12 96)</option>
+      <option value="autre|">+ Autre…</option>
+    </select>
+    <input class="form-input" id="tr-chauffeur" placeholder="Nom chauffeur" style="margin-top:4px;display:none"/></div>
     <div class="form-row"><label class="form-label">Adresse départ</label><input class="form-input" id="tr-depart" placeholder="Hôtel Le Maxime, Auxerre"/></div>
     <div class="form-row"><label class="form-label">Adresse arrivée</label><input class="form-input" id="tr-arrivee" placeholder="D965, 89130 Mézilles"/></div>
     <div class="form-row"><label class="form-label">Type de mouvement</label>
@@ -2843,14 +2854,40 @@ function renderTransportList() {
   }).join('');
 }
 
+var HOTELS_COMEDIENS = {"Gérard JUGNOT": {"lieu": "Le Maxime, 2 quai de la Marine, 89000 Auxerre"}, "Axel AURIANT": {"lieu": "Le Maxime, 2 quai de la Marine, 89000 Auxerre"}, "Franz LANG": {"lieu": "Le Maxime, 2 quai de la Marine, 89000 Auxerre"}, "Olivier BARTHÉLÉMY": {"lieu": "Le Maxime, 2 quai de la Marine, 89000 Auxerre"}, "Paul DUCLOUX": {"lieu": "Les Maréchaux, 6 avenue Foch, 89000 Auxerre"}, "Dominique ENGELHARDT": {"lieu": "Les Maréchaux, 6 avenue Foch, 89000 Auxerre"}, "Jannis HAIN": {"lieu": "Domicile"}, "Lucas HECTOR": {"lieu": "Sur place"}, "Nina FILBRANDT": {"lieu": "Sur place"}, "Octave GERBI": {"lieu": "Sur place"}, "Leslie MEDINA": {"lieu": "Sur place"}, "Gaspard LACORNE": {"lieu": "Sur place"}, "Julien PESTEL": {"lieu": "Les Maréchaux, 6 avenue Foch, 89000 Auxerre"}, "Vanessa GUIDE": {"lieu": "Les Maréchaux, 6 avenue Foch, 89000 Auxerre"}, "Pierre DELADONCHAMPS": {"lieu": "Les Maréchaux, 6 avenue Foch, 89000 Auxerre"}, "François Xavier DEMAISON": {"lieu": "Les Maréchaux, 6 avenue Foch, 89000 Auxerre"}, "Julien ARRUTI": {"lieu": "Les Maréchaux, 6 avenue Foch, 89000 Auxerre"}, "Marion CREUSVAUX": {"lieu": "Les Maréchaux, 6 avenue Foch, 89000 Auxerre"}, "Oscar BOISSIÈRE": {"lieu": "Les Maréchaux, 6 avenue Foch, 89000 Auxerre"}, "François GOESKE": {"lieu": "Les Maréchaux, 6 avenue Foch, 89000 Auxerre"}, "Nicolas MAFFRE": {"lieu": "Les Maréchaux, 6 avenue Foch, 89000 Auxerre"}};
+
+function trChauffeurChange(sel) {
+  var val = sel.value;
+  var input = document.getElementById('tr-chauffeur');
+  var telInput = document.getElementById('tr-tel');
+  if (val === 'autre|' || val === '') {
+    input.style.display = '';
+    input.value = '';
+    if (telInput) telInput.value = '';
+  } else {
+    input.style.display = 'none';
+    var parts = val.split('|');
+    input.value = parts[0];
+    if (telInput) telInput.value = parts[1] || '';
+  }
+}
+
 function addTransport() {
   const f = activeFDS(); if (!f) return;
   var trType = document.getElementById('tr-type');
+  // Lire chauffeur depuis dérouleur ou champ texte
+  var selChauffeur = document.getElementById('tr-chauffeur-select');
+  var chauffeurVal = '';
+  if (selChauffeur && selChauffeur.value && selChauffeur.value !== 'autre|') {
+    chauffeurVal = selChauffeur.value.split('|')[0];
+  } else {
+    chauffeurVal = document.getElementById('tr-chauffeur').value;
+  }
   var data = {
     type: trType ? trType.value : 'jour',
     comedien: document.getElementById('tr-comedien').value,
     role: document.getElementById('tr-role').value,
-    chauffeur: document.getElementById('tr-chauffeur').value,
+    chauffeur: chauffeurVal,
     tel: (document.getElementById('tr-tel')||{}).value || '',
     depart: document.getElementById('tr-depart').value,
     arrivee: document.getElementById('tr-arrivee').value,
@@ -4065,12 +4102,27 @@ function removeResidence(i) {
 }
 
 function getResidence(nomComedien) {
-  var film = activeFilm(); if (!film || !film.residences) return '';
-  var r = film.residences.find(function(r){ 
-    return r.comedien.toLowerCase().indexOf(nomComedien.toLowerCase()) !== -1 ||
-           nomComedien.toLowerCase().indexOf(r.comedien.toLowerCase()) !== -1;
-  });
-  return r ? r.adresse : '';
+  // 1. Chercher dans les résidences du film (saisies manuellement)
+  var film = activeFilm();
+  if (film && film.residences) {
+    var r = film.residences.find(function(r){ 
+      return r.comedien.toLowerCase().indexOf(nomComedien.toLowerCase()) !== -1 ||
+             nomComedien.toLowerCase().indexOf(r.comedien.toLowerCase()) !== -1;
+    });
+    if (r) return r.adresse;
+  }
+  // 2. Fallback sur HOTELS_COMEDIENS hardcodés depuis la bible
+  if (typeof HOTELS_COMEDIENS !== 'undefined') {
+    var keys = Object.keys(HOTELS_COMEDIENS);
+    for (var i=0; i<keys.length; i++) {
+      var k = keys[i];
+      if (k.toLowerCase().indexOf(nomComedien.toLowerCase()) !== -1 ||
+          nomComedien.toLowerCase().indexOf(k.toLowerCase()) !== -1) {
+        return HOTELS_COMEDIENS[k].lieu;
+      }
+    }
+  }
+  return '';
 }
 
 // ── PAGE TRANSPORT NAV ────────────────────────────────────────
@@ -4166,6 +4218,43 @@ function refreshTransportNavCalc() {
   var f = activeFDS(); if (!f) return;
   (f.transports||[]).forEach(function(t){ if(!t.arrivee_custom) t.arrivee=arrivee; });
   renderTransportNavLists();
+}
+
+function preRemplirTransports() {
+  // Appelée depuis le panneau Transports principal (sp-transports)
+  var f = activeFDS(); if (!f) return;
+  var comediens = (f.comediens||[]).filter(function(c){ return !c.type||c.type==='comedien'; });
+  if (!comediens.length) { toast('Ajoutez d\'abord des comédiens'); return; }
+  // Récupérer l'adresse d'arrivée depuis le premier lieu de la FDS
+  var arrivee = '';
+  var firstDecor = (f.lieux||[]).find(function(l){ return /^Décor/i.test(l.label) && l.valeur; });
+  if (firstDecor) arrivee = firstDecor.valeur;
+  var el = document.getElementById('tr-decor-arrivee');
+  if (el && !el.value && arrivee) el.value = arrivee;
+  arrivee = (el && el.value) || arrivee;
+  // PAT de la FDS
+  var pat = (f.infos||{}).pat || '';
+  var existants = (f.transports||[]).map(function(t){ return t.comedien; });
+  var ajoutes = 0;
+  comediens.forEach(function(c) {
+    if (existants.indexOf(c.nom) === -1) {
+      if (!f.transports) f.transports = [];
+      f.transports.push({
+        type: 'jour',
+        comedien: c.nom,
+        role: c.role,
+        chauffeur: '',
+        tel: '',
+        depart: getResidence(c.nom),
+        arrivee: arrivee,
+        pat: c.pat || pat || '',
+        sur_place: c.pat || pat || ''
+      });
+      ajoutes++;
+    }
+  });
+  save(); renderTransportList();
+  toast(ajoutes ? ajoutes+' comédien(s) pré-rempli(s) ✓' : 'Tous déjà ajoutés');
 }
 
 function preRemplirTransportsNav() {
