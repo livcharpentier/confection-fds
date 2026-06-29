@@ -2990,14 +2990,23 @@ function renderApercu(targetEl) {
   var silhouettes = allCom.filter(function(c){ return c.type==='silhouette'; });
   var figurants = allCom.filter(function(c){ return c.type==='figurant'; });
 
+  var pdtJdtAp = getPDTData().find(function(j){ return j.jdt===f.jdt; }) || null;
+  var allSeqs = pdtJdtAp ? pdtJdtAp.sequences.slice() : [];
+  // Enrichir avec les séquences présentes dans figurants/véhicules (ex: PEL ajoutées)
+  var allSeqsApSet = allSeqs.map(function(s){ return s.replace(/\s/g,'').toUpperCase(); });
+  (f.comediens||[]).concat(f.vehicules||[]).forEach(function(c){
+    (c.seqs||'').split(/\s*,\s*/).forEach(function(sq){
+      sq = sq.trim(); if (!sq) return;
+      var sqC = sq.replace(/\s/g,'').toUpperCase();
+      if (allSeqsApSet.indexOf(sqC) < 0) { allSeqs.push(sq); allSeqsApSet.push(sqC); }
+    });
+  });
+  var nbSeqs = allSeqs.length;
+  var csz = isMobile ? '6px' : '8px';
+
   if (roles.length) {
-    var pdtJdt = getPDTData().find(function(j){ return j.jdt===f.jdt; }) || null;
-    var allSeqs = pdtJdt ? pdtJdt.sequences : [];
-    // Séquences par rôle depuis archives
     var seqsRole = (typeof SEQS_PAR_ROLE !== 'undefined' && SEQS_PAR_ROLE[String(f.jdt)]) ? SEQS_PAR_ROLE[String(f.jdt)] : {};
     var hasLoges = roles.some(function(c){ return c.loges; });
-    var csz = isMobile ? '6px' : '8px';
-    var nbSeqs = allSeqs.length;
     h += '<table style="width:100%;border-collapse:collapse;margin-bottom:3px">';
     h += '<caption style="caption-side:top;text-align:left;font-size:9px;font-weight:700;padding:3px 0">COMÉDIENS ' + pencilInline("goToTab(\'comediens\')", "les comédiens") + '</caption>';
     // Ligne 1 en-tête avec SÉQUENCES fusionnée
@@ -4773,8 +4782,17 @@ function pgRenderComediens() {
   if (titleEl) titleEl.childNodes[0].textContent = 'Comédiens ('+list.length+') ';
 
   // Séquences PDT du jour en colonnes
-  var pdtJdt = typeof PDT_DATA!=='undefined' ? PDT_DATA.find(function(j){return j.jdt===f.jdt;}) : null;
-  var allSeqs = pdtJdt ? pdtJdt.sequences : [];
+  var pdtJdt = getPDTData().find(function(j){return j.jdt===f.jdt;}) || null;
+  // Union séquences PDT + séquences présentes dans les figurants (pour inclure PEL enrichies)
+  var allSeqs = pdtJdt ? pdtJdt.sequences.slice() : [];
+  var allSeqsSet = allSeqs.map(function(s){ return s.replace(/\s/g,'').toUpperCase(); });
+  all.filter(function(c){ return c.type==='figurant'||c.type==='silhouette'||c.type==='doublure'; }).forEach(function(c){
+    (c.seqs||'').split(/\s*,\s*/).forEach(function(sq){
+      sq = sq.trim(); if (!sq) return;
+      var sqC = sq.replace(/\s/g,'').toUpperCase();
+      if (allSeqsSet.indexOf(sqC) < 0) { allSeqs.push(sq); allSeqsSet.push(sqC); }
+    });
+  });
   var seqsRole = (typeof SEQS_PAR_ROLE!=='undefined' && SEQS_PAR_ROLE[String(f.jdt)]) ? SEQS_PAR_ROLE[String(f.jdt)] : {};
 
   var table = document.querySelector('#page-pg-comediens table');
@@ -5553,8 +5571,16 @@ function pgRenderVehicules() {
   var coordEl = document.getElementById('pg-vehicules-coord'); if (coordEl) coordEl.value = f.vehicules_coord||'';
   var charCoordEl = document.getElementById('pg-charrettes-coord'); if (charCoordEl) charCoordEl.value = f.charrettes_coord||'';
 
-  var pdtJdt = typeof PDT_DATA!=='undefined' ? PDT_DATA.find(function(j){return j.jdt===f.jdt;}) : null;
-  var allSeqs = pdtJdt ? pdtJdt.sequences : [];
+  var pdtJdt = getPDTData().find(function(j){return j.jdt===f.jdt;}) || null;
+  var allSeqs = pdtJdt ? pdtJdt.sequences.slice() : [];
+  var allSeqsSetV = allSeqs.map(function(s){ return s.replace(/\s/g,'').toUpperCase(); });
+  (f.vehicules||[]).concat(f.charrettes||[]).forEach(function(v){
+    (v.seqs||'').split(/\s*,\s*/).forEach(function(sq){
+      sq = sq.trim(); if (!sq) return;
+      var sqC = sq.replace(/\s/g,'').toUpperCase();
+      if (allSeqsSetV.indexOf(sqC) < 0) { allSeqs.push(sq); allSeqsSetV.push(sqC); }
+    });
+  });
 
   function seqHeader(rowId, bg) {
     var h = '';
