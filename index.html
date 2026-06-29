@@ -1911,7 +1911,7 @@ function updateTopbar() {
 function renderJournees() {
   var f = activeFilm();
   document.getElementById('fds-page-title').textContent = f ? f.nom : 'Journées';
-  document.getElementById('fds-page-sub').textContent = f ? 'Feuilles de service — ' + (typeof PDT_DATA !== 'undefined' ? PDT_DATA.length : 0) + ' journées' : 'Sélectionnez un film';
+  document.getElementById('fds-page-sub').textContent = f ? 'Feuilles de service — ' + (getPDTData().length) + ' journées' : 'Sélectionnez un film';
   var titreEl = document.getElementById('fds-list-titre');
   if (titreEl) titreEl.childNodes[0].textContent = f ? 'Toutes les journées — ' + f.nom + ' ' : 'Journées ';
   var el = document.getElementById('fds-journees-list');
@@ -1973,7 +1973,7 @@ function ouvrirOuCreerFDS(jdtNum) {
   var fdsExist = (state.fds||[]).find(function(f){ return f.filmId === activeFilmId && f.jdt === jdtNum; });
   if (fdsExist) { openFDS(fdsExist.id); return; }
   // Créer depuis le PDT
-  var pdt = typeof PDT_DATA !== 'undefined' ? PDT_DATA.find(function(j){ return j.jdt === jdtNum; }) : null;
+  var pdt = getPDTData().find(function(j){ return j.jdt === jdtNum; }) || null;
   if (!pdt) return;
   var lieux = [];
   pdt.decors.forEach(function(d, i) { lieux.push({label: 'Décor ' + (i+1), valeur: d}); });
@@ -2014,7 +2014,7 @@ function ouvrirOuCreerFDS(jdtNum) {
 
 function ouvrirOuCreerFDSSilent(jdtNum) {
   if (!activeFilmId) return;
-  var pdt = typeof PDT_DATA !== 'undefined' ? PDT_DATA.find(function(j){ return j.jdt === jdtNum; }) : null;
+  var pdt = getPDTData().find(function(j){ return j.jdt === jdtNum; }) || null;
   if (!pdt) return;
   var lieux = [];
   pdt.decors.forEach(function(d, i) { lieux.push({label:'Décor '+(i+1), valeur:d}); });
@@ -2936,7 +2936,7 @@ function renderApercu(targetEl) {
       var contAffiche = s.cont || '';
       if (contAffiche && /^J\d+$/.test(contAffiche.trim())) {
         var jNum = parseInt(contAffiche.replace('J',''));
-        var pdtRef = (typeof PDT_DATA !== 'undefined') ? PDT_DATA.find(function(p){return p.jdt===jNum;}) : null;
+        var pdtRef = getPDTData().find(function(p){return p.jdt===jNum;}) || null;
         if (pdtRef && pdtRef.date) {
           contAffiche = contAffiche + '<br><span style="font-size:7.5px">' + pdtRef.date + '</span>';
         }
@@ -2957,8 +2957,8 @@ function renderApercu(targetEl) {
   var hasEqB = eqb.pat || eqb.seqs || eqb.lieu || eqb.intervenants || eqb.note;
   // Détecter aussi les séquences EqB depuis le PDT
   var pdtEqBseqs = [];
-  if (typeof PDT_DATA !== 'undefined') {
-    var pdtCurr = PDT_DATA.find(function(j){ return j.jdt===f.jdt; });
+  {
+    var pdtCurr = getPDTData().find(function(j){ return j.jdt===f.jdt; });
     if (pdtCurr) {
       pdtEqBseqs = pdtCurr.sequences.filter(function(s){ return s.toUpperCase().replace(/[\s.]/g,'').indexOf('EQB')!==-1||s.toUpperCase().indexOf('DRONISTE')!==-1; });
     }
@@ -2991,7 +2991,7 @@ function renderApercu(targetEl) {
   var figurants = allCom.filter(function(c){ return c.type==='figurant'; });
 
   if (roles.length) {
-    var pdtJdt = typeof PDT_DATA !== 'undefined' ? PDT_DATA.find(function(j){ return j.jdt===f.jdt; }) : null;
+    var pdtJdt = getPDTData().find(function(j){ return j.jdt===f.jdt; }) || null;
     var allSeqs = pdtJdt ? pdtJdt.sequences : [];
     // Séquences par rôle depuis archives
     var seqsRole = (typeof SEQS_PAR_ROLE !== 'undefined' && SEQS_PAR_ROLE[String(f.jdt)]) ? SEQS_PAR_ROLE[String(f.jdt)] : {};
@@ -3042,7 +3042,7 @@ function renderApercu(targetEl) {
     h += '</table>';
   }
   if (doublures.length) {
-    var pdtD = typeof PDT_DATA !== 'undefined' ? PDT_DATA.find(function(j){ return j.jdt===f.jdt; }) : null;
+    var pdtD = getPDTData().find(function(j){ return j.jdt===f.jdt; }) || null;
     var seqsD = pdtD ? pdtD.sequences : (allSeqs||[]);
     var csd = isMobile ? '6px' : '8px';
     h += '<table style="width:100%;border-collapse:collapse;margin-bottom:2px">';
@@ -3349,7 +3349,7 @@ function renderApercu(targetEl) {
   var prevManuelles = f.previsions || [];
   var prevAuto = [];
 
-  if (f && f.jdt && typeof PDT_DATA !== 'undefined') {
+  if (f && f.jdt) {
     // Trouver les JdT suivants dans la même semaine
     // Stratégie simple : prendre les JdT jdt+1, jdt+2... tant qu'ils sont dans la même semaine (sam/dim exclus)
     // Trouver le JdT actuel pour avoir son numéro de semaine calendaire
@@ -3470,7 +3470,7 @@ function renderFigurationTab() {
   }
 
   // Séquences du jour (partagé silhouettes + figurants)
-  var pdtJdtF = typeof PDT_DATA !== 'undefined' ? PDT_DATA.find(function(j){ return j.jdt===f.jdt; }) : null;
+  var pdtJdtF = getPDTData().find(function(j){ return j.jdt===f.jdt; }) || null;
   var allSeqsF = pdtJdtF ? pdtJdtF.sequences : [];
 
   // SILHOUETTES — colonnes séquences individuelles
@@ -3719,7 +3719,7 @@ function renderApercuNav() {
   }
 
   // Utiliser le PDT comme source de toutes les journées
-  var allJournees = typeof PDT_DATA !== 'undefined' ? PDT_DATA : [];
+  var allJournees = getPDTData();
   var fdsMap = {};
   (state.fds||[]).filter(function(f){ return f.filmId === activeFilmId; }).forEach(function(f){ fdsMap[f.jdt] = f; });
 
@@ -3751,7 +3751,7 @@ function changerJourneeApercuJdt(jdtNum) {
   var fdsExist = (state.fds||[]).find(function(f){ return f.filmId===activeFilmId && f.jdt===jdtNum; });
   var navEl = document.getElementById('apercu-nav-content');
   if (!fdsExist) {
-    var pdt = typeof PDT_DATA !== 'undefined' ? PDT_DATA.find(function(j){return j.jdt===jdtNum;}) : null;
+    var pdt = getPDTData().find(function(j){return j.jdt===jdtNum;}) || null;
     var titleEl = document.getElementById('apercu-nav-title');
     var subEl = document.getElementById('apercu-nav-sub');
     if (titleEl) titleEl.textContent = 'Apercu ' + (pdt?pdt.journee:'J'+jdtNum) + ' — ' + (pdt?pdt.date:'');
@@ -3889,8 +3889,8 @@ function renderTransportNav() {
 
   // Ajouter aussi les journées PDT pas encore créées
   var optionsHtml = '<option value="">— Choisir une journée —</option>';
-  if (typeof PDT_DATA !== 'undefined') {
-    PDT_DATA.forEach(function(pdt) {
+  {
+    getPDTData().forEach(function(pdt) {
       var fds = fdsList.find(function(f){ return f.jdt === pdt.jdt; });
       var selected = fds && fds.id === activeFdsId ? ' selected' : '';
       optionsHtml += '<option value="' + pdt.jdt + '"' + selected + '>' + pdt.journee + ' — ' + pdt.date + '</option>';
@@ -3917,7 +3917,7 @@ function changerJourneeTransport(jdtNum) {
   if (fdsExist) {
     activeFdsId = fdsExist.id;
     var i = fdsExist.infos || {};
-    var pdt = typeof PDT_DATA !== 'undefined' ? PDT_DATA.find(function(j){ return j.jdt === jdtNum; }) : null;
+    var pdt = getPDTData().find(function(j){ return j.jdt === jdtNum; }) || null;
     document.getElementById('transport-nav-title').textContent = 'Transports ' + (i.journee||'');
     document.getElementById('transport-nav-sub').textContent = i.date || '';
     var dateUp = (i.date||'').toUpperCase();
@@ -3937,7 +3937,7 @@ function changerJourneeTransport(jdtNum) {
 
 function ouvrirOuCreerFDSSilent(jdtNum) {
   if (!activeFilmId) return;
-  var pdt = typeof PDT_DATA !== 'undefined' ? PDT_DATA.find(function(j){ return j.jdt === jdtNum; }) : null;
+  var pdt = getPDTData().find(function(j){ return j.jdt === jdtNum; }) || null;
   if (!pdt) return;
   var lieux = [];
   pdt.decors.forEach(function(d, i) { lieux.push({label:'Décor '+(i+1), valeur:d}); });
@@ -5119,7 +5119,7 @@ function renderBilan() {
   if (subEl) subEl.textContent = selectedFilmId ? ((state.films||[]).find(function(f){return f.id===selectedFilmId;})||{}).nom||'' : 'Toutes les feuilles de service';
 
   // Toutes les journées PDT
-  var allJournees = typeof PDT_DATA !== 'undefined' ? PDT_DATA : [];
+  var allJournees = getPDTData();
   var fdsMap = {};
   (state.fds||[]).filter(function(f){ return !selectedFilmId || f.filmId===selectedFilmId; })
     .forEach(function(f){ fdsMap[f.jdt] = f; });
@@ -5222,7 +5222,7 @@ function ouvrirBilanFDS(jdtNum) {
 
 function exportBilanCSV() {
   var rows = [['Journée','Date','Horaires','Lieu','Comédiens','Statut']];
-  var allJournees = typeof PDT_DATA !== 'undefined' ? PDT_DATA : [];
+  var allJournees = getPDTData();
   var fdsMap = {};
   (state.fds||[]).forEach(function(f){ fdsMap[f.jdt]=f; });
   allJournees.forEach(function(pdt) {
