@@ -7996,7 +7996,7 @@ function appliquerDepoPdf(journees) {
   if (!state.fds) state.fds = [];
   var nbCrees = 0;
   if (optCreer) {
-    var pdtAll = typeof PDT_DATA !== 'undefined' ? PDT_DATA : [];
+    var pdtAll = getPDTData();
     for (var ji = 0; ji < journees.length; ji++) {
       var j = journees[ji];
       var existe = null;
@@ -8114,7 +8114,7 @@ function appliquerDepoPdf(journees) {
     });
 
     // Décors PDT de la journée (valeurs génériques à remplacer si possible)
-    var pdtJour = (typeof PDT_DATA !== 'undefined') ? PDT_DATA.find(function(p){return p.jdt===fds.jdt;}) : null;
+    var pdtJour = getPDTData().find(function(p){return p.jdt===fds.jdt;}) || null;
     var pdtDecors = pdtJour ? (pdtJour.decors||[]) : [];
     var optDecors = document.getElementById('depo-opt-decors') && document.getElementById('depo-opt-decors').checked;
 
