@@ -1027,6 +1027,15 @@ textarea.form-input{resize:vertical;min-height:72px;}
         <div id="pdt-comparaison-panel" style="display:none;margin-top:10px"></div>
       </div>
 
+      <!-- RÉINITIALISER FIGURATION GLOBALE -->
+      <div class="card" style="margin-bottom:12px;border:1px solid #c00">
+        <div class="card-title" style="color:#c00">Réinitialiser figuration — toutes les journées</div>
+        <div style="font-size:12px;color:var(--text-muted);margin-bottom:8px">
+          Efface les lignes de figurants de toutes les FDS du film actif avant un réimport du dépouillement.
+        </div>
+        <button class="btn btn-block" style="color:#c00;border:1px solid #c00;background:none" onclick="reinitFigurationToutesJournees()">Réinitialiser figuration de toutes les journées</button>
+      </div>
+
       <!-- IMPORT FDS PDF - Notes techniques -->
       <div class="card" style="margin-bottom:12px;border:2px solid #1565c0">
         <div class="card-title" style="color:#1565c0">Import FDS PDF — Notes techniques
@@ -4448,6 +4457,22 @@ function executerCopierDepuis(typeEl, navTarget) {
   if (navTarget === 'pg-vehicules') pgRenderVehicules();
   else pgRenderCascadeurs();
   toast('Copié depuis '+(src.infos&&src.infos.journee||'J'+src.jdt)+' ✓');
+}
+
+function reinitFigurationToutesJournees() {
+  if (!activeFilmId) { toast('Sélectionnez un film'); return; }
+  var fdsFilm = (state.fds||[]).filter(function(f){ return f.filmId === activeFilmId; });
+  var total = fdsFilm.reduce(function(s,f){
+    return s + (f.comediens||[]).filter(function(c){ return c.type==='figurant'; }).length;
+  }, 0);
+  if (!confirm('Supprimer les figurants de ' + fdsFilm.length + ' journées (' + total + ' lignes) ?\nFaire ça avant un réimport du dépouillement.')) return;
+  fdsFilm.forEach(function(f) {
+    f.comediens = (f.comediens||[]).filter(function(c){ return c.type !== 'figurant'; });
+    f.fig_desc = '';
+  });
+  save();
+  renderFigurationTab();
+  toast('Figuration réinitialisée sur ' + fdsFilm.length + ' journées — relancez l\'import dépouillement ✓');
 }
 
 function reinitFiguration() {
