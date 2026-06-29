@@ -7845,7 +7845,7 @@ function afficherDepoPdfPreview(journees, preview) {
   html += '<label style="display:flex;align-items:center;gap:6px;margin-bottom:4px"><input type="checkbox" id="depo-opt-casc" checked> Cascades (notes dans depts Véhicules / Cascadeurs)</label>';
   html += '<label style="display:flex;align-items:center;gap:6px;margin-bottom:4px"><input type="checkbox" id="depo-opt-vehic" checked> Véhicules (note dans département Véhicules)</label>';
   html += '<label style="display:flex;align-items:center;gap:6px;margin-bottom:4px"><input type="checkbox" id="depo-opt-cost" checked> Costumes (note dans département Costumes)</label>';
-  html += '<label style="display:flex;align-items:center;gap:6px;margin-bottom:4px"><input type="checkbox" id="depo-opt-ecrase"> Écraser les données existantes (décoché = compléter seulement)</label>';
+  html += '<label style="display:flex;align-items:center;gap:6px;margin-bottom:4px"><input type="checkbox" id="depo-opt-ecrase" checked> Écraser les données existantes (recommandé pour la figuration)</label>';
   html += '<label style="display:flex;align-items:center;gap:6px;margin-bottom:4px"><input type="checkbox" id="depo-opt-decors" checked> Mettre à jour les décors + rôles depuis ce dépouillement (remplace valeurs PDT génériques)</label>';
   html += '<label style="display:flex;align-items:center;gap:6px;margin-bottom:8px"><input type="checkbox" id="depo-opt-creer" checked> Créer automatiquement les FDS manquantes ('+journees.filter(function(j){return !(state.fds||[]).find(function(f){return f.filmId===activeFilmId&&f.jdt===j.numJour;});}).length+' journées sans FDS)</label>';
   html += '</div>';
@@ -8410,6 +8410,8 @@ function appliquerDepoPdf(journees) {
 
       if (optFig && Object.keys(figMap).length) {
         if (!fds.comediens) fds.comediens = [];
+        // Toujours vider les anciens figurants avant de recréer
+        fds.comediens = fds.comediens.filter(function(c){ return c.type !== 'figurant'; });
         Object.keys(figMap).forEach(function(key) {
           var fm = figMap[key];
           // Chercher si ligne similaire existe déjà
