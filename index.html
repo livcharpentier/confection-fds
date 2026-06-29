@@ -510,6 +510,12 @@ textarea.form-input{resize:vertical;min-height:72px;}
         <div class="card-title">Lieux</div>
         <div id="pg-lieux-container"></div>
         <button class="btn btn-secondary btn-block" onclick="pgAddLieu()">+ Ajouter un lieu</button>
+        <button class="btn btn-secondary btn-block" style="margin-top:6px;font-size:11px;color:#1565c0" onclick="pgPrefillLieux()">↺ Pré-remplir lieux depuis PDT</button>
+      </div>
+      <div class="card" style="border:2px solid #1565c0">
+        <div class="card-title" style="color:#1565c0">🔄 Synchronisation PDT</div>
+        <p style="font-size:11px;color:#555;margin-bottom:8px">Met à jour séquences et comédiens depuis le PDT. Ne touche pas aux horaires HMC/PAT ni à la figuration.</p>
+        <button class="btn btn-block" style="background:#1565c0;color:#fff;font-size:12px;font-weight:700" onclick="pgSyncFromPDT()">🔄 Synchroniser séquences + comédiens depuis PDT</button>
       </div>
       <div class="card">
         <div class="card-title">Note à l'équipe</div>
@@ -2187,6 +2193,58 @@ function renderAllTabs() {
   if (typeof renderSequences === 'function') renderSequences();
   if (typeof renderComediens === 'function') renderComediens();
   if (typeof renderLieux === 'function') renderLieux();
+}
+
+function pgPrefillLieux() {
+  prefillLieuxFromPDT();
+  // Re-render le panneau pg-lieux
+  if (typeof pgLoadInfos === 'function') pgLoadInfos();
+}
+
+function pgSyncFromPDT() {
+  var f = activeFDS(); if (!f) return;
+  var pdt = getPDTData().find(function(j){ return j.jdt === f.jdt; });
+  if (!pdt) { toast('Pas de données PDT pour cette journée'); return; }
+  var changes = [];
+
+  // 1. Séquences
+  if (pdt.sequences && pdt.sequences.length) {
+    var seqMap = {};
+    (f.sequences||[]).forEach(function(s){
+      var key = (s.num||s+'').trim();
+      seqMap[key] = s;
+    });
+    f.sequences = pdt.sequences.map(function(num){
+      var key = (num+'').trim();
+      return seqMap[key] || {num:num, effet:'', decor:'', resume:'', roles:'', cont:'', min:''};
+    });
+    changes.push('séquences mises à jour ('+pdt.sequences.length+')');
+  }
+
+  // 2. Comédiens : ajouter les nouveaux
+  if (pdt.roles && pdt.roles.length) {
+    f.comediens = f.comediens || [];
+    var existingNums = f.comediens.map(function(c){ return String(c.num); });
+    var added = 0;
+    pdt.roles.forEach(function(r){
+      if (existingNums.indexOf(String(r.num)) === -1) {
+        f.comediens.push({type:'comedien', num:r.num, role:r.role, nom:r.comedien,
+          seqs: pdt.sequences ? pdt.sequences.join(', ') : '', hmc:'', loges:'', pat:'', nbre:1});
+        added++;
+      }
+    });
+    if (added) changes.push(added+' comédien(s) ajouté(s)');
+  }
+
+  // 3. Décors lieux si vides
+  var hasDecors = (f.lieux||[]).some(function(l){ return /^Décor/i.test(l.label) && l.valeur; });
+  if (!hasDecors) { prefillLieuxFromPDT(); changes.push('lieux pré-remplis'); }
+
+  save();
+  // Refresh
+  if (typeof pgLoadInfos === 'function') pgLoadInfos();
+  if (typeof renderSequences === 'function') renderSequences();
+  toast('✅ Sync PDT : ' + changes.join(' · '));
 }
 
 function prefillLieuxFromPDT() {
