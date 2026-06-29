@@ -8328,14 +8328,14 @@ function appliquerDepoPdf(journees) {
         // Séparer d'abord par retour à la ligne
         var rawLines = rawText.split(/\n/).map(function(l){ return l.trim(); }).filter(Boolean);
 
-        // Si une seule ligne contient plusieurs figurants concaténés ("3xSoldats 15xPassants"),
-        // les séparer — le format est NxDesc ou N x Desc ou "N Description"
+        // Séparer les figurants concaténés : "3xSoldats Allemands 15xPassants Guerchin"
+        // Split sur ESPACE suivi de chiffre(s)+x (pas sur chiffre seul qui casserait "15x" en "1"+"5x")
         var expandedLines = [];
         rawLines.forEach(function(line) {
-          // Chercher des patterns "NxDesc" ou "N x Desc" collés
-          // Ex: "3xSoldats Allemands 15xPassants Guerchin 2xEnfants Village"
-          var parts = line.split(/(?=\d+[xX×])/);
-          if (parts.length > 1) {
+          // Détecter si la ligne contient plusieurs NxDesc collés
+          if (/\d+[xX×]/.test(line)) {
+            // Split sur espace précédant un Nx
+            var parts = line.split(/\s+(?=\d+[xX×])/);
             parts.forEach(function(p){ if (p.trim()) expandedLines.push(p.trim()); });
           } else {
             expandedLines.push(line);
