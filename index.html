@@ -4788,7 +4788,7 @@ function pgRenderComediens() {
   // Union séquences PDT + séquences présentes dans les figurants (pour inclure PEL enrichies)
   var allSeqs = pdtJdt ? pdtJdt.sequences.slice() : [];
   var allSeqsSet = allSeqs.map(function(s){ return s.replace(/\s/g,'').toUpperCase(); });
-  all.filter(function(c){ return c.type==='figurant'||c.type==='silhouette'||c.type==='doublure'; }).forEach(function(c){
+  (f.comediens||[]).filter(function(c){ return c.type==='figurant'||c.type==='silhouette'||c.type==='doublure'; }).forEach(function(c){
     (c.seqs||'').split(/\s*,\s*/).forEach(function(sq){
       sq = sq.trim(); if (!sq) return;
       var sqC = sq.replace(/\s/g,'').toUpperCase();
