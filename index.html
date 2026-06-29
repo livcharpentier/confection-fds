@@ -5773,6 +5773,11 @@ function jajNumMatch(scNum, pdtNum) {
   var an = a.replace(/[^0-9]/g,'');
   var bn = b.replace(/[^0-9]/g,'');
   if (an && bn && an === bn) {
+    // Bloquer : PEL ne doit matcher qu'avec PEL, PT ne doit matcher qu'avec PT
+    var aHasPEL = /PEL/.test(ac); var bHasPEL = /PEL/.test(bc);
+    var aHasPT = /\dPT$/.test(ac); var bHasPT = /\dPT$/.test(bc);
+    if (aHasPEL !== bHasPEL) return false;
+    if (aHasPT  !== bHasPT)  return false;
     // Même numéro de base — accepter si l'un commence par l'autre
     return ac.startsWith(bc) || bc.startsWith(ac);
   }
@@ -7778,8 +7783,8 @@ function parseDepoPdf(lines) {
       if (reSeqHeader.test(line) || reJourSimple.test(line) || reFinJour.test(line)) {
         flushCollect(); i--; continue;
       }
-      // Pour les rôles, garder les sauts de ligne pour parsing ultérieur
-      if (collectingField === 'roles' || collectingField === 'sil' || collectingField === 'doublure') {
+      // Pour les rôles, figurants, silhouettes, doublures : garder les sauts de ligne
+      if (collectingField === 'roles' || collectingField === 'sil' || collectingField === 'doublure' || collectingField === 'figurants') {
         collectBuf += (collectBuf ? '\n' : '') + line;
       } else {
         collectBuf += (collectBuf ? ' ' : '') + line;
