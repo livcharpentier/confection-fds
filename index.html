@@ -942,21 +942,13 @@ textarea.form-input{resize:vertical;min-height:72px;}
         <div id="transport-nav-list"><div class="empty">Cliquez ⟳ Pré-remplir pour charger les comédiens</div></div>
       </div>
 
-      <!-- ARRIVÉES VEILLE -->
+      <!-- ARRIVÉES -->
       <div class="card" style="margin-bottom:10px">
-        <div class="card-title">Arrivées la veille
+        <div class="card-title" id="transport-nav-arrivee-titre">Arrivées
           <button class="btn btn-sm btn-primary" onclick="preRemplirArrivees('veille')" style="margin-right:4px">⟳ Auto</button>
           <button class="btn btn-sm btn-secondary" onclick="openTransportModal('arrivee_veille')">+ Manuel</button>
         </div>
-        <div id="transport-nav-veille"><div class="empty">Aucune arrivée la veille</div></div>
-      </div>
-
-      <!-- ARRIVÉES JOUR -->
-      <div class="card" style="margin-bottom:10px">
-        <div class="card-title" id="transport-nav-arrivee-titre">Arrivées du jour
-          <button class="btn btn-sm btn-primary" onclick="preRemplirArrivees('jour')" style="margin-right:4px">⟳ Auto</button>
-          <button class="btn btn-sm btn-secondary" onclick="openTransportModal('arrivee_jour')">+ Manuel</button>
-        </div>
+        <div id="transport-nav-veille"></div>
         <div id="transport-nav-arrivee-list"><div class="empty">Aucune arrivée</div></div>
       </div>
 
