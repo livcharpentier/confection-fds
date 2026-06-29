@@ -2937,8 +2937,23 @@ function renderApercu(targetEl) {
   // LIEUX
   if (f.lieux && f.lieux.length) {
     h += '<table style="width:100%;border-collapse:collapse;margin-bottom:5px">';
-    f.lieux.forEach(function(l) {
-      if (l.valeur && l.label.toUpperCase() !== 'FIGURATION') h += '<tr>' + td(l.label.toUpperCase()+' :','220px',true,true) + td(l.valeur,'',false,false) + '</tr>';
+    // Regrouper les décors (Décor 1, Décor 2...) en une seule ligne
+    var decorsLieux = f.lieux.filter(function(l){ return /^D\u00e9cor\s*\d/i.test(l.label) && l.valeur; });
+    var autresLieux = f.lieux.filter(function(l){ return !/^D\u00e9cor\s*\d/i.test(l.label) && l.valeur && l.label.toUpperCase() !== 'FIGURATION'; });
+    if (decorsLieux.length) {
+      var decorsHtml = decorsLieux.map(function(l){
+        // Extraire la partie après "DECOR - " si présent, sinon afficher tel quel
+        var val = l.valeur;
+        var mDecor = val.match(/^DECOR\s*-\s*([^-]+)-\s*(.+)$/i);
+        if (mDecor) {
+          return '<b>'+mDecor[1].trim()+'</b> - '+mDecor[2].trim();
+        }
+        return val;
+      }).join('<br>');
+      h += '<tr>' + td('LIEUX DE RDV ET DE TOURNAGE :','220px',true,true) + '<td style="padding:3px 6px;border:1px solid #999;font-size:9px">' + decorsHtml + '</td></tr>';
+    }
+    autresLieux.forEach(function(l) {
+      h += '<tr>' + td(l.label.toUpperCase()+' :','220px',true,true) + td(l.valeur,'',false,false) + '</tr>';
     });
     h += '</table>';
   }
