@@ -3188,7 +3188,15 @@ function renderApercu(targetEl) {
 
   // COMEDIENS par type
   var allCom = f.comediens || [];
-  var roles = allCom.filter(function(c){ return !c.type || c.type==='comedien'; });
+  var roles = allCom.filter(function(c){ return !c.type || c.type==='comedien'; })
+    .slice()
+    .sort(function(a,b){
+      var na = parseInt(String(a.num).replace(/\D/g,''),10);
+      var nb = parseInt(String(b.num).replace(/\D/g,''),10);
+      if (isNaN(na)) na = 9999;
+      if (isNaN(nb)) nb = 9999;
+      return na - nb;
+    });
   var doublures = allCom.filter(function(c){ return c.type==='doublure'; });
   var silhouettes = allCom.filter(function(c){ return c.type==='silhouette'; });
   var figurants = allCom.filter(function(c){ return c.type==='figurant'; });
@@ -5128,7 +5136,15 @@ function pgRenderComediens() {
   var f = activeFDS();
   var titleEl = document.getElementById('pg-com-count');
   if (!f) return;
-  var list = (f.comediens||[]).filter(function(c){ return !c.type||c.type===''||c.type==='comedien'; });
+  var list = (f.comediens||[]).filter(function(c){ return !c.type||c.type===''||c.type==='comedien'; })
+    .slice()
+    .sort(function(a,b){
+      var na = parseInt(String(a.num).replace(/\D/g,''),10);
+      var nb = parseInt(String(b.num).replace(/\D/g,''),10);
+      if (isNaN(na)) na = 9999;
+      if (isNaN(nb)) nb = 9999;
+      return na - nb;
+    });
   if (titleEl) titleEl.childNodes[0].textContent = 'Comédiens ('+list.length+') ';
 
   // Séquences PDT du jour en colonnes
