@@ -518,6 +518,7 @@ textarea.form-input{resize:vertical;min-height:72px;}
         <div class="card-title" style="color:#1565c0">🔄 Synchronisation PDT</div>
         <p style="font-size:11px;color:#555;margin-bottom:8px">Met à jour séquences et comédiens depuis le PDT. Ne touche pas aux horaires HMC/PAT ni à la figuration.</p>
         <button class="btn btn-block" style="background:#1565c0;color:#fff;font-size:12px;font-weight:700" onclick="pgSyncFromPDT()">🔄 Synchroniser séquences + comédiens depuis PDT</button>
+        <button class="btn btn-block" style="background:#2e7d32;color:#fff;font-size:12px;font-weight:700;margin-top:6px" onclick="verifierCoherenceFDS()">✓ Vérifier cohérence FDS</button>
       </div>
       <div class="card">
         <div class="card-title">Note à l'équipe</div>
@@ -2210,35 +2211,95 @@ function pgPrefillLieux() {
   if (typeof pgLoadInfos === 'function') pgLoadInfos();
 }
 
+function syncSequencesDepuisDepoDB(f) {
+  // Pour chaque séquence du PDT du jour, va chercher ses infos dans la base globale dépouillement
+  // et les applique à la FDS — décor, résumé, rôles, figuration, véhicules.
+  if (!f) return { ok:0, manque:[] };
+  var pdt = getPDTData().find(function(j){ return j.jdt===f.jdt; });
+  if (!pdt || !pdt.sequences) return { ok:0, manque:[] };
+
+  var ok = 0, manque = [];
+  var roleSeqMap = {}; // num rôle -> [séquences]
+  var figByDecor = {}; // pour regrouper la figuration par séquence
+
+  f.sequences = pdt.sequences.map(function(numSeq) {
+    var existing = (f.sequences||[]).find(function(s){ return String(s.num||'').trim()===String(numSeq).trim(); });
+    var depo = getDepoSeq(numSeq);
+    if (!depo) {
+      manque.push(numSeq);
+      return existing || {num:numSeq, effet:'', decor:'', resume:'', roles:'', cont:'', min:''};
+    }
+    ok++;
+    // Indexer les rôles pour cette séquence
+    if (depo.roles) {
+      depo.roles.split(/[,;]+/).forEach(function(r){
+        var rn = r.trim().match(/^(\d+)/);
+        if (rn) {
+          if (!roleSeqMap[rn[1]]) roleSeqMap[rn[1]] = [];
+          if (roleSeqMap[rn[1]].indexOf(numSeq) < 0) roleSeqMap[rn[1]].push(numSeq);
+        }
+      });
+    }
+    return {
+      num: numSeq,
+      effet: depo.effet || (existing && existing.effet) || '',
+      decor: depo.decor || (existing && existing.decor) || '',
+      resume: depo.resume || (existing && existing.resume) || '',
+      roles: depo.roles || (existing && existing.roles) || '',
+      cont: depo.chrono || (existing && existing.cont) || '',
+      duree: depo.minutage || (existing && existing.duree) || (existing && existing.min) || ''
+    };
+  });
+
+  // Mettre à jour les séquences assignées à chaque comédien selon roleSeqMap
+  (f.comediens||[]).forEach(function(c){
+    if (c.type && c.type!=='comedien') return;
+    var seqs = roleSeqMap[String(c.num)];
+    if (seqs && seqs.length) c.seqs = seqs.join(', ');
+  });
+
+  return { ok: ok, manque: manque };
+}
+
 function pgSyncFromPDT() {
   var f = activeFDS(); if (!f) return;
   var pdt = getPDTData().find(function(j){ return j.jdt === f.jdt; });
   if (!pdt) { toast('Pas de données PDT pour cette journée'); return; }
   var changes = [];
 
-  // 1. Séquences
-  if (pdt.sequences && pdt.sequences.length) {
+  // 1. Séquences + attribution rôles précise via base dépouillement
+  var hasDepoDB = state._depoSeqDB && Object.keys(state._depoSeqDB).length;
+  if (hasDepoDB) {
+    var r = syncSequencesDepuisDepoDB(f);
+    changes.push(r.ok+'/'+(pdt.sequences||[]).length+' séquences enrichies depuis le dépouillement');
+    if (r.manque.length) changes.push('⚠️ manquantes dans dépouillement: '+r.manque.join(', '));
+  } else if (pdt.sequences && pdt.sequences.length) {
+    // Fallback sans dépouillement : juste les numéros
     var seqMap = {};
-    (f.sequences||[]).forEach(function(s){
-      var key = (s.num||s+'').trim();
-      seqMap[key] = s;
-    });
+    (f.sequences||[]).forEach(function(s){ seqMap[(s.num||s+'').trim()] = s; });
     f.sequences = pdt.sequences.map(function(num){
-      var key = (num+'').trim();
+      var key=(num+'').trim();
       return seqMap[key] || {num:num, effet:'', decor:'', resume:'', roles:'', cont:'', min:''};
     });
-    changes.push('séquences mises à jour ('+pdt.sequences.length+')');
+    changes.push('séquences (numéros seulement — importez le dépouillement pour les détails)');
   }
 
-  // 2. Comédiens : ajouter les nouveaux
+  // 2. Comédiens : ajouter les nouveaux SANS leur assigner toutes les séquences
   if (pdt.roles && pdt.roles.length) {
     f.comediens = f.comediens || [];
     var existingNums = f.comediens.map(function(c){ return String(c.num); });
     var added = 0;
     pdt.roles.forEach(function(r){
       if (existingNums.indexOf(String(r.num)) === -1) {
+        // Chercher les séquences précises de ce rôle dans la base dépouillement
+        var seqsRole = [];
+        (f.sequences||[]).forEach(function(s){
+          if (s.roles && s.roles.split(/[,;]+/).some(function(rr){return rr.trim().match(/^(\d+)/) && rr.trim().match(/^(\d+)/)[1]===String(r.num);})) {
+            seqsRole.push(s.num);
+          }
+        });
         f.comediens.push({type:'comedien', num:r.num, role:r.role, nom:r.comedien,
-          seqs: pdt.sequences ? pdt.sequences.join(', ') : '', hmc:'', loges:'', pat:'', nbre:1});
+          seqs: seqsRole.join(', '), hmc:'', loges:'', pat:'', nbre:1});
         added++;
       }
     });
@@ -2250,10 +2311,72 @@ function pgSyncFromPDT() {
   if (!hasDecors) { prefillLieuxFromPDT(); changes.push('lieux pré-remplis'); }
 
   save();
-  // Refresh
   if (typeof pgLoadInfos === 'function') pgLoadInfos();
   if (typeof renderSequences === 'function') renderSequences();
   toast('✅ Sync PDT : ' + changes.join(' · '));
+}
+
+function verifierCoherenceFDS() {
+  var f = activeFDS(); if (!f) { toast('Aucune FDS active'); return; }
+  var pdt = getPDTData().find(function(j){ return j.jdt === f.jdt; });
+  var problemes = [];
+  var ok = [];
+
+  if (!pdt) { toast('Pas de PDT pour cette journée'); return; }
+
+  // 1. Vérifier que chaque séquence du PDT a des données du dépouillement
+  var hasDepoDB = state._depoSeqDB && Object.keys(state._depoSeqDB).length;
+  (pdt.sequences||[]).forEach(function(numSeq){
+    if (hasDepoDB) {
+      var depo = getDepoSeq(numSeq);
+      if (!depo) problemes.push('Séquence '+numSeq+' : absente du dépouillement importé');
+    }
+    var fdsSeq = (f.sequences||[]).find(function(s){return String(s.num||'').trim()===String(numSeq).trim();});
+    if (!fdsSeq) { problemes.push('Séquence '+numSeq+' : absente de la FDS'); return; }
+    if (!fdsSeq.decor) problemes.push('Séquence '+numSeq+' : décor manquant');
+    if (!fdsSeq.roles) problemes.push('Séquence '+numSeq+' : aucun rôle assigné');
+  });
+
+  // 2. Vérifier que chaque comédien a au moins une séquence assignée
+  (f.comediens||[]).forEach(function(c){
+    if (c.type && c.type!=='comedien') return;
+    if (!c.seqs || !c.seqs.trim()) {
+      problemes.push('Comédien '+c.num+' ('+c.role+', '+c.nom+') : aucune séquence assignée');
+    } else {
+      // Vérifier que les séquences assignées existent bien dans le PDT du jour
+      var pdtSeqsNorm = (pdt.sequences||[]).map(function(s){return s.replace(/\s/g,'').toUpperCase();});
+      c.seqs.split(/\s*,\s*/).forEach(function(sq){
+        var sqNorm = sq.trim().replace(/\s/g,'').toUpperCase();
+        if (sqNorm && pdtSeqsNorm.indexOf(sqNorm) < 0) {
+          problemes.push('Comédien '+c.num+' ('+c.nom+') : assigné à la séquence "'+sq+'" qui n\'est pas dans le PDT du jour');
+        }
+      });
+    }
+  });
+
+  // 3. Vérifier figuration/véhicules présents si le dépouillement en mentionne
+  if (hasDepoDB) {
+    var figAttendue = false, vehAttendue = false;
+    (pdt.sequences||[]).forEach(function(numSeq){
+      var depo = getDepoSeq(numSeq);
+      if (depo && depo.figurants && depo.figurants.trim()) figAttendue = true;
+      if (depo && depo.vehicules && depo.vehicules.trim()) vehAttendue = true;
+    });
+    if (figAttendue && (!f.comediens||!f.comediens.some(function(c){return c.type==='figurant';}))) {
+      problemes.push('Figuration attendue (présente au dépouillement) mais aucune dans la FDS');
+    }
+    if (vehAttendue && (!f.vehicules||!f.vehicules.length)) {
+      problemes.push('Véhicules attendus (présents au dépouillement) mais aucun dans la FDS');
+    }
+  }
+
+  if (!problemes.length) {
+    toast('✅ Aucun problème détecté — FDS cohérente avec le PDT'+(hasDepoDB?' et le dépouillement':''));
+  } else {
+    console.log('Problèmes détectés sur', f.journee||('J'+f.jdt), ':', problemes);
+    alert('⚠️ '+problemes.length+' problème(s) détecté(s) sur '+(f.journee||('J'+f.jdt))+' :\n\n'+problemes.slice(0,15).join('\n')+(problemes.length>15?'\n… et '+(problemes.length-15)+' autres':''));
+  }
+  return problemes;
 }
 
 function prefillLieuxFromPDT() {
@@ -8408,8 +8531,46 @@ function jajReremplirResumes() {
   toast(nbMaj + ' résumés mis à jour ✓');
 }
 
+function buildDepoSeqDB(journees) {
+  // Construit une base globale {numSeq: {decor, resume, roles, figurants, silhouettes, doublures, vehicules, cascades_phys, cascades_veh, costumes, effet, minutage, cont}}
+  // indépendante de la journée du PDF d'origine — c'est la source de vérité par séquence.
+  var db = {};
+  journees.forEach(function(j) {
+    (j.sequences||[]).forEach(function(s) {
+      var key = String(s.num||'').trim().toUpperCase().replace(/\s+/g,' ');
+      if (!key) return;
+      // En cas de doublon (même num dans plusieurs journées du PDF), garder la plus complète
+      if (db[key]) {
+        var existing = db[key];
+        var existingScore = Object.keys(existing).filter(function(k){return existing[k];}).length;
+        var newScore = Object.keys(s).filter(function(k){return s[k];}).length;
+        if (newScore <= existingScore) return;
+      }
+      db[key] = Object.assign({}, s);
+    });
+  });
+  return db;
+}
+
+function saveDepoSeqDB(journees) {
+  var db = buildDepoSeqDB(journees);
+  if (!state._depoSeqDB) state._depoSeqDB = {};
+  // Fusionner avec l'existant (ne pas perdre les anciennes séquences si le nouveau PDF est partiel)
+  Object.keys(db).forEach(function(k){ state._depoSeqDB[k] = db[k]; });
+  save();
+  return Object.keys(db).length;
+}
+
+function getDepoSeq(numSeq) {
+  if (!state._depoSeqDB) return null;
+  var key = String(numSeq||'').trim().toUpperCase().replace(/\s+/g,' ');
+  return state._depoSeqDB[key] || null;
+}
+
 function appliquerDepoPdf(journees) {
   if (!journees || !journees.length) return;
+  // Alimenter la base globale séquences AVANT tout traitement par journée
+  var nbSeqDB = saveDepoSeqDB(journees);
   var optSeqs = document.getElementById('depo-opt-seqs') && document.getElementById('depo-opt-seqs').checked;
   var optFig  = document.getElementById('depo-opt-fig')  && document.getElementById('depo-opt-fig').checked;
   var optCasc = document.getElementById('depo-opt-casc') && document.getElementById('depo-opt-casc').checked;
