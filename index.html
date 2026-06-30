@@ -3130,11 +3130,21 @@ function renderApercu(targetEl) {
     h += '<table style="width:100%;border-collapse:collapse;margin-bottom:8px">';
     h += '<caption style="caption-side:top;text-align:left;font-size:9px;font-weight:700;padding:3px 0">S\u00c9QUENCES ' + pencilInline("goToTab(\'sequences\')","les s\u00e9quences") + '</caption>';
     h += '<tr>'+th('SEQ','45px')+th('EFFET','45px')+th('D\u00c9COR')+th('R\u00c9SUM\u00c9')+th('R\u00d4LES','55px')+th('CONT.','75px')+th('MIN','48px')+'</tr>';
+    var eqBHeaderShown = false;
+    var seqsNormales = f.sequences.filter(function(s){ return !s.sep && s.num && s.num.toUpperCase().replace(/[\s.]/g,'').indexOf('EQB')===-1; });
+    var seqsEqB = f.sequences.filter(function(s){ return !s.sep && s.num && s.num.toUpperCase().replace(/[\s.]/g,'').indexOf('EQB')!==-1; });
+    var totalNormal = 0;
+
     f.sequences.forEach(function(s) {
       if (s.sep) {
         var sl = s.sep_texte || '— Déplacement —';
         h += '<tr><td colspan="7" style="padding:3px 8px;background:#e0e0e0;text-align:center;font-size:8.5px;font-style:italic;font-weight:700;border:1px solid #bbb">'+sl+'</td></tr>';
         return;
+      }
+      var isEqB = s.num && s.num.toUpperCase().replace(/[\s.]/g,'').indexOf('EQB')!==-1;
+      if (isEqB && !eqBHeaderShown) {
+        h += '<tr><td colspan="7" style="padding:2px 8px;background:#ddd;text-align:center;font-size:8.5px;font-style:italic;font-weight:700;color:#555;border:1px solid #bbb">- \u00c9QUIPE B en parall\u00e8le -</td></tr>';
+        eqBHeaderShown = true;
       }
       // Continuité enrichie : si on a juste "J19", on cherche la date dans PDT_DATA
       var contAffiche = s.cont || '';
@@ -3145,10 +3155,11 @@ function renderApercu(targetEl) {
           contAffiche = contAffiche + '<br><span style="font-size:7.5px">' + pdtRef.date + '</span>';
         }
       }
-      h += '<tr>'+td(s.num,'',true,true)+td(s.effet,'',false,true)+td(s.decor,'',true,true)+
-           '<td style="padding:2px 5px;font-size:9px;border:1px solid #999;font-style:italic;text-align:center">'+(s.resume||'&nbsp;')+'</td>'+
+      var eqBStyle = isEqB ? 'color:#1565c0;font-style:italic' : '';
+      h += '<tr style="'+eqBStyle+'">'+td(s.num,'',true,true)+td(s.effet,'',false,true)+td(s.decor,'',true,true)+
+           '<td style="padding:2px 5px;font-size:9px;border:1px solid #999;font-style:italic;text-align:center;'+eqBStyle+'">'+(s.resume||'&nbsp;')+'</td>'+
            td(s.roles,'',false,true)+
-           '<td style="padding:2px 5px;font-size:8px;border:1px solid #999;text-align:center">'+contAffiche+'</td>'+
+           '<td style="padding:2px 5px;font-size:8px;border:1px solid #999;text-align:center;'+eqBStyle+'">'+contAffiche+'</td>'+
            td(s.duree,'',false,true)+'</tr>';
     });
     h += '<tr><td colspan="6" style="text-align:right;padding:2px 8px;font-size:9px;font-weight:700;border:1px solid #999">TOTAL</td>'+
@@ -3156,35 +3167,23 @@ function renderApercu(targetEl) {
     h += '</table>';
   }
 
-  // BLOC ÉQUIPE B (si renseigné dans les infos)
+  // BLOC ÉQUIPE B — uniquement infos complémentaires (PAT/horaires/lieu/intervenants/note)
+  // Les séquences EqB sont déjà affichées discrètement dans le tableau SÉQUENCES ci-dessus
   var eqb = (i && i.eqb) ? i.eqb : {};
-  var hasEqB = eqb.pat || eqb.seqs || eqb.lieu || eqb.intervenants || eqb.note;
-  // Détecter aussi les séquences EqB depuis le PDT
-  var pdtEqBseqs = [];
-  {
-    var pdtCurr = getPDTData().find(function(j){ return j.jdt===f.jdt; });
-    if (pdtCurr) {
-      pdtEqBseqs = pdtCurr.sequences.filter(function(s){ return s.toUpperCase().replace(/[\s.]/g,'').indexOf('EQB')!==-1||s.toUpperCase().indexOf('DRONISTE')!==-1; });
+  var hasEqBInfo = eqb.pat || eqb.debut || eqb.fin || eqb.lieu || eqb.intervenants || eqb.note;
+  if (hasEqBInfo) {
+    h += '<table style="width:100%;border-collapse:collapse;margin-bottom:8px">';
+    h += '<tr><td colspan="2" style="background:#eee;padding:3px 8px;font-size:9px;font-weight:700;font-style:italic;border:1px solid #ccc">\u00c9QUIPE B' + pencilInline("goToTab(\'infos\')", "l\'\u00e9quipe B") + '</td></tr>';
+    if (eqb.pat || eqb.debut || eqb.fin) {
+      h += '<tr><td style="padding:2px 6px;border:1px solid #ccc;font-size:8.5px;font-weight:700;width:120px">Horaires</td><td style="padding:2px 6px;border:1px solid #ccc;font-size:8.5px">';
+      if (eqb.pat) h += 'PAT '+fmtTime(eqb.pat)+' ';
+      if (eqb.debut && eqb.fin) h += fmtTime(eqb.debut)+' – '+fmtTime(eqb.fin);
+      h += '</td></tr>';
     }
-  }
-  if (hasEqB || pdtEqBseqs.length) {
-    h += '<div style="border:2px solid #1565c0;border-radius:4px;margin-bottom:8px;overflow:hidden">';
-    h += '<div style="background:#1565c0;color:#fff;padding:4px 10px;font-size:9px;font-weight:800;display:flex;justify-content:space-between;align-items:center">';
-    h += '<span>🎬 ÉQUIPE B</span>';
-    if (eqb.pat) h += '<span>PAT : '+fmtTime(eqb.pat)+'</span>';
-    if (eqb.debut && eqb.fin) h += '<span>'+fmtTime(eqb.debut)+' – '+fmtTime(eqb.fin)+'</span>';
-    h += '</div>';
-    h += '<div style="padding:5px 8px;font-size:8.5px">';
-    if (eqb.seqs || pdtEqBseqs.length) {
-      var seqsList = eqb.seqs || pdtEqBseqs.join(', ');
-      h += '<div style="margin-bottom:3px"><b style="color:#1565c0">Séquences :</b> <span style="color:#1565c0;font-weight:700">'+seqsList+'</span></div>';
-    }
-    if (eqb.lieu) h += '<div style="margin-bottom:3px"><b>Lieu :</b> '+eqb.lieu+'</div>';
-    if (eqb.intervenants) {
-      h += '<div style="margin-bottom:3px"><b>Intervenants :</b><br><span style="white-space:pre-line;color:#333">'+eqb.intervenants+'</span></div>';
-    }
-    if (eqb.note) h += '<div style="font-style:italic;color:#555">'+eqb.note+'</div>';
-    h += '</div></div>';
+    if (eqb.lieu) h += '<tr><td style="padding:2px 6px;border:1px solid #ccc;font-size:8.5px;font-weight:700">Lieu</td><td style="padding:2px 6px;border:1px solid #ccc;font-size:8.5px">'+eqb.lieu+'</td></tr>';
+    if (eqb.intervenants) h += '<tr><td style="padding:2px 6px;border:1px solid #ccc;font-size:8.5px;font-weight:700">Intervenants</td><td style="padding:2px 6px;border:1px solid #ccc;font-size:8.5px;white-space:pre-line">'+eqb.intervenants+'</td></tr>';
+    if (eqb.note) h += '<tr><td style="padding:2px 6px;border:1px solid #ccc;font-size:8.5px;font-weight:700">Note</td><td style="padding:2px 6px;border:1px solid #ccc;font-size:8.5px;font-style:italic">'+eqb.note+'</td></tr>';
+    h += '</table>';
   }
 
   // COMEDIENS par type
