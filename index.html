@@ -9260,7 +9260,7 @@ function appliquerDepoPdf(journees) {
   toast(nbCrees + ' FDS créées · ' + totalFds + ' au total ✓');
   window._depoData = null;
 
-  if (activeFdsId) renderAll();
+  if (activeFdsId) { renderAllTabs(); if (typeof pgLoadInfos==='function') pgLoadInfos(); }
   renderFilms();
 }
 
