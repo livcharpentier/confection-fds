@@ -5396,6 +5396,11 @@ function pgRenderComplements() {
       '<path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>'+
       '<path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>';
   }
+  function trashBtn(idx) {
+    return '<button onclick="if(confirm(\'Supprimer cette ligne ?\')){removeComedien('+idx+');}" style="background:none;border:none;cursor:pointer;padding:2px;color:#c62828">'+
+      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px">'+
+      '<polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>';
+  }
 
   function seqCols(c) {
     if (!allSeqs.length) return '<td style="padding:4px;border:1px solid #ddd;text-align:center;font-size:10px">'+(c.seqs||'')+'</td>';
@@ -5456,7 +5461,7 @@ function pgRenderComplements() {
         '<td style="padding:4px;border:1px solid #ddd;text-align:center;font-size:11px">'+(fmtTime(c.hmc)||'—')+'</td>'+
         '<td style="padding:4px;border:1px solid #ddd;text-align:center;font-size:11px">'+(fmtTime(c.loges)||'—')+'</td>'+
         '<td style="padding:4px;border:1px solid #ddd;text-align:center;font-size:11px;font-weight:700">'+(fmtTime(c.pat)||'—')+'</td>'+
-        '<td style="padding:2px;border:1px solid #ddd;text-align:center">'+pencilBtn(idx)+'</td>'+
+        '<td style="padding:2px;border:1px solid #ddd;text-align:center;white-space:nowrap">'+pencilBtn(idx)+trashBtn(idx)+'</td>'+
       '</tr>';
     }).join('');
   }
@@ -5490,7 +5495,7 @@ function pgRenderComplements() {
         seqCols(c)+
         '<td style="padding:4px;border:1px solid #ddd;text-align:center;font-size:11px">'+(fmtTime(c.hmc)||'—')+'</td>'+
         '<td style="padding:4px;border:1px solid #ddd;text-align:center;font-size:11px;font-weight:700">'+(fmtTime(c.pat)||'—')+'</td>'+
-        '<td style="padding:2px;border:1px solid #ddd;text-align:center">'+pencilBtn(idx)+'</td>'+
+        '<td style="padding:2px;border:1px solid #ddd;text-align:center;white-space:nowrap">'+pencilBtn(idx)+trashBtn(idx)+'</td>'+
       '</tr>';
     }).join('');
   }
@@ -5563,7 +5568,7 @@ function pgRenderComplements() {
           '<td style="padding:4px;border:1px solid #ddd;text-align:center">'+(fmtTime(c.hmc)||'—')+'</td>'+
           '<td style="padding:4px;border:1px solid #ddd;text-align:center">'+(fmtTime(c.loges)||'—')+'</td>'+
           '<td style="padding:4px;border:1px solid #ddd;text-align:center;font-weight:700">'+(fmtTime(c.pat)||'—')+'</td>'+
-          '<td style="padding:2px;border:1px solid #ddd;text-align:center">'+pencilBtn(idx)+'</td>'+
+          '<td style="padding:2px;border:1px solid #ddd;text-align:center;white-space:nowrap">'+pencilBtn(idx)+trashBtn(idx)+'</td>'+
         '</tr>';
       }).join('');
     }
@@ -5934,6 +5939,11 @@ function pgRenderCascadeurs() {
       '<path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>'+
       '<path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>';
   }
+  function trashBtn(idx) {
+    return '<button onclick="if(confirm(\'Supprimer cette ligne ?\')){removeComedien('+idx+');}" style="background:none;border:none;cursor:pointer;padding:2px;color:#c62828">'+
+      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px">'+
+      '<polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>';
+  }
 
   function seqCols(c) {
     if (!allSeqs.length) return '<td style="padding:4px;border:1px solid #ddd;text-align:center;font-size:10px">'+(c.seqs||'')+'</td>';
@@ -6010,7 +6020,7 @@ function pgRenderCascadeurs() {
         seqCols(c)+
         hmcCell+
         '<td style="padding:4px;border:1px solid #ddd;text-align:center;font-size:11px;font-weight:700">'+(fmtTime(c.pat)||'—')+'</td>'+
-        '<td style="padding:2px;border:1px solid #ddd;text-align:center">'+pencilBtn(idx)+'</td>'+
+        '<td style="padding:2px;border:1px solid #ddd;text-align:center;white-space:nowrap">'+pencilBtn(idx)+trashBtn(idx)+'</td>'+
       '</tr>';
     }).join('');
   }
