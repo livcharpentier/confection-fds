@@ -2953,7 +2953,7 @@ function calcPickup(patStr, dureeMin) {
   var parts = str.split(':');
   var h = parseInt(parts[0], 10);
   var m = parseInt(parts[1] || '0', 10);
-  if (isNaN(h) || isNaN(m)) return null; // valeur non-heure (ex: "DEJ 12H30") → pas de calcul
+  if (isNaN(h) || isNaN(m)) return '—'; // valeur non-heure (ex: "DEJ 12H30") → pas de calcul
   var tot = h * 60 + m - (dureeMin||0) - 5;
   if (tot < 0) tot += 24 * 60;
   return Math.floor(tot/60) + 'H' + String(tot%60).padStart(2,'0');
@@ -3681,7 +3681,7 @@ function renderApercu(targetEl) {
       h += secHead('TRANSPORTS COMÉDIENS – ' + (i.date||'').toUpperCase(), 6);
       h += '<tr>'+th('NOMS')+th('CHAUFFEUR')+th('PICK-UP','65px')+th('LIEUX')+th('SUR PLACE','65px')+th('PAT','55px')+'</tr>';
       transJour.forEach(function(t) {
-        var pickup = t.pickup || (t.pat ? calcPickup(t.pat, estimerTrajet(t.depart, t.arrivee)) : '—');
+        var pickup = t.pickup || (t.pat ? (calcPickup(t.pat, estimerTrajet(t.depart, t.arrivee))||'—') : '—');
         h += '<tr>'+td(t.comedien,'',true,true)+td(t.chauffeur+(t.tel?'<br><span style="font-size:8px">'+t.tel+'</span>':''),'',false,true)+
              td(pickup,'',true,true)+td(t.depart,'',false,true)+td(fmtTime(t.sur_place)||'—','',false,true)+td(fmtTime(t.pat)||'—','',true,true)+'</tr>';
       });
