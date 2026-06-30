@@ -8564,7 +8564,18 @@ function saveDepoSeqDB(journees) {
 function getDepoSeq(numSeq) {
   if (!state._depoSeqDB) return null;
   var key = String(numSeq||'').trim().toUpperCase().replace(/\s+/g,' ');
-  return state._depoSeqDB[key] || null;
+  // Match exact
+  if (state._depoSeqDB[key]) return state._depoSeqDB[key];
+  // Match en ignorant les suffixes parenthétiques type (D), (EQ.B), etc.
+  var keyBase = key.replace(/\s*\([^)]*\)\s*$/,'').trim();
+  if (state._depoSeqDB[keyBase]) return state._depoSeqDB[keyBase];
+  // Chercher une clé de la base qui correspond une fois les suffixes retirés des deux côtés
+  var allKeys = Object.keys(state._depoSeqDB);
+  for (var i=0;i<allKeys.length;i++){
+    var dbKeyBase = allKeys[i].replace(/\s*\([^)]*\)\s*$/,'').trim();
+    if (dbKeyBase === key || dbKeyBase === keyBase) return state._depoSeqDB[allKeys[i]];
+  }
+  return null;
 }
 
 function appliquerDepoPdf(journees) {
