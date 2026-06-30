@@ -2477,12 +2477,16 @@ function addComedien() {
     pat: document.getElementById('co-pat').value,
     nbre: parseInt((document.getElementById('co-nbre')||{}).value)||1
   });
-  closeModal('modal-comedien'); renderComediensList(); renderFigurationTab(); save(); toast('Ajouté !');
+  closeModal('modal-comedien'); renderComediensList(); renderFigurationTab();
+  if (typeof pgRenderComplements==='function') pgRenderComplements();
+  save(); toast('Ajouté !');
 }
 
 function removeComedien(i) {
   var f = activeFDS(); if (!f) return;
-  f.comediens.splice(i, 1); renderComediensList(); renderFigurationTab(); save();
+  f.comediens.splice(i, 1); renderComediensList(); renderFigurationTab();
+  if (typeof pgRenderComplements==='function') pgRenderComplements();
+  save();
 }
 
 // ═══════════════════════ DEPARTEMENTS ═══════════════════════
