@@ -147,6 +147,7 @@ textarea.form-input{resize:vertical;min-height:72px;}
 .toast{position:fixed;bottom:72px;left:50%;transform:translateX(-50%);background:#111;color:#fff;padding:9px 18px;border-radius:999px;font-size:13px;z-index:999;opacity:0;transition:opacity .25s;pointer-events:none;white-space:nowrap;}
 .toast.show{opacity:1;}
 </style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 </head>
 <body>
 
@@ -459,6 +460,7 @@ textarea.form-input{resize:vertical;min-height:72px;}
       <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">
         <button class="btn btn-primary" style="flex:1;justify-content:center" onclick="envoyerProd()">✉ Envoyer FDS</button>
         <button class="btn btn-secondary" style="flex:1;justify-content:center" onclick="window.print()">🖨 Imprimer</button>
+        <button class="btn btn-secondary" style="flex:1;justify-content:center" onclick="telechargerPdfApercu()">📄 Télécharger PDF</button>
       </div>
       <div id="apercu-nav-selector" style="margin-bottom:12px"></div>
       <div id="apercu-nav-content" style="border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;background:#fff"></div>
@@ -2984,6 +2986,28 @@ function goToTab(tabName, fdsId) {
   navTo(target, btn);
 }
 
+
+function telechargerPdfApercu() {
+  var el = document.getElementById('apercu-nav-content') || document.getElementById('apercu-content');
+  if (!el || !el.innerHTML.trim()) { toast('Aucune FDS à exporter'); return; }
+  var f = activeFDS();
+  var nomFichier = 'FDS_' + (f ? (f.journee||'J'+f.jdt) : 'export') + '_' + ((f&&f.infos&&f.infos.date)||'').replace(/[^0-9a-zA-Z]/g,'_') + '.pdf';
+  toast('Génération du PDF en cours…');
+  var opt = {
+    margin: 5,
+    filename: nomFichier,
+    image: { type: 'jpeg', quality: 0.95 },
+    html2canvas: { scale: 2, useCORS: true },
+    jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+    pagebreak: { mode: ['css', 'legacy'] }
+  };
+  html2pdf().set(opt).from(el).save().then(function(){
+    toast('✅ PDF téléchargé');
+  }).catch(function(e){
+    console.error(e);
+    toast('Erreur génération PDF — utilisez Imprimer > Enregistrer en PDF');
+  });
+}
 
 function renderApercu(targetEl) {
   var f = activeFDS();
