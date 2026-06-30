@@ -1532,12 +1532,21 @@ textarea.form-input{resize:vertical;min-height:72px;}
 <div class="modal-overlay" id="modal-prev">
   <div class="modal">
     <div class="modal-head"><h2>Ajouter une prévision</h2><button class="modal-close" onclick="closeModal('modal-prev')">×</button></div>
-    <div class="form-row"><label class="form-label">Journée</label><input class="form-input" id="pv-journee" placeholder="J16 — Mardi 23 juin 2026"/></div>
-    <div class="form-row"><label class="form-label">Horaires</label><input class="form-input" id="pv-horaires" placeholder="10H30 – 20H30"/></div>
-    <div class="form-row"><label class="form-label">Décors</label><textarea class="form-input" id="pv-decors" rows="2" placeholder="Forêt, Route de campagne…"></textarea></div>
-    <div class="form-row"><label class="form-label">Séquences</label><input class="form-input" id="pv-seqs" placeholder="91P1, 93, 139…"/></div>
-    <div class="form-row"><label class="form-label">Rôles / Comédiens</label><textarea class="form-input" id="pv-roles" rows="2"></textarea></div>
-    <div class="form-row"><label class="form-label">Notes</label><textarea class="form-input" id="pv-notes" rows="2"></textarea></div>
+    <div class="form-row"><label class="form-label">Journée (ex: J23)</label>
+      <div style="display:flex;gap:6px">
+        <input class="form-input" id="pv-journee" placeholder="J23" style="flex:1"/>
+        <button class="btn btn-secondary" onclick="autoFillPrev()" style="white-space:nowrap;font-size:11px">⟳ Auto</button>
+      </div>
+    </div>
+    <div class="form-row"><label class="form-label">Horaires</label><input class="form-input" id="pv-horaires" placeholder="10H00 – 19H00"/></div>
+    <div class="form-row"><label class="form-label">Décors / Lieu</label><textarea class="form-input" id="pv-decors" rows="2" placeholder="MAISON INSTITUTEUR - Chambre Eusèbe…"></textarea></div>
+    <div class="form-row"><label class="form-label">Séquences / Effets</label><input class="form-input" id="pv-seqs" placeholder="116, 42 PT, 119/122 PT…"/></div>
+    <div class="form-row"><label class="form-label">Rôles</label><textarea class="form-input" id="pv-roles" rows="2" placeholder="3 - EUSÈBE, 10 - MARNIER…"></textarea></div>
+    <div class="form-row"><label class="form-label">Comédiens</label><textarea class="form-input" id="pv-comediens" rows="2" placeholder="Octave GERBI - Julien PESTEL…"></textarea></div>
+    <div class="form-row"><label class="form-label">Doublures</label><input class="form-input" id="pv-doublures" placeholder="Doublure image François…"/></div>
+    <div class="form-row"><label class="form-label">Figuration</label><input class="form-input" id="pv-figuration" placeholder="20 figurants…"/></div>
+    <div class="form-row"><label class="form-label">Véhicules</label><input class="form-input" id="pv-vehicules" placeholder="1 véhicule civil…"/></div>
+    <div class="form-row"><label class="form-label">Notes (déco, accessoires, HMC…)</label><textarea class="form-input" id="pv-notes" rows="3"></textarea></div>
     <button class="btn btn-primary btn-block" onclick="addPrev()">Ajouter</button>
   </div>
 </div>
@@ -3048,34 +3057,119 @@ function removeTransport(i) {
 function renderPrevList() {
   const f = activeFDS(); const el = document.getElementById('prev-list'); if (!el) return;
   const list = f?.previsions || [];
-  if (!list.length) { el.innerHTML = '<div class="empty">Aucune prévision</div>'; return; }
+  if (!list.length) { el.innerHTML = '<div class="empty">Aucune prévision — cliquez + Ajouter</div>'; return; }
   el.innerHTML = list.map((p, i) => `
-    <div style="padding:10px 0;border-bottom:1px solid var(--border)">
-      <div style="display:flex;justify-content:space-between;align-items:center">
-        <span style="font-size:14px;font-weight:700;color:var(--purple)">${p.journee}</span>
-        <button class="icon-btn" onclick="removePrev(${i})">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/></svg>
-        </button>
+    <div style="border:1px solid #ddd;border-radius:6px;margin-bottom:8px;overflow:hidden">
+      <div style="background:#ddd;padding:6px 10px;display:flex;justify-content:space-between;align-items:center">
+        <span style="font-size:12px;font-weight:800">${(p.journee||'').toUpperCase()}</span>
+        <div style="display:flex;gap:4px;align-items:center">
+          <span style="font-size:11px;font-weight:700">HORAIRES : ${p.horaires||''}</span>
+          <button onclick="editPrev(${i})" style="background:none;border:none;cursor:pointer;padding:2px">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          </button>
+          <button onclick="if(confirm('Supprimer cette prévision ?')){removePrev(${i});}" style="background:none;border:none;cursor:pointer;padding:2px;color:#c62828">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+          </button>
+        </div>
       </div>
-      <div class="row-sub" style="margin-bottom:4px">Horaires : ${p.horaires}</div>
-      ${p.decors ? `<div style="font-size:12px"><b>Décors :</b> ${p.decors}</div>` : ''}
-      ${p.seqs ? `<div style="font-size:12px"><b>Séquences :</b> ${p.seqs}</div>` : ''}
-      ${p.roles ? `<div style="font-size:12px"><b>Rôles :</b> ${p.roles}</div>` : ''}
-      ${p.notes ? `<div class="row-sub" style="margin-top:3px">${p.notes}</div>` : ''}
+      <div style="padding:8px 10px;font-size:11px">
+        ${p.decors ? `<div style="margin-bottom:3px"><b>DÉCORS / LIEU :</b> ${p.decors}</div>` : ''}
+        ${p.seqs ? `<div style="margin-bottom:3px"><b>SÉQUENCES / EFFETS :</b> ${p.seqs}</div>` : ''}
+        ${p.roles ? `<div style="margin-bottom:3px"><b>RÔLES :</b> ${p.roles}</div>` : ''}
+        ${p.comediens ? `<div style="margin-bottom:3px"><b>COMÉDIENS :</b> ${p.comediens}</div>` : ''}
+        ${p.doublures ? `<div style="margin-bottom:3px"><b>DOUBLURES :</b> ${p.doublures}</div>` : ''}
+        ${p.figuration ? `<div style="margin-bottom:3px"><b>FIGURATION :</b> ${p.figuration}</div>` : ''}
+        ${p.vehicules ? `<div style="margin-bottom:3px"><b>VÉHICULES :</b> ${p.vehicules}</div>` : ''}
+        ${p.notes ? `<div style="color:#555;font-style:italic;margin-top:3px">${p.notes}</div>` : ''}
+      </div>
     </div>`).join('');
 }
 
+function editPrev(i) {
+  var f = activeFDS(); if (!f) return;
+  var p = f.previsions[i];
+  document.getElementById('pv-journee').value = p.journee||'';
+  document.getElementById('pv-horaires').value = p.horaires||'';
+  document.getElementById('pv-decors').value = p.decors||'';
+  document.getElementById('pv-seqs').value = p.seqs||'';
+  document.getElementById('pv-roles').value = p.roles||'';
+  document.getElementById('pv-notes').value = p.notes||'';
+  // Stocker l'index pour la sauvegarde
+  document.getElementById('modal-prev').dataset.editIdx = i;
+  openModal('modal-prev');
+}
+
 function addPrev() {
-  const f = activeFDS(); if (!f) return;
-  f.previsions.push({
+  var f = activeFDS(); if (!f) return;
+  var modal = document.getElementById('modal-prev');
+  var editIdx = modal.dataset.editIdx !== undefined && modal.dataset.editIdx !== '' ? parseInt(modal.dataset.editIdx) : -1;
+  var p = {
     journee: document.getElementById('pv-journee').value,
     horaires: document.getElementById('pv-horaires').value,
     decors: document.getElementById('pv-decors').value,
     seqs: document.getElementById('pv-seqs').value,
     roles: document.getElementById('pv-roles').value,
+    comediens: document.getElementById('pv-comediens') ? document.getElementById('pv-comediens').value : '',
+    doublures: document.getElementById('pv-doublures') ? document.getElementById('pv-doublures').value : '',
+    figuration: document.getElementById('pv-figuration') ? document.getElementById('pv-figuration').value : '',
+    vehicules: document.getElementById('pv-vehicules') ? document.getElementById('pv-vehicules').value : '',
     notes: document.getElementById('pv-notes').value
+  };
+  if (editIdx >= 0 && editIdx < f.previsions.length) {
+    f.previsions[editIdx] = p;
+    toast('Prévision mise à jour');
+  } else {
+    f.previsions.push(p);
+    toast('Prévision ajoutée');
+  }
+  modal.dataset.editIdx = '';
+  closeModal('modal-prev'); renderPrevList(); save();
+}
+
+function autoFillPrev() {
+  // Pré-remplir le modal depuis PDT+dépouillement pour la journée saisie
+  var journeeVal = (document.getElementById('pv-journee').value||'').trim();
+  var pdt = getPDTData();
+  // Chercher la journée par nom (ex: "J23") ou date
+  var jNext = pdt.find(function(j){ 
+    return j.journee === journeeVal || j.jdt === parseInt(journeeVal.replace(/[^0-9]/g,''));
   });
-  closeModal('modal-prev'); renderPrevList(); save(); toast('Prévision ajoutée');
+  if (!jNext) { toast('Journée non trouvée dans le PDT'); return; }
+  // Horaires
+  if (!document.getElementById('pv-horaires').value && jNext.debut && jNext.fin) {
+    document.getElementById('pv-horaires').value = jNext.debut.replace(':','H')+' - '+jNext.fin.replace(':','H');
+  }
+  // Décors
+  if (!document.getElementById('pv-decors').value) {
+    var d = jNext.decors && jNext.decors.length ? jNext.decors.join(' / ') : (jNext.lieu||'');
+    document.getElementById('pv-decors').value = d;
+  }
+  // Séquences
+  if (!document.getElementById('pv-seqs').value && jNext.sequences) {
+    document.getElementById('pv-seqs').value = jNext.sequences.join(', ');
+  }
+  // Rôles
+  if (!document.getElementById('pv-roles').value && jNext.roles) {
+    document.getElementById('pv-roles').value = jNext.roles.map(function(r){return r.num+' - '+r.role.toUpperCase();}).join(', ');
+  }
+  // Comédiens
+  if (document.getElementById('pv-comediens') && !document.getElementById('pv-comediens').value && jNext.roles) {
+    document.getElementById('pv-comediens').value = jNext.roles.map(function(r){return r.comedien;}).join(' - ');
+  }
+  // Depuis dépouillement
+  if (state._depoSeqDB && jNext.sequences) {
+    var doubluresSet={}, figArr=[], vehArr=[];
+    jNext.sequences.forEach(function(s){
+      var depo = getDepoSeq(s); if(!depo) return;
+      if(depo.doublures) depo.doublures.split(/[,;\n]+/).forEach(function(d){var dt=d.trim();if(dt)doubluresSet[dt]=1;});
+      if(depo.figurants&&depo.figurants.trim()) figArr.push(depo.figurants.trim());
+      if(depo.vehicules&&depo.vehicules.trim()) vehArr.push(depo.vehicules.trim());
+    });
+    if(document.getElementById('pv-doublures')&&!document.getElementById('pv-doublures').value) document.getElementById('pv-doublures').value=Object.keys(doubluresSet).join(' / ');
+    if(document.getElementById('pv-figuration')&&!document.getElementById('pv-figuration').value) document.getElementById('pv-figuration').value=figArr.join(' — ');
+    if(document.getElementById('pv-vehicules')&&!document.getElementById('pv-vehicules').value) document.getElementById('pv-vehicules').value=vehArr.join(' — ');
+  }
+  toast('✅ Pré-rempli depuis PDT et dépouillement');
 }
 
 function removePrev(i) {
@@ -3778,8 +3872,25 @@ function renderApercu(targetEl) {
       if (decorsStr) h += deptRow('DECORS / LIEU :', decorsStr);
       if (p.sequences && p.sequences.length) h += deptRow('SEQUENCES / EFFETS :', p.sequences.join(', '));
       if (p.roles && p.roles.length) {
-        var rolesStr = p.roles.map(function(r){ return r.num+' - '+r.role+': '+r.comedien; }).join(' / ');
+        var rolesStr = p.roles.map(function(r){ return r.num+' - '+r.role.toUpperCase(); }).join(', ');
+        var comedsStr = p.roles.map(function(r){ return r.comedien; }).join(' - ');
         h += deptRow('ROLES ('+p.roles.length+') :', rolesStr);
+        h += deptRow('COMEDIENS ('+p.roles.length+') :', comedsStr);
+      }
+      // Enrichir depuis la base dépouillement
+      if (state._depoSeqDB && p.sequences && p.sequences.length) {
+        var doubluresSet = {}, figSet = [], vehSet = [];
+        p.sequences.forEach(function(numSeq){
+          var depo = getDepoSeq(numSeq);
+          if (!depo) return;
+          if (depo.doublures) depo.doublures.split(/[,;\n]+/).forEach(function(d){ var dt=d.trim(); if(dt) doubluresSet[dt]=1; });
+          if (depo.figurants && depo.figurants.trim()) figSet.push('Sc.'+numSeq+' : '+depo.figurants.trim());
+          if (depo.vehicules && depo.vehicules.trim()) vehSet.push('Sc.'+numSeq+' : '+depo.vehicules.trim());
+        });
+        var doubluresList = Object.keys(doubluresSet);
+        if (doubluresList.length) h += deptRow('DOUBLURES ('+doubluresList.length+') :', doubluresList.join(' / '));
+        if (figSet.length) h += deptRow('FIGURATION :', figSet.join(' — '));
+        if (vehSet.length) h += deptRow('VEHICULES :', vehSet.join(' — '));
       }
       h += '</table>';
     }
