@@ -521,6 +521,12 @@ textarea.form-input{resize:vertical;min-height:72px;}
         <button class="btn btn-block" style="background:#2e7d32;color:#fff;font-size:12px;font-weight:700;margin-top:6px" onclick="verifierCoherenceFDS()">✓ Vérifier cohérence FDS</button>
       </div>
       <div class="card">
+        <div class="card-title">Prévisions J+1, J+2…
+          <button class="btn btn-sm btn-primary" onclick="openModal('modal-prev')">+ Ajouter</button>
+        </div>
+        <div id="pg-prev-list"><div class="empty">Aucune prévision — cliquez + Ajouter</div></div>
+      </div>
+      <div class="card">
         <div class="card-title">Note à l'équipe</div>
         <textarea class="form-input" id="pg-note" rows="4" placeholder="Message pour l'équipe..."></textarea>
       </div>
@@ -3055,10 +3061,18 @@ function removeTransport(i) {
 
 // ═══════════════════════ PREVISIONS ═══════════════════════
 function renderPrevList() {
-  const f = activeFDS(); const el = document.getElementById('prev-list'); if (!el) return;
+  const f = activeFDS();
+  const el = document.getElementById('prev-list');
+  const el2 = document.getElementById('pg-prev-list');
+  if (!el && !el2) return;
   const list = f?.previsions || [];
-  if (!list.length) { el.innerHTML = '<div class="empty">Aucune prévision — cliquez + Ajouter</div>'; return; }
-  el.innerHTML = list.map((p, i) => `
+  var emptyHtml = '<div class="empty">Aucune prévision — cliquez + Ajouter</div>';
+  if (!list.length) {
+    if (el) el.innerHTML = emptyHtml;
+    if (el2) el2.innerHTML = emptyHtml;
+    return;
+  }
+  var html = list.map((p, i) => `
     <div style="border:1px solid #ddd;border-radius:6px;margin-bottom:8px;overflow:hidden">
       <div style="background:#ddd;padding:6px 10px;display:flex;justify-content:space-between;align-items:center">
         <span style="font-size:12px;font-weight:800">${(p.journee||'').toUpperCase()}</span>
@@ -3083,6 +3097,8 @@ function renderPrevList() {
         ${p.notes ? `<div style="color:#555;font-style:italic;margin-top:3px">${p.notes}</div>` : ''}
       </div>
     </div>`).join('');
+  if (el) el.innerHTML = html;
+  if (el2) el2.innerHTML = html;
 }
 
 function editPrev(i) {
