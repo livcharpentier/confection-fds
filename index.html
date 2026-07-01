@@ -3143,34 +3143,23 @@ function addPrev() {
 }
 
 function autoFillPrev() {
-  // Pré-remplir le modal depuis PDT+dépouillement pour la journée saisie
   var journeeVal = (document.getElementById('pv-journee').value||'').trim();
   var pdt = getPDTData();
-  // Chercher la journée par nom (ex: "J23") ou date
   var jNext = pdt.find(function(j){ 
     return j.journee === journeeVal || j.jdt === parseInt(journeeVal.replace(/[^0-9]/g,''));
   });
-  if (!jNext) { toast('Journée non trouvée dans le PDT'); return; }
-  // Horaires
-  if (!document.getElementById('pv-horaires').value && jNext.debut && jNext.fin) {
+  if (!jNext) { toast('Journée "'+journeeVal+'" non trouvée dans le PDT'); return; }
+
+  // Toujours écraser tous les champs (pas de condition sur la valeur existante)
+  if (jNext.debut && jNext.fin) {
     document.getElementById('pv-horaires').value = jNext.debut.replace(':','H')+' - '+jNext.fin.replace(':','H');
   }
-  // Décors
-  if (!document.getElementById('pv-decors').value) {
-    var d = jNext.decors && jNext.decors.length ? jNext.decors.join(' / ') : (jNext.lieu||'');
-    document.getElementById('pv-decors').value = d;
-  }
-  // Séquences
-  if (!document.getElementById('pv-seqs').value && jNext.sequences) {
-    document.getElementById('pv-seqs').value = jNext.sequences.join(', ');
-  }
-  // Rôles
-  if (!document.getElementById('pv-roles').value && jNext.roles) {
+  var d = jNext.decors && jNext.decors.length ? jNext.decors.join(' / ') : (jNext.lieu||'');
+  document.getElementById('pv-decors').value = d;
+  if (jNext.sequences) document.getElementById('pv-seqs').value = jNext.sequences.join(', ');
+  if (jNext.roles) {
     document.getElementById('pv-roles').value = jNext.roles.map(function(r){return r.num+' - '+r.role.toUpperCase();}).join(', ');
-  }
-  // Comédiens
-  if (document.getElementById('pv-comediens') && !document.getElementById('pv-comediens').value && jNext.roles) {
-    document.getElementById('pv-comediens').value = jNext.roles.map(function(r){return r.comedien;}).join(' - ');
+    if (document.getElementById('pv-comediens')) document.getElementById('pv-comediens').value = jNext.roles.map(function(r){return r.comedien;}).join(' - ');
   }
   // Depuis dépouillement
   if (state._depoSeqDB && jNext.sequences) {
@@ -3181,11 +3170,11 @@ function autoFillPrev() {
       if(depo.figurants&&depo.figurants.trim()) figArr.push(depo.figurants.trim());
       if(depo.vehicules&&depo.vehicules.trim()) vehArr.push(depo.vehicules.trim());
     });
-    if(document.getElementById('pv-doublures')&&!document.getElementById('pv-doublures').value) document.getElementById('pv-doublures').value=Object.keys(doubluresSet).join(' / ');
-    if(document.getElementById('pv-figuration')&&!document.getElementById('pv-figuration').value) document.getElementById('pv-figuration').value=figArr.join(' — ');
-    if(document.getElementById('pv-vehicules')&&!document.getElementById('pv-vehicules').value) document.getElementById('pv-vehicules').value=vehArr.join(' — ');
+    if(document.getElementById('pv-doublures')) document.getElementById('pv-doublures').value=Object.keys(doubluresSet).join(' / ');
+    if(document.getElementById('pv-figuration')) document.getElementById('pv-figuration').value=figArr.join(' — ');
+    if(document.getElementById('pv-vehicules')) document.getElementById('pv-vehicules').value=vehArr.join(' — ');
   }
-  toast('✅ Pré-rempli depuis PDT et dépouillement');
+  toast('✅ '+jNext.journee+' pré-rempli depuis PDT et dépouillement');
 }
 
 function removePrev(i) {
